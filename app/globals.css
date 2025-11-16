@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-md;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* React Big Calendar custom styles */
+.rbc-calendar {
+  @apply bg-white dark:bg-gray-900 rounded-lg shadow-sm;
+}
+
+.rbc-header {
+  @apply py-3 px-2 font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700;
+}
+
+.rbc-today {
+  @apply bg-blue-50 dark:bg-blue-900/20;
+}
+
+.rbc-event {
+  @apply rounded px-2 py-1 text-sm;
+}
+
+.rbc-selected {
+  @apply ring-2 ring-blue-500;
+}
+
+.rbc-time-slot {
+  @apply border-gray-200 dark:border-gray-700;
+}
+
+/* Drag and drop feedback */
+.dragging {
+  @apply opacity-50 cursor-grabbing;
+}
+
+.drag-over {
+  @apply ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20;
+}
+
+/* Dark mode calendar enhancements */
+.dark-calendar .rbc-month-view,
+.dark-calendar .rbc-time-view,
+.dark-calendar .rbc-agenda-view {
+  @apply bg-gray-900;
+}
+
+.dark-calendar .rbc-day-bg {
+  @apply border-gray-700;
+}
+
+.dark-calendar .rbc-off-range-bg {
+  @apply bg-gray-800;
+}
+
+.dark-calendar .rbc-toolbar button {
+  @apply text-gray-300 hover:bg-gray-700;
+}
+
+.dark-calendar .rbc-toolbar button.rbc-active {
+  @apply bg-blue-600 text-white;
+}
+
+.dark-calendar .rbc-time-content {
+  @apply border-gray-700;
+}
+
+.dark-calendar .rbc-time-gutter,
+.dark-calendar .rbc-time-header-gutter {
+  @apply bg-gray-800 text-gray-400;
+}
+
+.dark-calendar .rbc-agenda-table {
+  @apply border-gray-700;
+}
+
+.dark-calendar .rbc-agenda-table tbody > tr > td {
+  @apply border-gray-700;
+}
+
+.dark-calendar .rbc-agenda-date-cell,
+.dark-calendar .rbc-agenda-time-cell {
+  @apply text-gray-300;
+}
+
+.dark-calendar .rbc-agenda-event-cell {
+  @apply text-gray-200;
+}

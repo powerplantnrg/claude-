@@ -1,0 +1,224 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  preferences   Json?     // Store user preferences (theme, notifications, etc.)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  ownedTrips    Trip[]    @relation("TripOwner")
+  sharedTrips   TripCollaborator[]
+  activities    Activity[] @relation("ActivityCreator")
+  comments      Comment[]
+  chatMessages  ChatMessage[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Trip {
+  id          String   @id @default(cuid())
+  title       String
+  destination String
+  startDate   DateTime
+  endDate     DateTime
+  description String?  @db.Text
+  coverImage  String?
+  isTemplate  Boolean  @default(false)
+  isPublic    Boolean  @default(false)
+  shareCode   String?  @unique // For sharing trips via link
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ownerId     String
+  owner       User     @relation("TripOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  collaborators TripCollaborator[]
+  activities    Activity[]
+  chatMessages  ChatMessage[]
+  budgetItems   BudgetItem[]
+
+  @@index([ownerId])
+  @@index([shareCode])
+}
+
+model TripCollaborator {
+  id         String   @id @default(cuid())
+  role       String   @default("viewer") // owner, editor, viewer
+  joinedAt   DateTime @default(now())
+
+  tripId     String
+  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+  @@index([tripId])
+  @@index([userId])
+}
+
+enum ActivityCategory {
+  LODGING
+  DINING
+  ACTIVITY
+  TRANSPORT
+  OTHER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Activity {
+  id          String           @id @default(cuid())
+  title       String
+  description String?          @db.Text
+  location    String?
+  startTime   DateTime
+  endTime     DateTime
+  duration    Int?             // Duration in minutes
+  cost        Float?
+  currency    String           @default("USD")
+  category    ActivityCategory @default(OTHER)
+  priority    Priority         @default(MEDIUM)
+  tags        String[]         // Array of tags
+  images      String[]         // Array of image URLs
+  isStarred   Boolean          @default(false)
+  assignedTo  String?          // User ID of person responsible
+  notes       String?          @db.Text
+  bookingUrl  String?
+  confirmation String?         // Booking confirmation number
+  color       String?          // Color for calendar display
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tripId      String
+  trip        Trip             @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  creatorId   String
+  creator     User             @relation("ActivityCreator", fields: [creatorId], references: [id])
+
+  comments    Comment[]
+
+  @@index([tripId])
+  @@index([creatorId])
+  @@index([startTime])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([activityId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  role      String   // user, assistant, system
+  content   String   @db.Text
+  metadata  Json?    // Store any additional context or data
+  createdAt DateTime @default(now())
+
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model BudgetItem {
+  id          String   @id @default(cuid())
+  category    String
+  amount      Float
+  currency    String   @default("USD")
+  description String?
+  createdAt   DateTime @default(now())
+
+  tripId      String
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+}
+
+model ActivityTemplate {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  category    ActivityCategory
+  destination String
+  rating      Float?
+  duration    Int?     // Average duration in minutes
+  costRange   String?  // e.g., "$", "$$", "$$$"
+  tags        String[]
+  imageUrl    String?
+  source      String?  // Where this template came from
+  createdAt   DateTime @default(now())
+
+  @@index([destination])
+  @@index([category])
+}
