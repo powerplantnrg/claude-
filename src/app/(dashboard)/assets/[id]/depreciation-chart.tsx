@@ -57,8 +57,9 @@ export default function DepreciationChart({ schedules, purchasePrice }: Props) {
             axisLine={false}
           />
           <Tooltip
-            formatter={(value: number, name: string) => [
-              `$${value.toLocaleString("en-AU", {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            formatter={(value: any, name: any) => [
+              `$${Number(value).toLocaleString("en-AU", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}`,
