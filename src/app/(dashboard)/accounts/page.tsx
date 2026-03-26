@@ -29,6 +29,14 @@ const TYPE_COLORS: Record<string, { badge: string; header: string }> = {
   },
 }
 
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    minimumFractionDigits: 2,
+  }).format(amount)
+}
+
 export default async function AccountsPage() {
   const session = await auth()
   if (!session) redirect("/login")
@@ -38,6 +46,104 @@ export default async function AccountsPage() {
     where: { organizationId: orgId },
     orderBy: [{ type: "asc" }, { code: "asc" }],
   })
+
+  // Compute account type balances from journal lines
+  const journalLineSums = await prisma.journalLine.groupBy({
+    by: ["accountId"],
+    _sum: {
+      debit: true,
+      credit: true,
+    },
+    where: {
+      account: {
+        organizationId: orgId,
+      },
+    },
+  })
+
+  // Build a map of accountId -> { debit, credit }
+  const balanceMap = new Map<string, { debit: number; credit: number }>()
+  for (const line of journalLineSums) {
+    balanceMap.set(line.accountId, {
+      debit: line._sum.debit ?? 0,
+      credit: line._sum.credit ?? 0,
+    })
+  }
+
+  // For YTD (Revenue/Expense), compute from current financial year
+  // Australian FY: July 1 - June 30
+  const now = new Date()
+  const fyStartYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1
+  const fyStart = new Date(fyStartYear, 6, 1)
+
+  const ytdJournalLineSums = await prisma.journalLine.groupBy({
+    by: ["accountId"],
+    _sum: {
+      debit: true,
+      credit: true,
+    },
+    where: {
+      account: {
+        organizationId: orgId,
+        type: { in: ["Revenue", "Expense"] },
+      },
+      journalEntry: {
+        date: { gte: fyStart },
+      },
+    },
+  })
+
+  const ytdBalanceMap = new Map<string, { debit: number; credit: number }>()
+  for (const line of ytdJournalLineSums) {
+    ytdBalanceMap.set(line.accountId, {
+      debit: line._sum.debit ?? 0,
+      credit: line._sum.credit ?? 0,
+    })
+  }
+
+  // Calculate type totals
+  // Assets: debit-normal (balance = debits - credits)
+  // Liabilities: credit-normal (balance = credits - debits)
+  // Equity: credit-normal (balance = credits - debits)
+  // Revenue: credit-normal YTD (balance = credits - debits)
+  // Expense: debit-normal YTD (balance = debits - credits)
+  const typeTotals: Record<string, number> = {
+    Asset: 0,
+    Liability: 0,
+    Equity: 0,
+    Revenue: 0,
+    Expense: 0,
+  }
+
+  for (const account of accounts) {
+    if (account.type === "Revenue" || account.type === "Expense") {
+      const bal = ytdBalanceMap.get(account.id)
+      if (bal) {
+        if (account.type === "Expense") {
+          typeTotals.Expense += bal.debit - bal.credit
+        } else {
+          typeTotals.Revenue += bal.credit - bal.debit
+        }
+      }
+    } else {
+      const bal = balanceMap.get(account.id)
+      if (bal) {
+        if (account.type === "Asset") {
+          typeTotals.Asset += bal.debit - bal.credit
+        } else {
+          typeTotals[account.type] += bal.credit - bal.debit
+        }
+      }
+    }
+  }
+
+  const summaryCards = [
+    { label: "Total Assets", value: typeTotals.Asset, color: "text-blue-700", border: "border-blue-200" },
+    { label: "Total Liabilities", value: typeTotals.Liability, color: "text-amber-700", border: "border-amber-200" },
+    { label: "Total Equity", value: typeTotals.Equity, color: "text-purple-700", border: "border-purple-200" },
+    { label: "Revenue (YTD)", value: typeTotals.Revenue, color: "text-emerald-700", border: "border-emerald-200" },
+    { label: "Expenses (YTD)", value: typeTotals.Expense, color: "text-rose-700", border: "border-rose-200" },
+  ]
 
   const grouped = ACCOUNT_TYPE_ORDER.reduce(
     (acc, type) => {
@@ -59,15 +165,43 @@ export default async function AccountsPage() {
             Manage your organization&apos;s accounts across all categories
           </p>
         </div>
-        <Link
-          href="/accounts/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Add Account
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/accounts/import"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            Import CSV
+          </Link>
+          <Link
+            href="/accounts/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            New Account
+          </Link>
+        </div>
+      </div>
+
+      {/* Account Type Summary Cards */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        {summaryCards.map((card) => (
+          <div
+            key={card.label}
+            className={`rounded-xl border bg-white p-4 shadow-sm ${card.border}`}
+          >
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              {card.label}
+            </p>
+            <p className={`mt-1 text-lg font-semibold ${card.color}`}>
+              {formatCurrency(card.value)}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Summary Bar */}
@@ -137,14 +271,20 @@ export default async function AccountsPage() {
             No accounts yet
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Get started by creating your first account.
+            Get started by creating your first account or importing from CSV.
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex items-center justify-center gap-3">
             <Link
               href="/accounts/new"
               className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
             >
-              Add Account
+              New Account
+            </Link>
+            <Link
+              href="/accounts/import"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+            >
+              Import CSV
             </Link>
           </div>
         </div>

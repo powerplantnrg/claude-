@@ -99,12 +99,26 @@ export default async function AccountDetailPage({
           </div>
           <p className="mt-1 text-sm text-slate-500 font-mono">{account.code}</p>
         </div>
-        <Link
-          href="/accounts"
-          className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
-        >
-          Back to Accounts
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/accounts/${id}/edit`}
+            className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition-colors"
+          >
+            Edit
+          </Link>
+          <Link
+            href={`/accounts/${id}/reconciliation`}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            Reconciliation
+          </Link>
+          <Link
+            href="/accounts"
+            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            Back to Accounts
+          </Link>
+        </div>
       </div>
 
       {/* Account Info */}
