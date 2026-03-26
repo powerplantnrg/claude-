@@ -8,6 +8,7 @@ import {
   RdSpendByProjectChart,
   ExperimentStatusChart,
 } from "@/components/charts/rd-charts"
+import { generateRecommendations } from "@/lib/rd-recommendations"
 
 export const metadata: Metadata = {
   title: "R&D Intelligence",
@@ -18,7 +19,7 @@ export default async function RdDashboardPage() {
   if (!session) redirect("/login")
   const orgId = (session.user as any).organizationId
 
-  const [projects, experiments, rdSpend, claimDrafts] = await Promise.all([
+  const [projects, experiments, rdSpend, claimDrafts, recommendations] = await Promise.all([
     prisma.rdProject.findMany({
       where: { organizationId: orgId },
       include: {
@@ -71,6 +72,7 @@ export default async function RdDashboardPage() {
       orderBy: { generatedAt: "desc" },
       take: 1,
     }),
+    generateRecommendations({ organizationId: orgId }),
   ])
 
   const totalRdSpend = rdSpend._sum.debit || 0
@@ -304,6 +306,62 @@ export default async function RdDashboardPage() {
           </table>
         </div>
       </div>
+
+      {/* Top Recommendations */}
+      {recommendations.length > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white">
+          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h2 className="text-lg font-semibold text-slate-900">
+              Top Recommendations
+            </h2>
+            <Link
+              href="/rd/recommendations"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            >
+              View All ({recommendations.length})
+            </Link>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {recommendations.slice(0, 3).map((rec) => {
+              const priorityBadge =
+                rec.priority === "high"
+                  ? "bg-red-100 text-red-700"
+                  : rec.priority === "medium"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-blue-100 text-blue-700"
+              return (
+                <div
+                  key={rec.id}
+                  className="flex items-center justify-between px-6 py-4 hover:bg-slate-50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${priorityBadge}`}
+                      >
+                        {rec.priority}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {rec.category}
+                      </span>
+                    </div>
+                    <p className="font-medium text-slate-900">{rec.title}</p>
+                    <p className="mt-0.5 text-sm text-slate-500 truncate">
+                      {rec.description}
+                    </p>
+                  </div>
+                  <Link
+                    href={rec.actionUrl}
+                    className="ml-4 shrink-0 rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-100"
+                  >
+                    Take Action
+                  </Link>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Recent Experiments */}
       <div className="rounded-xl border border-slate-200 bg-white">

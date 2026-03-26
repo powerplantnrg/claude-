@@ -36,6 +36,10 @@ import {
   PanelLeftClose,
   PanelLeft,
   X,
+  ScrollText,
+  Activity,
+  Sparkles,
+  ClipboardCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -92,6 +96,8 @@ const navSections: NavSection[] = [
       { label: "Advice", href: "/rd/advice", icon: Lightbulb },
       { label: "Compliance", href: "/rd/compliance", icon: ShieldCheck },
       { label: "Claims", href: "/rd/claims", icon: FileCheck },
+      { label: "Recommendations", href: "/rd/recommendations", icon: Sparkles },
+      { label: "Eligibility Wizard", href: "/rd/eligibility", icon: ClipboardCheck },
     ],
   },
   {
@@ -120,6 +126,9 @@ const navSections: NavSection[] = [
     items: [
       { label: "Data Room", href: "/data-room", icon: FolderOpen },
       { label: "Settings", href: "/settings", icon: Settings },
+      { label: "Audit Log", href: "/settings/audit-log", icon: ScrollText },
+      { label: "Users", href: "/settings/users", icon: Users },
+      { label: "Activity", href: "/settings/activity", icon: Activity },
     ],
   },
 ]

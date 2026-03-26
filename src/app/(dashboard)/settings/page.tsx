@@ -2,6 +2,8 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency } from "@/lib/utils"
+import Link from "next/link"
+import { ScrollText, Users, Activity } from "lucide-react"
 
 export default async function SettingsPage() {
   const session = await auth()
@@ -149,6 +151,57 @@ export default async function SettingsPage() {
             <p className="text-xs font-medium text-slate-500">Organization ID</p>
             <p className="mt-1 text-xs font-mono text-slate-500 truncate">{orgId}</p>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Links */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-slate-900">Administration</h2>
+        </div>
+        <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-3">
+          <Link
+            href="/settings/users"
+            className="flex items-start gap-3 rounded-lg border border-slate-200 p-4 transition-colors hover:border-indigo-200 hover:bg-indigo-50/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
+              <Users className="h-5 w-5 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">User Management</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Manage team members, roles, and permissions
+              </p>
+            </div>
+          </Link>
+          <Link
+            href="/settings/audit-log"
+            className="flex items-start gap-3 rounded-lg border border-slate-200 p-4 transition-colors hover:border-indigo-200 hover:bg-indigo-50/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100">
+              <ScrollText className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Audit Log</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                View all system activity and change history
+              </p>
+            </div>
+          </Link>
+          <Link
+            href="/settings/activity"
+            className="flex items-start gap-3 rounded-lg border border-slate-200 p-4 transition-colors hover:border-indigo-200 hover:bg-indigo-50/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-100">
+              <Activity className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Activity Feed</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Timeline view of recent organizational activity
+              </p>
+            </div>
+          </Link>
         </div>
       </div>
 
