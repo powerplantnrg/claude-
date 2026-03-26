@@ -41,6 +41,8 @@ model Organization {
   auditLogs           AuditLog[]
   rdAdviceItems       RdAdviceItem[]
   rdPipelineStages    RdPipelineStage[]
+  dataRoomTokens      DataRoomToken[]
+  carbonEntries       CarbonEntry[]
 }
 
 model User {
@@ -283,6 +285,7 @@ model RdProject {
   portfolioEntry          RdPortfolioEntry?
   claimDrafts             RdClaimDraft[]
   auditPacks              AuditPack[]
+  carbonEntries           CarbonEntry[]
 }
 
 model RdActivity {
@@ -580,6 +583,22 @@ model AuditPack {
 }
 
 // ============================================
+// DATA ROOM: Share Tokens
+// ============================================
+
+model DataRoomToken {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  token          String       @unique
+  name           String
+  expiresAt      DateTime?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  lastAccessedAt DateTime?
+}
+
+// ============================================
 // SCENARIO SIMULATION
 // ============================================
 
@@ -610,4 +629,26 @@ model RdAdviceItem {
   organizationId  String?
 
   organization    Organization? @relation(fields: [organizationId], references: [id])
+}
+
+// ============================================
+// SUSTAINABILITY: Carbon & Energy Accounting
+// ============================================
+
+model CarbonEntry {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  date           DateTime
+  category       String       // Scope1, Scope2, Scope3
+  source         String       // e.g., "Electricity", "GPU Compute", "Air Travel", "Cloud Data Center"
+  quantity       Float        // e.g., kWh, km, hours
+  unit           String       // kWh, km, GPU-hours, etc.
+  emissionFactor Float        // kg CO2e per unit
+  totalEmissions Float        // quantity * emissionFactor (kg CO2e)
+  cost           Float?       // associated cost if any
+  notes          String?
+  projectId      String?      // optional link to R&D project
+  project        RdProject?   @relation(fields: [projectId], references: [id])
+  createdAt      DateTime     @default(now())
 }

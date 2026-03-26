@@ -73,6 +73,8 @@ const navSections: NavSection[] = [
       { label: "Cash Flow", href: "/reports/cash-flow", icon: DollarSign },
       { label: "GST/BAS", href: "/reports/gst", icon: FileBarChart },
       { label: "R&D Expenditure", href: "/reports/rd-expenditure", icon: FlaskConical },
+      { label: "Aged Receivables", href: "/reports/aged-receivables", icon: ClipboardList },
+      { label: "Aged Payables", href: "/reports/aged-payables", icon: Receipt },
     ],
   },
   {
