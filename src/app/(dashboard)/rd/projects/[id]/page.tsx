@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
+import AuditPackButton from "./AuditPackButton"
 
 export default async function RdProjectDetailPage({
   params,
@@ -157,6 +158,7 @@ export default async function RdProjectDetailPage({
             {project.budget && ` \u00B7 Budget: ${formatCurrency(project.budget)}`}
           </p>
         </div>
+        <AuditPackButton projectId={id} />
       </div>
 
       {/* KPI Row */}

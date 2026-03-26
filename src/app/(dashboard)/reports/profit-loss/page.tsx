@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency } from "@/lib/utils"
 import Link from "next/link"
+import { ProfitLossExportButton } from "./export-button"
 
 function getFinancialYearDates(year?: string): { start: Date; end: Date; label: string } {
   const now = new Date()
@@ -118,6 +119,23 @@ export default async function ProfitLossPage({
             {formatStart} &mdash; {formatEnd} ({fyDates.label})
           </p>
         </div>
+        <ProfitLossExportButton
+          revenueItems={revenueItems.map((item) => ({
+            code: item.account.code,
+            name: item.account.name,
+            total: item.total,
+          }))}
+          expenseItems={expenseItems.map((item) => ({
+            code: item.account.code,
+            name: item.account.name,
+            total: item.total,
+            subType: item.subType,
+          }))}
+          totalRevenue={totalRevenue}
+          totalExpenses={totalExpenses}
+          netProfitLoss={netProfitLoss}
+          periodLabel={fyDates.label}
+        />
       </div>
 
       {/* Date range filter hint */}

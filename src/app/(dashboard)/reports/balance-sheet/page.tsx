@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency } from "@/lib/utils"
 import Link from "next/link"
+import { BalanceSheetExportButton } from "./export-button"
 
 export default async function BalanceSheetPage({
   searchParams,
@@ -128,13 +129,27 @@ export default async function BalanceSheetPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <Link href="/reports" className="hover:text-indigo-600">Reports</Link>
-          <span>/</span>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Link href="/reports" className="hover:text-indigo-600">Reports</Link>
+            <span>/</span>
+          </div>
+          <h1 className="text-2xl font-semibold text-slate-900">Balance Sheet</h1>
+          <p className="mt-1 text-sm text-slate-500">As of {formatAsOf}</p>
         </div>
-        <h1 className="text-2xl font-semibold text-slate-900">Balance Sheet</h1>
-        <p className="mt-1 text-sm text-slate-500">As of {formatAsOf}</p>
+        <BalanceSheetExportButton
+          assets={assets.map((a) => ({ code: a.account.code, name: a.account.name, type: a.account.type, balance: a.balance }))}
+          liabilities={liabilities.map((a) => ({ code: a.account.code, name: a.account.name, type: a.account.type, balance: a.balance }))}
+          equity={equity.map((a) => ({ code: a.account.code, name: a.account.name, type: a.account.type, balance: a.balance }))}
+          totalAssets={totalAssets}
+          totalLiabilities={totalLiabilities}
+          totalEquity={totalEquity}
+          retainedEarnings={retainedEarnings}
+          totalEquityWithRetained={totalEquityWithRetained}
+          totalLiabilitiesAndEquity={totalLiabilitiesAndEquity}
+          asOfDate={formatAsOf}
+        />
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">

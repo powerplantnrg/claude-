@@ -59,12 +59,20 @@ export default async function InvoiceDetailPage({
             Invoice to {invoice.contact.name}
           </p>
         </div>
-        <Link
-          href="/invoices"
-          className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
-        >
-          Back to Invoices
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/invoices/${invoice.id}/print`}
+            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            Print Invoice
+          </Link>
+          <Link
+            href="/invoices"
+            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            Back to Invoices
+          </Link>
+        </div>
       </div>
 
       {/* Invoice details card */}

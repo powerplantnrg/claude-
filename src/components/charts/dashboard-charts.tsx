@@ -23,8 +23,10 @@ function formatCurrencyShort(value: number) {
   return `$${value.toFixed(0)}`
 }
 
-function currencyTooltipFormatter(value: number) {
-  return `$${value.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function currencyTooltipFormatter(value: any) {
+  const num = Number(value ?? 0)
+  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 // --- Revenue vs Expenses Bar Chart ---
@@ -136,8 +138,9 @@ export function RdSpendByCategoryChart({ data }: { data: RdCategoryData[] }) {
                 outerRadius={110}
                 paddingAngle={3}
                 dataKey="value"
-                label={({ name, percent }) =>
-                  `${name} (${(percent * 100).toFixed(0)}%)`
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                label={({ name, percent }: any) =>
+                  `${name ?? ""} (${(((percent as number) ?? 0) * 100).toFixed(0)}%)`
                 }
               >
                 {data.map((_, index) => (

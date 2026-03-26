@@ -3,7 +3,10 @@ import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 
 export const metadata: Metadata = {
-  title: "RD Finance OS",
+  title: {
+    default: "R&D Financial OS",
+    template: "%s | R&D Financial OS",
+  },
   description: "R&D and AI Financial Operating System",
 };
 

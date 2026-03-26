@@ -3,6 +3,15 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
+import type { Metadata } from "next"
+import {
+  RdSpendByProjectChart,
+  ExperimentStatusChart,
+} from "@/components/charts/rd-charts"
+
+export const metadata: Metadata = {
+  title: "R&D Intelligence",
+}
 
 export default async function RdDashboardPage() {
   const session = await auth()
@@ -90,6 +99,27 @@ export default async function RdDashboardPage() {
     Ineligible: "bg-red-100 text-red-700",
     PartiallyEligible: "bg-blue-100 text-blue-700",
   }
+
+  // Chart data: R&D spend by project
+  const projectSpendData = projects
+    .map((project) => ({
+      name: project.name,
+      spend: project.rdExpenses.reduce(
+        (sum, e) => sum + (e.journalLine?.debit || 0),
+        0
+      ),
+    }))
+    .filter((d) => d.spend > 0)
+    .sort((a, b) => b.spend - a.spend)
+
+  // Chart data: experiment status distribution
+  const statusCounts = new Map<string, number>()
+  for (const exp of allExperiments) {
+    statusCounts.set(exp.status, (statusCounts.get(exp.status) || 0) + 1)
+  }
+  const experimentStatusData = Array.from(statusCounts.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
 
   return (
     <div className="space-y-6">
@@ -183,6 +213,12 @@ export default async function RdDashboardPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <RdSpendByProjectChart data={projectSpendData} />
+        <ExperimentStatusChart data={experimentStatusData} />
       </div>
 
       {/* Projects Overview Table */}

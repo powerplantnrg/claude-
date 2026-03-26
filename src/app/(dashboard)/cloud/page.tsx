@@ -3,6 +3,10 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
+import {
+  CostTrendChart,
+  CostByProviderChart,
+} from "@/components/charts/cloud-charts"
 
 export default async function CloudDashboardPage() {
   const session = await auth()
@@ -76,6 +80,23 @@ export default async function CloudDashboardPage() {
     }
     return { label: m.label, ...byProvider }
   })
+
+  // Data for Recharts cost trend line chart
+  const costTrendData = monthlyData.map((m) => {
+    const providerNames = providers.map((p) => p.displayName)
+    const total = providerNames.reduce(
+      (sum, name) => sum + ((m as Record<string, any>)[name] || 0),
+      0
+    )
+    return { month: m.label, total, ...Object.fromEntries(
+      providerNames.map((name) => [name, (m as Record<string, any>)[name] || 0])
+    ) }
+  })
+
+  // Data for cost by provider donut chart
+  const costByProviderData = providerSpend
+    .filter((p) => p.total > 0)
+    .map((p) => ({ name: p.name, value: p.total }))
 
   // Recent cost entries
   const recentCosts = allCosts
@@ -235,6 +256,15 @@ export default async function CloudDashboardPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Interactive Charts */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <CostTrendChart
+          data={costTrendData}
+          providers={providers.map((p) => p.displayName)}
+        />
+        <CostByProviderChart data={costByProviderData} />
       </div>
 
       {/* Monthly Spend Chart Area */}

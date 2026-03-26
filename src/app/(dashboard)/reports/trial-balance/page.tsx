@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency } from "@/lib/utils"
 import Link from "next/link"
+import { TrialBalanceExportButton } from "./export-button"
 
 export default async function TrialBalancePage({
   searchParams,
@@ -71,13 +72,27 @@ export default async function TrialBalancePage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <Link href="/reports" className="hover:text-indigo-600">Reports</Link>
-          <span>/</span>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Link href="/reports" className="hover:text-indigo-600">Reports</Link>
+            <span>/</span>
+          </div>
+          <h1 className="text-2xl font-semibold text-slate-900">Trial Balance</h1>
+          <p className="mt-1 text-sm text-slate-500">As of {formatAsOf}</p>
         </div>
-        <h1 className="text-2xl font-semibold text-slate-900">Trial Balance</h1>
-        <p className="mt-1 text-sm text-slate-500">As of {formatAsOf}</p>
+        <TrialBalanceExportButton
+          rows={rows.map((row) => ({
+            code: row.account.code,
+            name: row.account.name,
+            type: row.account.type,
+            totalDebit: row.totalDebit,
+            totalCredit: row.totalCredit,
+          }))}
+          grandTotalDebit={grandTotalDebit}
+          grandTotalCredit={grandTotalCredit}
+          asOfDate={formatAsOf}
+        />
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">

@@ -3,6 +3,16 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
+import {
+  RevenueExpensesChart,
+  CashFlowChart,
+  RdSpendByCategoryChart,
+} from "@/components/charts/dashboard-charts"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+}
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -16,6 +26,8 @@ export default async function DashboardPage() {
     activeRdProjects,
     recentEntries,
     rdClaimEstimate,
+    monthlyJournalLines,
+    rdExpensesByCategory,
   ] = await Promise.all([
     // Total revenue: sum of credit on Revenue accounts in posted journal entries
     prisma.journalLine.aggregate({
@@ -82,12 +94,81 @@ export default async function DashboardPage() {
         },
       },
     }),
+    // Monthly journal lines for charts (last 6 months)
+    prisma.journalLine.findMany({
+      where: {
+        journalEntry: {
+          organizationId: orgId,
+          status: "Posted",
+        },
+      },
+      include: {
+        account: true,
+        journalEntry: { select: { date: true } },
+      },
+    }),
+    // R&D expenses by category
+    prisma.rdExpense.findMany({
+      where: {
+        rdProject: { organizationId: orgId },
+      },
+      include: {
+        journalLine: true,
+      },
+    }),
   ])
 
   const totalRevenue = revenueResult._sum.credit ?? 0
   const totalExpenses = expenseResult._sum.debit ?? 0
   const netProfit = totalRevenue - totalExpenses
   const estimatedRdClaim = rdClaimEstimate._sum.debit ?? 0
+
+  // Build chart data: Revenue vs Expenses by month (last 6 months)
+  const now = new Date()
+  const monthLabels: { key: string; label: string; start: Date; end: Date }[] = []
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59)
+    const label = d.toLocaleDateString("en-AU", { month: "short", year: "2-digit" })
+    monthLabels.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label, start: d, end })
+  }
+
+  const revenueExpenseData = monthLabels.map((m) => {
+    let revenue = 0
+    let expenses = 0
+    for (const line of monthlyJournalLines) {
+      const lineDate = new Date(line.journalEntry.date)
+      if (lineDate >= m.start && lineDate <= m.end) {
+        if (line.account.type === "Revenue") revenue += line.credit
+        if (line.account.type === "Expense") expenses += line.debit
+      }
+    }
+    return { month: m.label, revenue, expenses }
+  })
+
+  const cashFlowData = monthLabels.map((m) => {
+    let inflow = 0
+    let outflow = 0
+    for (const line of monthlyJournalLines) {
+      const lineDate = new Date(line.journalEntry.date)
+      if (lineDate >= m.start && lineDate <= m.end) {
+        inflow += line.credit
+        outflow += line.debit
+      }
+    }
+    return { month: m.label, inflow, outflow, net: inflow - outflow }
+  })
+
+  // R&D spend by category
+  const rdCategoryMap = new Map<string, number>()
+  for (const expense of rdExpensesByCategory) {
+    const cat = expense.category || "Uncategorized"
+    rdCategoryMap.set(cat, (rdCategoryMap.get(cat) || 0) + (expense.journalLine?.debit || 0))
+  }
+  const rdCategoryData = Array.from(rdCategoryMap.entries())
+    .map(([name, value]) => ({ name, value }))
+    .filter((d) => d.value > 0)
+    .sort((a, b) => b.value - a.value)
 
   const kpis = [
     {
@@ -192,6 +273,16 @@ export default async function DashboardPage() {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <RevenueExpensesChart data={revenueExpenseData} />
+        <CashFlowChart data={cashFlowData} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-1">
+        <RdSpendByCategoryChart data={rdCategoryData} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

@@ -2,6 +2,11 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Invoices",
+}
 
 const statusBadge: Record<string, string> = {
   Draft: "bg-gray-100 text-gray-700",
