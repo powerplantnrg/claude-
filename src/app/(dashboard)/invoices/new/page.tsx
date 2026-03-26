@@ -181,8 +181,8 @@ export default function NewInvoicePage() {
               </label>
               <select
                 value={contactId}
-                onChange={(e) => setContactId(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onChange={(e) => { setContactId(e.target.value); setFieldErrors((p) => { const n = { ...p }; delete n.contactId; return n }) }}
+                className={`w-full rounded-lg border bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 ${fieldErrors.contactId ? "border-red-400 focus:border-red-500 focus:ring-red-500" : "border-slate-300 focus:border-blue-500 focus:ring-blue-500"}`}
               >
                 <option value="">Select a contact...</option>
                 {contacts.map((c) => (
@@ -191,6 +191,7 @@ export default function NewInvoicePage() {
                   </option>
                 ))}
               </select>
+              {fieldErrors.contactId && <p className="mt-1 text-xs text-red-600">{fieldErrors.contactId}</p>}
             </div>
             <div>{/* spacer */}</div>
             <div>
@@ -200,9 +201,10 @@ export default function NewInvoicePage() {
               <input
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onChange={(e) => { setDate(e.target.value); setFieldErrors((p) => { const n = { ...p }; delete n.date; return n }) }}
+                className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 ${fieldErrors.date ? "border-red-400 focus:border-red-500 focus:ring-red-500" : "border-slate-300 focus:border-blue-500 focus:ring-blue-500"}`}
               />
+              {fieldErrors.date && <p className="mt-1 text-xs text-red-600">{fieldErrors.date}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -211,9 +213,10 @@ export default function NewInvoicePage() {
               <input
                 type="date"
                 value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onChange={(e) => { setDueDate(e.target.value); setFieldErrors((p) => { const n = { ...p }; delete n.dueDate; return n }) }}
+                className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 ${fieldErrors.dueDate ? "border-red-400 focus:border-red-500 focus:ring-red-500" : "border-slate-300 focus:border-blue-500 focus:ring-blue-500"}`}
               />
+              {fieldErrors.dueDate && <p className="mt-1 text-xs text-red-600">{fieldErrors.dueDate}</p>}
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -419,6 +422,7 @@ export default function NewInvoicePage() {
             disabled={submitting}
             className="inline-flex items-center rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
+            {submitting && <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
             {submitting ? "Creating..." : "Create Invoice"}
           </button>
         </div>

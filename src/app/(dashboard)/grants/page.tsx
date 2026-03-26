@@ -3,6 +3,11 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Grants & Incentives",
+}
 
 export default async function GrantsPage() {
   const session = await auth()

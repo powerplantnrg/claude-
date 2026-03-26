@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma"
 import { formatCurrency } from "@/lib/utils"
 import Link from "next/link"
 import { ScrollText, Users, Activity } from "lucide-react"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Settings",
+}
 
 export default async function SettingsPage() {
   const session = await auth()

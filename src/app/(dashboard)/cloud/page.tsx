@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
 import dynamic from "next/dynamic"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "AI Infrastructure Costs",
+}
 
 const CostTrendChart = dynamic(
   () => import("@/components/charts/cloud-charts").then((m) => ({ default: m.CostTrendChart })),

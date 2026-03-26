@@ -4,10 +4,16 @@ import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
 import type { Metadata } from "next"
-import {
-  RdSpendByProjectChart,
-  ExperimentStatusChart,
-} from "@/components/charts/rd-charts"
+import dynamic from "next/dynamic"
+
+const RdSpendByProjectChart = dynamic(
+  () => import("@/components/charts/rd-charts").then((m) => ({ default: m.RdSpendByProjectChart })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+)
+const ExperimentStatusChart = dynamic(
+  () => import("@/components/charts/rd-charts").then((m) => ({ default: m.ExperimentStatusChart })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+)
 import { generateRecommendations } from "@/lib/rd-recommendations"
 
 export const metadata: Metadata = {
