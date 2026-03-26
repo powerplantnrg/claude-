@@ -69,6 +69,14 @@ model Organization {
   approvalRequests    ApprovalRequest[]
   exchangeRates       ExchangeRate[]
   fxGainLosses        FxGainLoss[]
+  inventoryItems      InventoryItem[]
+  inventoryMovements  InventoryMovement[]
+  stockTakes          StockTake[]
+  projects            Project[]
+  timeEntries         TimeEntry[]
+  projectExpenses     ProjectExpense[]
+  documents           Document[]
+  bankFeeds           BankFeed[]
 }
 
 model User {
@@ -93,6 +101,13 @@ model User {
   approvalSteps     ApprovalStep[]
   approvalRequests  ApprovalRequest[]
   approvalActions   ApprovalAction[]
+  managedProjects      Project[]       @relation("ProjectManager")
+  assignedTasks        ProjectTask[]   @relation("TaskAssignee")
+  projectTimeEntries   TimeEntry[]     @relation("TimeEntryUser")
+  approvedTimeEntries  TimeEntry[]     @relation("TimeEntryApprover")
+  approvedProjectExpenses ProjectExpense[] @relation("ProjectExpenseApprover")
+  completedStockTakes  StockTake[]     @relation("StockTakeCompletedBy")
+  uploadedDocuments    Document[]      @relation("DocumentUploader")
 }
 
 // ============================================
@@ -140,6 +155,9 @@ model Account {
   fixedAssets      FixedAsset[]     @relation("AssetAccount")
   fixedAssetDepreciation FixedAsset[] @relation("DepreciationAccount")
   fixedAssetAccumulated  FixedAsset[] @relation("AccumulatedDepreciationAccount")
+  inventoryAssetItems    InventoryItem[] @relation("InventoryAssetAccount")
+  inventoryCogsItems     InventoryItem[] @relation("InventoryCOGSAccount")
+  inventoryRevenueItems  InventoryItem[] @relation("InventoryRevenueAccount")
 
   @@unique([code, organizationId])
 }
@@ -211,6 +229,8 @@ model Contact {
   creditNotes     CreditNote[]
   purchaseOrders  PurchaseOrder[]
   tagAssignments  ContactTagAssignment[]
+  suppliedItems   InventoryItem[] @relation("InventorySupplier")
+  clientProjects  Project[]       @relation("ProjectClient")
 }
 
 // ============================================
@@ -237,6 +257,9 @@ model Invoice {
   organization    Organization  @relation(fields: [organizationId], references: [id])
   lines           InvoiceLine[]
   payments        Payment[]
+  billedTimeEntries    TimeEntry[]
+  billedProjectExpenses ProjectExpense[]
+  projectMilestones    ProjectMilestone[]
 }
 
 model InvoiceLine {
@@ -321,6 +344,7 @@ model TaxRate {
   organizationId  String
 
   organization    Organization @relation(fields: [organizationId], references: [id])
+  inventoryItems  InventoryItem[]
 }
 
 // ============================================
@@ -356,6 +380,7 @@ model RdProject {
   expenseClaimItems       ExpenseClaimItem[]
   knowledgeBase           KnowledgeBase[]
   fixedAssets             FixedAsset[]
+  linkedProjects          Project[]    @relation("ProjectRdProject")
 }
 
 model RdActivity {
