@@ -272,11 +272,12 @@ export default function NewJournalEntryPage() {
             </label>
             <textarea
               value={narration}
-              onChange={(e) => setNarration(e.target.value)}
+              onChange={(e) => { setNarration(e.target.value); setFieldErrors((p) => { const n = { ...p }; delete n.narration; return n }) }}
               rows={2}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 ${fieldErrors.narration ? "border-red-400 focus:border-red-500 focus:ring-red-500" : "border-slate-300 focus:border-blue-500 focus:ring-blue-500"}`}
               placeholder="Describe the purpose of this journal entry..."
             />
+            {fieldErrors.narration && <p className="mt-1 text-xs text-red-600">{fieldErrors.narration}</p>}
           </div>
         </div>
       </div>
