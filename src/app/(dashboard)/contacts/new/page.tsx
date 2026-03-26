@@ -3,11 +3,13 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "@/lib/toast-store"
 
 export default function NewContactPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -21,10 +23,38 @@ export default function NewContactPage() {
   const [isRdContractor, setIsRdContractor] = useState(false)
   const [notes, setNotes] = useState("")
 
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaving(true)
     setError("")
+    const errors: Record<string, string> = {}
+
+    if (!name.trim()) {
+      errors.name = "Name is required."
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = "Please enter a valid email address."
+    }
+    if (abn && !/^\d{11}$/.test(abn.replace(/\s/g, ""))) {
+      errors.abn = "ABN must be exactly 11 digits."
+    }
+
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) {
+      const msg = Object.values(errors)[0]
+      setError(msg)
+      toast.error("Validation Error", msg)
+      return
+    }
+
+    setSaving(true)
 
     try {
       const res = await fetch("/api/contacts", {
@@ -34,7 +64,7 @@ export default function NewContactPage() {
           name,
           email: email || undefined,
           phone: phone || undefined,
-          abn: abn || undefined,
+          abn: abn.replace(/\s/g, "") || undefined,
           contactType,
           address: address || undefined,
           city: city || undefined,
@@ -46,18 +76,29 @@ export default function NewContactPage() {
 
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error || "Failed to create contact")
+        const errMsg = data.error || "Failed to create contact"
+        setError(errMsg)
+        toast.error("Failed to Create Contact", errMsg)
         return
       }
 
       const contact = await res.json()
+      toast.success("Contact Created", `${name} has been added successfully.`)
       router.push(`/contacts/${contact.id}`)
     } catch {
       setError("An unexpected error occurred")
+      toast.error("Error", "An unexpected error occurred.")
     } finally {
       setSaving(false)
     }
   }
+
+  const inputClass = (field: string) =>
+    `mt-1 block w-full rounded-lg border px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 ${
+      fieldErrors[field]
+        ? "border-red-400 focus:border-red-500 focus:ring-red-500"
+        : "border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+    }`
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -89,12 +130,12 @@ export default function NewContactPage() {
             <input
               id="name"
               type="text"
-              required
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => { setName(e.target.value); clearFieldError("name") }}
               placeholder="Contact name"
-              className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className={inputClass("name")}
             />
+            {fieldErrors.name && <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p>}
           </div>
 
           {/* Email & Phone */}
@@ -105,10 +146,11 @@ export default function NewContactPage() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); clearFieldError("email") }}
                 placeholder="email@example.com"
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className={inputClass("email")}
               />
+              {fieldErrors.email && <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>}
             </div>
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-slate-700">Phone</label>
@@ -131,10 +173,11 @@ export default function NewContactPage() {
                 id="abn"
                 type="text"
                 value={abn}
-                onChange={(e) => setAbn(e.target.value)}
+                onChange={(e) => { setAbn(e.target.value); clearFieldError("abn") }}
                 placeholder="11 digit ABN"
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className={`${inputClass("abn")} font-mono`}
               />
+              {fieldErrors.abn && <p className="mt-1 text-xs text-red-600">{fieldErrors.abn}</p>}
             </div>
             <div>
               <label htmlFor="contactType" className="block text-sm font-medium text-slate-700">Type</label>
@@ -244,6 +287,7 @@ export default function NewContactPage() {
             disabled={saving}
             className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
           >
+            {saving && <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
             {saving ? "Creating..." : "Create Contact"}
           </button>
         </div>

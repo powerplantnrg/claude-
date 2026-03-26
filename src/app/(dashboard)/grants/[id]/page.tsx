@@ -43,12 +43,14 @@ export default async function GrantDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/grants" className="hover:text-indigo-600">Grants</Link>
-        <span>/</span>
-        <span className="text-slate-700">{grant.name}</span>
-      </div>
+      {/* Back navigation */}
+      <Link
+        href="/grants"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Grants
+      </Link>
 
       {/* Header */}
       <div className="flex items-start justify-between">
