@@ -77,6 +77,7 @@ model Organization {
   projectExpenses     ProjectExpense[]
   documents           Document[]
   bankFeeds           BankFeed[]
+  migrationJobs       MigrationJob[]
 }
 
 model User {
@@ -108,6 +109,11 @@ model User {
   approvedProjectExpenses ProjectExpense[] @relation("ProjectExpenseApprover")
   completedStockTakes  StockTake[]     @relation("StockTakeCompletedBy")
   uploadedDocuments    Document[]      @relation("DocumentUploader")
+  startedMigrationJobs   MigrationJob[]  @relation("MigrationJobStartedBy")
+  approvedMigrationJobs  MigrationJob[]  @relation("MigrationJobApprovedBy")
+  reviewedMappings       MigrationMapping[] @relation("MigrationMappingReviewer")
+  reconciledMigrations   MigrationReconciliation[] @relation("MigrationReconciler")
+  migrationAuditLogs     MigrationAuditLog[] @relation("MigrationAuditLogUser")
 }
 
 // ============================================
@@ -180,6 +186,7 @@ model JournalEntry {
   bankTransaction BankTransaction? @relation("MatchedJournal")
   depreciationSchedules DepreciationSchedule[]
   fxGainLosses    FxGainLoss[]
+  migrationJournalEntries MigrationJournalEntry[]
 }
 
 model JournalLine {
@@ -1844,4 +1851,156 @@ model BankFeedTransaction {
   @@index([bankFeedId])
   @@index([bankFeedId, status])
   @@index([externalId])
+}
+
+// ============================================
+// DATA MIGRATION ENGINE
+// ============================================
+
+model MigrationJob {
+  id                  String    @id @default(cuid())
+  organizationId      String
+  name                String
+  sourceSystem        String    // Xero, MYOB, QuickBooks, CSV, Manual
+  status              String    @default("Pending") // Pending, Validating, Importing, Transforming, Reconciling, PendingReview, Approved, Rejected, RolledBack, Completed
+  startedAt           DateTime?
+  completedAt         DateTime?
+  startedById         String
+  approvedById        String?
+  approvedAt          DateTime?
+  totalRecords        Int       @default(0)
+  importedRecords     Int       @default(0)
+  failedRecords       Int       @default(0)
+  warningRecords      Int       @default(0)
+  skippedRecords      Int       @default(0)
+  rollbackAvailable   Boolean   @default(true)
+  rollbackDeadline    DateTime?
+  sourceDataSnapshot  String?   // JSON blob path/ref for original data
+  notes               String?
+  errorLog            String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  startedBy           User         @relation("MigrationJobStartedBy", fields: [startedById], references: [id])
+  approvedBy          User?        @relation("MigrationJobApprovedBy", fields: [approvedById], references: [id])
+  mappings            MigrationMapping[]
+  rules               MigrationRule[]
+  reconciliations     MigrationReconciliation[]
+  journalEntries      MigrationJournalEntry[]
+  auditLogs           MigrationAuditLog[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([startedById])
+}
+
+model MigrationMapping {
+  id               String    @id @default(cuid())
+  migrationJobId   String
+  entityType       String    // Account, Contact, Invoice, Bill, Payment, BankTransaction, Employee, Payslip, TaxRate, FixedAsset, InventoryItem, JournalEntry, Project
+  sourceId         String
+  sourceCode       String?
+  sourceName       String?
+  sourceData       String?   // JSON of original record
+  targetId         String?   // Filled after import
+  targetEntityType String?
+  status           String    @default("Pending") // Pending, Mapped, Created, Skipped, Failed, Conflict
+  mappingNotes     String?
+  transformLog     String?   // JSON describing what was changed/recategorized
+  requiresReview   Boolean   @default(false)
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  migrationJob     MigrationJob @relation(fields: [migrationJobId], references: [id], onDelete: Cascade)
+  reviewedBy       User?        @relation("MigrationMappingReviewer", fields: [reviewedById], references: [id])
+
+  @@index([migrationJobId])
+  @@index([migrationJobId, entityType])
+  @@index([migrationJobId, status])
+  @@index([sourceId])
+}
+
+model MigrationRule {
+  id             String   @id @default(cuid())
+  migrationJobId String
+  entityType     String
+  sourceField    String
+  sourceValue    String
+  targetField    String
+  targetValue    String
+  ruleType       String   // DirectMap, Transform, Merge, Split, Default, Skip, CategoryChange
+  description    String?
+  priority       Int      @default(0)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  migrationJob   MigrationJob @relation(fields: [migrationJobId], references: [id], onDelete: Cascade)
+
+  @@index([migrationJobId])
+  @@index([migrationJobId, entityType])
+}
+
+model MigrationReconciliation {
+  id                 String    @id @default(cuid())
+  migrationJobId     String
+  entityType         String
+  sourceTotal        Float
+  importedTotal      Float
+  variance           Float
+  variancePercentage Float
+  status             String    @default("Pending") // Pending, Matched, Variance, Reviewed
+  reconciledById     String?
+  reconciledAt       DateTime?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  migrationJob       MigrationJob @relation(fields: [migrationJobId], references: [id], onDelete: Cascade)
+  reconciledBy       User?        @relation("MigrationReconciler", fields: [reconciledById], references: [id])
+
+  @@index([migrationJobId])
+  @@index([migrationJobId, entityType])
+}
+
+model MigrationJournalEntry {
+  id              String   @id @default(cuid())
+  migrationJobId  String
+  journalEntryId  String
+  description     String?
+  entryType       String   // OpeningBalance, DataTransfer, Adjustment, Reconciliation, Rollback
+  sourceReference String?
+  amount          Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  migrationJob    MigrationJob @relation(fields: [migrationJobId], references: [id], onDelete: Cascade)
+  journalEntry    JournalEntry @relation(fields: [journalEntryId], references: [id])
+
+  @@index([migrationJobId])
+  @@index([journalEntryId])
+}
+
+model MigrationAuditLog {
+  id             String   @id @default(cuid())
+  migrationJobId String
+  timestamp      DateTime @default(now())
+  action         String   // RecordImported, RecordTransformed, RecordSkipped, RecordFailed, MappingCreated, RuleApplied, ReconciliationRun, ValidationError, UserApproval, Rollback
+  entityType     String?
+  entityId       String?
+  sourceData     String?
+  targetData     String?
+  details        String?
+  userId         String?
+  createdAt      DateTime @default(now())
+
+  migrationJob   MigrationJob @relation(fields: [migrationJobId], references: [id], onDelete: Cascade)
+  user           User?        @relation("MigrationAuditLogUser", fields: [userId], references: [id])
+
+  @@index([migrationJobId])
+  @@index([migrationJobId, action])
+  @@index([migrationJobId, entityType])
+  @@index([userId])
 }
