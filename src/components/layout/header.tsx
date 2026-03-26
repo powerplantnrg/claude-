@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { GlobalSearch } from "./global-search"
+import { Notifications } from "./notifications"
 
 const routeLabels: Record<string, string> = {
   dashboard: "Dashboard",
@@ -31,6 +32,7 @@ const routeLabels: Record<string, string> = {
   projects: "Projects",
   experiments: "Experiments",
   pipeline: "Pipeline",
+  portfolio: "Portfolio",
   advice: "Advice",
   compliance: "Compliance",
   claims: "Claims",
@@ -137,6 +139,9 @@ export function Header({ onToggleMobileSidebar }: HeaderProps) {
         </div>
 
         <div className="hidden h-6 w-px bg-slate-200 dark:bg-slate-700 sm:block" />
+
+        {/* Notifications */}
+        <Notifications />
 
         {/* Theme toggle */}
         <ThemeToggle />

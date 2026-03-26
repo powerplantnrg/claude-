@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
-import { formatDate } from "@/lib/utils"
 import Link from "next/link"
+import { ContactsTable } from "@/components/tables/contacts-table"
 
 const CONTACT_TYPE_COLORS: Record<string, string> = {
   Customer: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -55,6 +55,17 @@ export default async function ContactsPage({
 
   const totalContacts = contacts.length
   const rdContractors = contacts.filter((c) => c.isRdContractor).length
+
+  const tableData = contacts.map((contact) => ({
+    id: contact.id,
+    name: contact.name,
+    email: contact.email,
+    contactType: contact.contactType,
+    abn: contact.abn,
+    phone: contact.phone,
+    isRdContractor: contact.isRdContractor,
+    createdAt: contact.createdAt.toISOString(),
+  }))
 
   return (
     <div className="space-y-6">
@@ -165,129 +176,7 @@ export default async function ContactsPage({
 
       {/* Contacts Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                <th className="px-6 py-3">Name</th>
-                <th className="px-6 py-3">Email</th>
-                <th className="px-6 py-3">Type</th>
-                <th className="px-6 py-3">ABN</th>
-                <th className="px-6 py-3">Phone</th>
-                <th className="px-6 py-3">R&D</th>
-                <th className="px-6 py-3">Created</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {contacts.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-12 text-center text-sm text-slate-400"
-                  >
-                    {search || typeFilter ? (
-                      <div>
-                        <p className="font-medium text-slate-500">
-                          No contacts match your filters
-                        </p>
-                        <p className="mt-1">
-                          Try adjusting your search or filter criteria
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        <svg
-                          className="mx-auto h-12 w-12 text-slate-300"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1}
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
-                          />
-                        </svg>
-                        <p className="mt-4 font-medium text-slate-500">
-                          No contacts yet
-                        </p>
-                        <p className="mt-1">
-                          Get started by adding your first contact.
-                        </p>
-                        <div className="mt-4">
-                          <Link
-                            href="/contacts/new"
-                            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
-                          >
-                            Add Contact
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ) : (
-                contacts.map((contact) => {
-                  const typeColor =
-                    CONTACT_TYPE_COLORS[contact.contactType] ??
-                    "bg-slate-100 text-slate-600"
-                  return (
-                    <tr
-                      key={contact.id}
-                      className="transition-colors hover:bg-slate-50"
-                    >
-                      <td className="whitespace-nowrap px-6 py-3 text-sm font-medium text-slate-900">
-                        {contact.name}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3 text-sm text-slate-500">
-                        {contact.email ?? "\u2014"}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${typeColor}`}
-                        >
-                          {contact.contactType === "Both"
-                            ? "Customer & Supplier"
-                            : contact.contactType}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3 text-sm font-mono text-slate-500">
-                        {contact.abn ?? "\u2014"}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3 text-sm text-slate-500">
-                        {contact.phone ?? "\u2014"}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3">
-                        {contact.isRdContractor && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">
-                            <svg
-                              className="h-3 w-3"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              strokeWidth={2}
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"
-                              />
-                            </svg>
-                            R&D Contractor
-                          </span>
-                        )}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3 text-sm text-slate-500">
-                        {formatDate(contact.createdAt)}
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+        <ContactsTable contacts={tableData} hasFilters={!!(search || typeFilter)} />
       </div>
     </div>
   )

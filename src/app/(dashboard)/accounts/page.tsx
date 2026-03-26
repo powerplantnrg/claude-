@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
+import { AccountsTable } from "@/components/tables/accounts-table"
 
 const ACCOUNT_TYPE_ORDER = ["Asset", "Liability", "Equity", "Revenue", "Expense"]
 
@@ -96,6 +97,17 @@ export default async function AccountsPage() {
 
         if (typeAccounts.length === 0) return null
 
+        const tableData = typeAccounts.map((account) => ({
+          id: account.id,
+          code: account.code,
+          name: account.name,
+          type: account.type,
+          subType: account.subType,
+          taxType: account.taxType,
+          isActive: account.isActive,
+          isRdEligible: account.isRdEligible,
+        }))
+
         return (
           <div
             key={type}
@@ -111,62 +123,7 @@ export default async function AccountsPage() {
                 </span>
               </h2>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                    <th className="px-6 py-3">Code</th>
-                    <th className="px-6 py-3">Name</th>
-                    <th className="px-6 py-3">Sub Type</th>
-                    <th className="px-6 py-3">Tax Type</th>
-                    <th className="px-6 py-3">Status</th>
-                    <th className="px-6 py-3">R&D</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {typeAccounts.map((account) => (
-                    <tr
-                      key={account.id}
-                      className="transition-colors hover:bg-slate-50"
-                    >
-                      <td className="whitespace-nowrap px-6 py-3 text-sm font-mono font-medium text-slate-900">
-                        {account.code}
-                      </td>
-                      <td className="px-6 py-3 text-sm text-slate-700">
-                        {account.name}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3 text-sm text-slate-500">
-                        {account.subType ?? "\u2014"}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3 text-sm text-slate-500">
-                        {account.taxType ?? "\u2014"}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3">
-                        {account.isActive ? (
-                          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-                            Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-3">
-                        {account.isRdEligible && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 border border-violet-200 px-2 py-0.5 text-xs font-medium text-violet-700">
-                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-                            </svg>
-                            R&D Eligible
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <AccountsTable accounts={tableData} />
           </div>
         )
       })}

@@ -249,8 +249,8 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Dashboard</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Financial overview and R&D insights
         </p>
       </div>
@@ -260,11 +260,11 @@ export default async function DashboardPage() {
         {kpis.map((kpi) => (
           <div
             key={kpi.label}
-            className={`rounded-xl border ${kpi.border} ${kpi.bg} p-5 shadow-sm transition-shadow hover:shadow-md`}
+            className={`rounded-xl border ${kpi.border} ${kpi.bg} dark:bg-slate-800 dark:border-slate-700 p-5 shadow-sm transition-shadow hover:shadow-md`}
           >
             <div className="flex items-center gap-2">
               {kpi.icon}
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {kpi.label}
               </p>
             </div>
@@ -287,14 +287,14 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Recent Transactions */}
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <h2 className="text-lg font-semibold text-slate-900">
+        <div className="lg:col-span-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 px-4 sm:px-6 py-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               Recent Transactions
             </h2>
             <Link
               href="/journal-entries"
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
             >
               View all
             </Link>
@@ -302,20 +302,20 @@ export default async function DashboardPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                  <th className="px-6 py-3">Date</th>
-                  <th className="px-6 py-3">Reference</th>
-                  <th className="px-6 py-3">Narration</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Amount</th>
+                <tr className="border-b border-slate-100 dark:border-slate-700 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="px-4 sm:px-6 py-3">Date</th>
+                  <th className="px-4 sm:px-6 py-3">Reference</th>
+                  <th className="hidden sm:table-cell px-4 sm:px-6 py-3">Narration</th>
+                  <th className="px-4 sm:px-6 py-3">Status</th>
+                  <th className="px-4 sm:px-6 py-3 text-right">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50">
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
                 {recentEntries.length === 0 ? (
                   <tr>
                     <td
                       colSpan={5}
-                      className="px-6 py-8 text-center text-sm text-slate-400"
+                      className="px-6 py-8 text-center text-sm text-slate-400 dark:text-slate-500"
                     >
                       No journal entries yet
                     </td>
@@ -329,31 +329,31 @@ export default async function DashboardPage() {
                     return (
                       <tr
                         key={entry.id}
-                        className="transition-colors hover:bg-slate-50"
+                        className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-700/50"
                       >
-                        <td className="whitespace-nowrap px-6 py-3 text-sm text-slate-700">
+                        <td className="whitespace-nowrap px-4 sm:px-6 py-3 text-sm text-slate-700 dark:text-slate-300">
                           {formatDate(entry.date)}
                         </td>
-                        <td className="whitespace-nowrap px-6 py-3 text-sm font-mono text-slate-500">
+                        <td className="whitespace-nowrap px-4 sm:px-6 py-3 text-sm font-mono text-slate-500 dark:text-slate-400">
                           {entry.reference ?? `JE-${entry.entryNumber}`}
                         </td>
-                        <td className="max-w-[200px] truncate px-6 py-3 text-sm text-slate-700">
+                        <td className="hidden sm:table-cell max-w-[200px] truncate px-4 sm:px-6 py-3 text-sm text-slate-700 dark:text-slate-300">
                           {entry.narration}
                         </td>
-                        <td className="whitespace-nowrap px-6 py-3">
+                        <td className="whitespace-nowrap px-4 sm:px-6 py-3">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                               entry.status === "Posted"
-                                ? "bg-emerald-50 text-emerald-700"
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                                 : entry.status === "Draft"
-                                  ? "bg-slate-100 text-slate-600"
-                                  : "bg-amber-50 text-amber-700"
+                                  ? "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                                  : "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
                             }`}
                           >
                             {entry.status}
                           </span>
                         </td>
-                        <td className="whitespace-nowrap px-6 py-3 text-right text-sm font-medium text-slate-700">
+                        <td className="whitespace-nowrap px-4 sm:px-6 py-3 text-right text-sm font-medium text-slate-700 dark:text-slate-300">
                           {formatCurrency(totalDebit)}
                         </td>
                       </tr>
@@ -366,38 +366,38 @@ export default async function DashboardPage() {
         </div>
 
         {/* R&D Quick Stats */}
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 px-6 py-4">
-            <h2 className="text-lg font-semibold text-slate-900">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
+          <div className="border-b border-slate-100 dark:border-slate-700 px-6 py-4">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               R&D Quick Stats
             </h2>
           </div>
-          <div className="divide-y divide-slate-50 p-2">
+          <div className="divide-y divide-slate-50 dark:divide-slate-700 p-2">
             <div className="flex items-center justify-between rounded-lg px-4 py-3">
-              <span className="text-sm text-slate-600">Active Projects</span>
-              <span className="text-sm font-semibold text-indigo-700">
+              <span className="text-sm text-slate-600 dark:text-slate-400">Active Projects</span>
+              <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-400">
                 {activeRdProjects}
               </span>
             </div>
             <div className="flex items-center justify-between rounded-lg px-4 py-3">
-              <span className="text-sm text-slate-600">
+              <span className="text-sm text-slate-600 dark:text-slate-400">
                 Eligible Expenses
               </span>
-              <span className="text-sm font-semibold text-violet-700">
+              <span className="text-sm font-semibold text-violet-700 dark:text-violet-400">
                 {formatCurrency(estimatedRdClaim)}
               </span>
             </div>
             <div className="flex items-center justify-between rounded-lg px-4 py-3">
-              <span className="text-sm text-slate-600">
+              <span className="text-sm text-slate-600 dark:text-slate-400">
                 Est. Tax Offset (43.5%)
               </span>
-              <span className="text-sm font-semibold text-emerald-700">
+              <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
                 {formatCurrency(estimatedRdClaim * 0.435)}
               </span>
             </div>
             <div className="flex items-center justify-between rounded-lg px-4 py-3">
-              <span className="text-sm text-slate-600">R&D as % of Expenses</span>
-              <span className="text-sm font-semibold text-slate-700">
+              <span className="text-sm text-slate-600 dark:text-slate-400">R&D as % of Expenses</span>
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {totalExpenses > 0
                   ? ((estimatedRdClaim / totalExpenses) * 100).toFixed(1)
                   : "0.0"}
