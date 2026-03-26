@@ -323,7 +323,8 @@ export function LineTrendChart({
   subtitle?: string
   color?: string
   yAxisFormatter?: (value: number) => string
-  tooltipFormatter?: (value: number) => string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tooltipFormatter?: any
 }) {
   return (
     <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
