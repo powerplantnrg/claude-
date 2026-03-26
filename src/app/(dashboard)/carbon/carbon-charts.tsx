@@ -62,8 +62,9 @@ export function EmissionsByScopePie({ data }: { data: ScopeData[] }) {
               outerRadius={100}
               paddingAngle={5}
               dataKey="value"
-              label={({ name, percent }: { name: string; percent?: number }) =>
-                `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              label={({ name, percent }: any) =>
+                `${name ?? ""}: ${((percent ?? 0) * 100).toFixed(0)}%`
               }
             >
               {data.map((entry) => (
