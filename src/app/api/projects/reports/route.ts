@@ -134,7 +134,7 @@ async function getUtilizationReport(
   const userMap: Record<
     string,
     {
-      user: { id: string; name: string; email: string }
+      user: { id: string; name: string | null; email: string }
       totalHours: number
       billableHours: number
       nonBillableHours: number
