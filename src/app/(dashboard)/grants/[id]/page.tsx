@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { MilestoneToggle, MilestoneForm } from "./milestone-actions"
 
 export default async function GrantDetailPage({
   params,
@@ -133,15 +134,10 @@ export default async function GrantDetailPage({
           <div className="divide-y divide-slate-100">
             {grant.milestones.map((milestone) => (
               <div key={milestone.id} className="flex items-center gap-4 px-6 py-4">
-                {milestone.completed ? (
-                  <svg className="h-5 w-5 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                ) : (
-                  <svg className="h-5 w-5 flex-shrink-0 text-slate-300" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )}
+                <MilestoneToggle
+                  milestoneId={milestone.id}
+                  completed={milestone.completed}
+                />
                 <div className="min-w-0 flex-1">
                   <p className={`text-sm font-medium ${milestone.completed ? "text-slate-400 line-through" : "text-slate-900"}`}>
                     {milestone.title}
@@ -163,6 +159,9 @@ export default async function GrantDetailPage({
           </div>
         )}
       </div>
+
+      {/* Add Milestone Form */}
+      <MilestoneForm grantId={grant.id} />
     </div>
   )
 }

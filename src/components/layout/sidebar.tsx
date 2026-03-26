@@ -47,6 +47,18 @@ import {
   Webhook,
   Wallet,
   LineChart,
+  ShoppingCart,
+  BookMarked,
+  LayoutTemplate,
+  Banknote,
+  CalendarDays,
+  Shield,
+  FileSpreadsheet,
+  Briefcase,
+  CheckSquare,
+  Coins,
+  Package,
+  Boxes,
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -68,6 +80,11 @@ const navSections: NavSection[] = [
     items: [
       { label: "Command Center", href: "/command-center", icon: Gauge },
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Analytics", href: "/analytics", icon: BarChart3 },
+      { label: "Financial Analytics", href: "/analytics/financial", icon: TrendingUp },
+      { label: "R&D ROI", href: "/analytics/rd-roi", icon: FlaskConical },
+      { label: "Payroll Insights", href: "/analytics/payroll-insights", icon: Banknote },
+      { label: "Cash Flow Intel", href: "/analytics/cash-flow", icon: DollarSign },
     ],
   },
   {
@@ -80,8 +97,37 @@ const navSections: NavSection[] = [
       { label: "Banking", href: "/banking", icon: Landmark },
       { label: "Bank Rules", href: "/banking/rules", icon: ListChecks },
       { label: "Chart of Accounts", href: "/accounts", icon: BookOpen },
+      { label: "Purchase Orders", href: "/purchase-orders", icon: ShoppingCart },
       { label: "Budgets", href: "/budgets", icon: Wallet },
+      { label: "Fixed Assets", href: "/assets", icon: Package },
       { label: "Contacts", href: "/contacts", icon: Users },
+    ],
+  },
+  {
+    title: "Inventory",
+    items: [
+      { label: "Inventory", href: "/inventory", icon: Boxes },
+      { label: "Stock Takes", href: "/inventory/stock-takes", icon: ClipboardCheck },
+      { label: "Reports", href: "/inventory/reports", icon: FileBarChart },
+    ],
+  },
+  {
+    title: "Payroll",
+    items: [
+      { label: "Payroll", href: "/payroll", icon: Banknote },
+      { label: "Employees", href: "/payroll/employees", icon: Users },
+      { label: "Pay Runs", href: "/payroll/pay-runs", icon: DollarSign },
+      { label: "Leave", href: "/payroll/leave", icon: CalendarDays },
+      { label: "Tax Strategies", href: "/payroll/tax-strategies", icon: Shield },
+      { label: "FBT", href: "/payroll/fbt", icon: Briefcase },
+      { label: "Reports", href: "/payroll/reports", icon: FileSpreadsheet },
+    ],
+  },
+  {
+    title: "Approvals",
+    items: [
+      { label: "Approvals", href: "/approvals", icon: CheckSquare },
+      { label: "Workflows", href: "/approvals/workflows", icon: GitBranch },
     ],
   },
   {
@@ -113,6 +159,23 @@ const navSections: NavSection[] = [
       { label: "Claims", href: "/rd/claims", icon: FileCheck },
       { label: "Recommendations", href: "/rd/recommendations", icon: Sparkles },
       { label: "Eligibility Wizard", href: "/rd/eligibility", icon: ClipboardCheck },
+      { label: "Knowledge Base", href: "/rd/knowledge", icon: BookMarked },
+      { label: "Templates", href: "/rd/templates", icon: LayoutTemplate },
+    ],
+  },
+  {
+    title: "Documents",
+    items: [
+      { label: "Documents", href: "/documents", icon: FileText },
+    ],
+  },
+  {
+    title: "Integrations",
+    items: [
+      { label: "Integration Hub", href: "/integrations", icon: Plug },
+      { label: "Bank Feeds", href: "/integrations/bank-feeds", icon: Landmark },
+      { label: "STP Filing", href: "/integrations/stp", icon: FileSpreadsheet },
+      { label: "Data Export", href: "/integrations/export", icon: FileBarChart },
     ],
   },
   {
@@ -131,6 +194,14 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: "Projects",
+    items: [
+      { label: "Projects", href: "/projects", icon: FolderKanban },
+      { label: "Time Tracking", href: "/time-tracking", icon: Activity },
+      { label: "Reports", href: "/projects/reports", icon: FileBarChart },
+    ],
+  },
+  {
     title: "Sustainability",
     items: [
       { label: "Carbon", href: "/carbon", icon: Leaf },
@@ -145,6 +216,7 @@ const navSections: NavSection[] = [
       { label: "Users", href: "/settings/users", icon: Users },
       { label: "Activity", href: "/settings/activity", icon: Activity },
       { label: "Integrations", href: "/settings/integrations", icon: Plug },
+      { label: "Currencies", href: "/settings/currencies", icon: Coins },
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook },
     ],
   },

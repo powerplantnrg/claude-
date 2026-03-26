@@ -53,6 +53,30 @@ model Organization {
   budgets             Budget[]
   webhooks            Webhook[]
   integrations        Integration[]
+  purchaseOrders      PurchaseOrder[]
+  knowledgeBase       KnowledgeBase[]
+  contactTags         ContactTag[]
+  employees           Employee[]
+  payRuns             PayRun[]
+  payslips            Payslip[]
+  leaveRequests       LeaveRequest[]
+  taxMinimisationStrategies TaxMinimisationStrategy[]
+  novatedLeases       NovatedLease[]
+  fbtRecords          FBTRecord[]
+  payrollTaxSummaries PayrollTaxSummary[]
+  fixedAssets         FixedAsset[]
+  approvalWorkflows   ApprovalWorkflow[]
+  approvalRequests    ApprovalRequest[]
+  exchangeRates       ExchangeRate[]
+  fxGainLosses        FxGainLoss[]
+  inventoryItems      InventoryItem[]
+  inventoryMovements  InventoryMovement[]
+  stockTakes          StockTake[]
+  projects            Project[]
+  timeEntries         TimeEntry[]
+  projectExpenses     ProjectExpense[]
+  documents           Document[]
+  bankFeeds           BankFeed[]
 }
 
 model User {
@@ -70,6 +94,20 @@ model User {
   auditLogs      AuditLog[]
   expenseClaims  ExpenseClaim[]
   favorites      UserFavorite[]
+  knowledgeBase  KnowledgeBase[]
+  employees      Employee[]
+  processedPayRuns PayRun[]
+  approvedLeaveRequests LeaveRequest[]
+  approvalSteps     ApprovalStep[]
+  approvalRequests  ApprovalRequest[]
+  approvalActions   ApprovalAction[]
+  managedProjects      Project[]       @relation("ProjectManager")
+  assignedTasks        ProjectTask[]   @relation("TaskAssignee")
+  projectTimeEntries   TimeEntry[]     @relation("TimeEntryUser")
+  approvedTimeEntries  TimeEntry[]     @relation("TimeEntryApprover")
+  approvedProjectExpenses ProjectExpense[] @relation("ProjectExpenseApprover")
+  completedStockTakes  StockTake[]     @relation("StockTakeCompletedBy")
+  uploadedDocuments    Document[]      @relation("DocumentUploader")
 }
 
 // ============================================
@@ -114,6 +152,12 @@ model Account {
   billLines       BillLine[]
   bankRules       BankRule[]
   budgetItems     BudgetItem[]
+  fixedAssets      FixedAsset[]     @relation("AssetAccount")
+  fixedAssetDepreciation FixedAsset[] @relation("DepreciationAccount")
+  fixedAssetAccumulated  FixedAsset[] @relation("AccumulatedDepreciationAccount")
+  inventoryAssetItems    InventoryItem[] @relation("InventoryAssetAccount")
+  inventoryCogsItems     InventoryItem[] @relation("InventoryCOGSAccount")
+  inventoryRevenueItems  InventoryItem[] @relation("InventoryRevenueAccount")
 
   @@unique([code, organizationId])
 }
@@ -134,6 +178,8 @@ model JournalEntry {
   organization    Organization  @relation(fields: [organizationId], references: [id])
   lines           JournalLine[]
   bankTransaction BankTransaction? @relation("MatchedJournal")
+  depreciationSchedules DepreciationSchedule[]
+  fxGainLosses    FxGainLoss[]
 }
 
 model JournalLine {
@@ -181,6 +227,10 @@ model Contact {
   bills           Bill[]
   recurringInvoices RecurringInvoice[]
   creditNotes     CreditNote[]
+  purchaseOrders  PurchaseOrder[]
+  tagAssignments  ContactTagAssignment[]
+  suppliedItems   InventoryItem[] @relation("InventorySupplier")
+  clientProjects  Project[]       @relation("ProjectClient")
 }
 
 // ============================================
@@ -207,6 +257,9 @@ model Invoice {
   organization    Organization  @relation(fields: [organizationId], references: [id])
   lines           InvoiceLine[]
   payments        Payment[]
+  billedTimeEntries    TimeEntry[]
+  billedProjectExpenses ProjectExpense[]
+  projectMilestones    ProjectMilestone[]
 }
 
 model InvoiceLine {
@@ -280,6 +333,7 @@ model BankTransaction {
 
   matchedJournal  JournalEntry? @relation("MatchedJournal", fields: [matchedJournalId], references: [id])
   organization    Organization  @relation(fields: [organizationId], references: [id])
+  bankFeedMatch   BankFeedTransaction?
 }
 
 model TaxRate {
@@ -291,6 +345,7 @@ model TaxRate {
   organizationId  String
 
   organization    Organization @relation(fields: [organizationId], references: [id])
+  inventoryItems  InventoryItem[]
 }
 
 // ============================================
@@ -324,6 +379,9 @@ model RdProject {
   auditPacks              AuditPack[]
   carbonEntries           CarbonEntry[]
   expenseClaimItems       ExpenseClaimItem[]
+  knowledgeBase           KnowledgeBase[]
+  fixedAssets             FixedAsset[]
+  linkedProjects          Project[]    @relation("ProjectRdProject")
 }
 
 model RdActivity {
@@ -936,4 +994,854 @@ model Integration {
   isActive        Boolean      @default(true)
   lastSyncAt      DateTime?
   createdAt       DateTime     @default(now())
+}
+
+// ============================================
+// CONTACTS: Tags & Groups
+// ============================================
+
+model ContactTag {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  color          String       @default("#6366f1")
+  contacts       ContactTagAssignment[]
+
+  @@unique([organizationId, name])
+}
+
+model ContactTagAssignment {
+  id        String     @id @default(cuid())
+  contactId String
+  contact   Contact    @relation(fields: [contactId], references: [id])
+  tagId     String
+  tag       ContactTag @relation(fields: [tagId], references: [id])
+
+  @@unique([contactId, tagId])
+}
+
+// ============================================
+// PURCHASE ORDERS
+// ============================================
+
+model PurchaseOrder {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  poNumber       String
+  contactId      String
+  contact        Contact      @relation(fields: [contactId], references: [id])
+  date           DateTime
+  deliveryDate   DateTime?
+  status         String       @default("Draft")
+  subtotal       Float        @default(0)
+  taxTotal       Float        @default(0)
+  total          Float        @default(0)
+  notes          String?
+  lines          PurchaseOrderLine[]
+  createdAt      DateTime     @default(now())
+}
+
+model PurchaseOrderLine {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  description     String
+  quantity        Float         @default(1)
+  unitPrice       Float
+  accountId       String
+  taxType         String        @default("GST")
+  amount          Float
+  taxAmount       Float         @default(0)
+}
+
+// ============================================
+// R&D KNOWLEDGE BASE
+// ============================================
+
+model KnowledgeBase {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  title          String
+  content        String
+  category       String
+  tags           String
+  projectId      String?
+  project        RdProject?   @relation(fields: [projectId], references: [id])
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id])
+  isPublished    Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+// ============================================
+// PAYROLL MODULE
+// ============================================
+
+model Employee {
+  id                    String   @id @default(cuid())
+  organizationId        String
+  organization          Organization @relation(fields: [organizationId], references: [id])
+  userId                String?
+  user                  User?    @relation(fields: [userId], references: [id])
+  firstName             String
+  lastName              String
+  email                 String
+  dateOfBirth           DateTime?
+  startDate             DateTime
+  endDate               DateTime?
+  employmentType        String   @default("FullTime") // FullTime, PartTime, Casual, Contractor
+  taxFileNumber         String?  // encrypted/masked
+  residencyStatus       String   @default("Resident") // Resident, NonResident, WorkingHoliday
+  taxFreeThreshold      Boolean  @default(true)
+  helpDebt              Boolean  @default(false) // HECS/HELP
+  sfssDebt              Boolean  @default(false)
+  medicareLevyExemption String   @default("None") // None, Full, Half
+  superFundName         String?
+  superMemberNumber     String?
+  superRate             Float    @default(11.5)
+  bankBSB               String?
+  bankAccountNumber     String?
+  bankAccountName       String?
+  annualSalary          Float?
+  hourlyRate            Float?
+  payFrequency          String   @default("Monthly") // Weekly, Fortnightly, Monthly
+  leaveBalanceAnnual    Float    @default(0)
+  leaveBalanceSick      Float    @default(0)
+  leaveBalancePersonal  Float    @default(0)
+  notes                 String?
+  active                Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  payslips              Payslip[]
+  leaveRequests         LeaveRequest[]
+  novatedLeases         NovatedLease[]
+  fbtRecords            FBTRecord[]
+  payrollTaxSummaries   PayrollTaxSummary[]
+
+  @@index([organizationId])
+  @@index([organizationId, active])
+  @@index([organizationId, employmentType])
+}
+
+model PayRun {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  payPeriodStart  DateTime
+  payPeriodEnd    DateTime
+  payDate         DateTime
+  status          String    @default("Draft") // Draft, Processing, Completed, Voided
+  totalGross      Float     @default(0)
+  totalTax        Float     @default(0)
+  totalSuper      Float     @default(0)
+  totalNet        Float     @default(0)
+  totalDeductions Float     @default(0)
+  processedAt     DateTime?
+  processedById   String?
+  processedBy     User?     @relation(fields: [processedById], references: [id])
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  payslips        Payslip[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, payPeriodStart, payPeriodEnd])
+}
+
+model Payslip {
+  id                   String   @id @default(cuid())
+  payRunId             String
+  payRun               PayRun   @relation(fields: [payRunId], references: [id])
+  employeeId           String
+  employee             Employee @relation(fields: [employeeId], references: [id])
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id])
+  payPeriodStart       DateTime
+  payPeriodEnd         DateTime
+  payDate              DateTime
+  hoursWorked          Float    @default(0)
+  hourlyRate           Float    @default(0)
+  grossPay             Float    @default(0)
+  overtimeHours        Float    @default(0)
+  overtimePay          Float    @default(0)
+  allowances           Float    @default(0)
+  bonuses              Float    @default(0)
+  taxWithheld          Float    @default(0)
+  medicareLevyAmount   Float    @default(0)
+  helpRepayment        Float    @default(0)
+  sfssRepayment        Float    @default(0)
+  superContribution    Float    @default(0)
+  superSalarySacrifice Float    @default(0)
+  preTaxDeductions     Float    @default(0)
+  postTaxDeductions    Float    @default(0)
+  netPay               Float    @default(0)
+  yearToDateGross      Float    @default(0)
+  yearToDateTax        Float    @default(0)
+  yearToDateSuper      Float    @default(0)
+  status               String   @default("Draft") // Draft, Approved, Paid, Voided
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  earnings             PayslipEarning[]
+  deductions           PayslipDeduction[]
+  leave                PayslipLeave[]
+
+  @@index([organizationId])
+  @@index([organizationId, employeeId])
+  @@index([payRunId])
+  @@index([employeeId, payPeriodStart])
+}
+
+model PayslipEarning {
+  id          String  @id @default(cuid())
+  payslipId   String
+  payslip     Payslip @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+  type        String  // Ordinary, Overtime, Bonus, Commission, Allowance, BackPay, TerminationPay, LeaveLoading
+  description String
+  hours       Float?
+  rate        Float?
+  amount      Float
+
+  @@index([payslipId])
+}
+
+model PayslipDeduction {
+  id          String  @id @default(cuid())
+  payslipId   String
+  payslip     Payslip @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+  type        String  // PreTax, PostTax
+  category    String  // SalarySacrifice, UnionFees, WorkplaceGiving, ChildSupport, Other
+  description String
+  amount      Float
+
+  @@index([payslipId])
+}
+
+model PayslipLeave {
+  id           String  @id @default(cuid())
+  payslipId    String
+  payslip      Payslip @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+  type         String  // Annual, Sick, Personal, LongService, Parental, Compassionate, Unpaid
+  hoursAccrued Float   @default(0)
+  hoursTaken   Float   @default(0)
+  balance      Float   @default(0)
+
+  @@index([payslipId])
+}
+
+model LeaveRequest {
+  id             String    @id @default(cuid())
+  employeeId     String
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  type           String    // Annual, Sick, Personal, LongService, Parental, Compassionate, Unpaid
+  startDate      DateTime
+  endDate        DateTime
+  hoursRequested Float
+  status         String    @default("Pending") // Pending, Approved, Rejected, Cancelled
+  approvedById   String?
+  approvedBy     User?     @relation(fields: [approvedById], references: [id])
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([organizationId, status])
+}
+
+model TaxMinimisationStrategy {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  category        String    // SalarySacrifice, NovatedLease, FBTExempt, WorkFromHome, ProfessionalDevelopment, CharitableDonation, DepreciationDeduction, RDOffset, SuperContribution, IncomeSmoothing
+  title           String
+  description     String?
+  estimatedSaving Float?
+  implemented     Boolean   @default(false)
+  implementedDate DateTime?
+  applicableTo    String    @default("Both") // Individual, Corporate, Both
+  priority        String    @default("Medium") // High, Medium, Low
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, category])
+}
+
+model NovatedLease {
+  id                 String    @id @default(cuid())
+  employeeId         String
+  employee           Employee  @relation(fields: [employeeId], references: [id])
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  vehicleDescription String
+  leaseStartDate     DateTime
+  leaseEndDate       DateTime
+  annualLeaseAmount  Float
+  preTaxDeduction    Float
+  postTaxDeduction   Float
+  fbtValue           Float     @default(0)
+  fbtExemptEV        Boolean   @default(false)
+  runningCostsAnnual Float     @default(0)
+  status             String    @default("Pending") // Active, Ended, Pending
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([employeeId])
+}
+
+model FBTRecord {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  fyYear         String
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  benefitType    String   // Vehicle, Parking, Entertainment, LivingAway, Other
+  grossValue     Float    @default(0)
+  exemptAmount   Float    @default(0)
+  taxableValue   Float    @default(0)
+  fbtRate        Float    @default(0.47)
+  fbtPayable     Float    @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, fyYear])
+  @@index([employeeId])
+}
+
+model PayrollTaxSummary {
+  id                       String  @id @default(cuid())
+  organizationId           String
+  organization             Organization @relation(fields: [organizationId], references: [id])
+  employeeId               String
+  employee                 Employee @relation(fields: [employeeId], references: [id])
+  fyYear                   String
+  totalGross               Float   @default(0)
+  totalTax                 Float   @default(0)
+  totalSuper               Float   @default(0)
+  totalAllowances          Float   @default(0)
+  totalDeductions          Float   @default(0)
+  totalFBT                 Float   @default(0)
+  totalNovatedLease        Float   @default(0)
+  reportableEmployerSuper  Float   @default(0)
+  reportableFringeBenefits Float   @default(0)
+  lumpSumPayments          Float   @default(0)
+  terminationPayments      Float   @default(0)
+  etpTaxFree               Float   @default(0)
+  etpTaxable               Float   @default(0)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, fyYear])
+  @@index([employeeId, fyYear])
+}
+
+// ============================================
+// FIXED ASSETS & DEPRECIATION
+// ============================================
+
+model FixedAsset {
+  id                           String    @id @default(cuid())
+  organizationId               String
+  organization                 Organization @relation(fields: [organizationId], references: [id])
+  assetNumber                  String
+  name                         String
+  description                  String?
+  category                     String    // Plant, Equipment, Vehicle, Furniture, Computer, Software, Building, LandImprovements, Other
+  purchaseDate                 DateTime
+  purchasePrice                Float
+  residualValue                Float     @default(0)
+  usefulLifeYears              Float
+  depreciationMethod           String    @default("StraightLine") // StraightLine, DiminishingValue, UnitsOfProduction
+  accountId                    String
+  account                      Account   @relation("AssetAccount", fields: [accountId], references: [id])
+  depreciationAccountId        String
+  depreciationAccount          Account   @relation("DepreciationAccount", fields: [depreciationAccountId], references: [id])
+  accumulatedDepreciationAccountId String
+  accumulatedDepreciationAccount   Account @relation("AccumulatedDepreciationAccount", fields: [accumulatedDepreciationAccountId], references: [id])
+  currentBookValue             Float
+  status                       String    @default("Active") // Active, Disposed, FullyDepreciated, WrittenOff
+  disposalDate                 DateTime?
+  disposalPrice                Float?
+  disposalMethod               String?   // Sale, Scrapped, TradeIn
+  location                     String?
+  serialNumber                 String?
+  supplier                     String?
+  warrantyExpiry               DateTime?
+  isRdAsset                    Boolean   @default(false)
+  rdProjectId                  String?
+  rdProject                    RdProject? @relation(fields: [rdProjectId], references: [id])
+  notes                        String?
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
+
+  depreciationSchedules        DepreciationSchedule[]
+
+  @@unique([organizationId, assetNumber])
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+model DepreciationSchedule {
+  id                     String       @id @default(cuid())
+  fixedAssetId           String
+  fixedAsset             FixedAsset   @relation(fields: [fixedAssetId], references: [id])
+  periodStart            DateTime
+  periodEnd              DateTime
+  openingValue           Float
+  depreciationAmount     Float
+  accumulatedDepreciation Float
+  closingValue           Float
+  status                 String       @default("Scheduled") // Scheduled, Posted, Reversed
+  journalEntryId         String?
+  journalEntry           JournalEntry? @relation(fields: [journalEntryId], references: [id])
+  createdAt              DateTime     @default(now())
+
+  @@index([fixedAssetId])
+}
+
+// ============================================
+// APPROVAL WORKFLOWS
+// ============================================
+
+model ApprovalWorkflow {
+  id                String   @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  name              String
+  entityType        String   // Bill, Expense, PurchaseOrder, PayRun, JournalEntry
+  minAmount         Float?
+  maxAmount         Float?
+  requiredApprovers Int      @default(1)
+  autoApproveBelow  Float?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  steps             ApprovalStep[]
+  requests          ApprovalRequest[]
+
+  @@index([organizationId])
+  @@index([organizationId, entityType])
+}
+
+model ApprovalStep {
+  id           String           @id @default(cuid())
+  workflowId   String
+  workflow     ApprovalWorkflow @relation(fields: [workflowId], references: [id])
+  stepOrder    Int
+  approverId   String
+  approver     User             @relation(fields: [approverId], references: [id])
+  role         String           @default("Approver") // Approver, Reviewer, FinalApprover
+  canDelegate  Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+
+  @@index([workflowId])
+}
+
+model ApprovalRequest {
+  id              String           @id @default(cuid())
+  organizationId  String
+  organization    Organization     @relation(fields: [organizationId], references: [id])
+  workflowId      String
+  workflow        ApprovalWorkflow @relation(fields: [workflowId], references: [id])
+  entityType      String
+  entityId        String
+  requestedById   String
+  requestedBy     User             @relation(fields: [requestedById], references: [id])
+  currentStep     Int              @default(1)
+  status          String           @default("Pending") // Pending, InProgress, Approved, Rejected, Cancelled
+  totalSteps      Int
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  actions         ApprovalAction[]
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+}
+
+model ApprovalAction {
+  id                String          @id @default(cuid())
+  approvalRequestId String
+  approvalRequest   ApprovalRequest @relation(fields: [approvalRequestId], references: [id])
+  stepOrder         Int
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+  action            String          // Approved, Rejected, Delegated, Comment
+  comment           String?
+  actionDate        DateTime        @default(now())
+
+  @@index([approvalRequestId])
+}
+
+// ============================================
+// MULTI-CURRENCY: Exchange Rates & FX Gain/Loss
+// ============================================
+
+model ExchangeRate {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  fromCurrency    String
+  toCurrency      String
+  rate            Float
+  effectiveDate   DateTime
+  source          String   @default("Manual") // Manual, API
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([organizationId, fromCurrency, toCurrency, effectiveDate])
+}
+
+model FxGainLoss {
+  id               String        @id @default(cuid())
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id])
+  transactionType  String        // Invoice, Bill, Payment
+  transactionId    String
+  originalAmount   Float
+  originalCurrency String
+  convertedAmount  Float
+  baseCurrency     String        @default("AUD")
+  exchangeRateUsed Float
+  gainLoss         Float
+  recognizedDate   DateTime
+  journalEntryId   String?
+  journalEntry     JournalEntry? @relation(fields: [journalEntryId], references: [id])
+  createdAt        DateTime      @default(now())
+
+  @@index([organizationId])
+  @@index([transactionType, transactionId])
+}
+
+// ============================================
+// INVENTORY MANAGEMENT
+// ============================================
+
+model InventoryItem {
+  id                String   @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  sku               String
+  name              String
+  description       String?
+  category          String?
+  unitOfMeasure     String   @default("each")
+  costPrice         Float    @default(0)
+  sellingPrice      Float    @default(0)
+  taxRateId         String?
+  taxRate           TaxRate? @relation(fields: [taxRateId], references: [id])
+  accountId         String?
+  account           Account? @relation("InventoryAssetAccount", fields: [accountId], references: [id])
+  cogsAccountId     String?
+  cogsAccount       Account? @relation("InventoryCOGSAccount", fields: [cogsAccountId], references: [id])
+  revenueAccountId  String?
+  revenueAccount    Account? @relation("InventoryRevenueAccount", fields: [revenueAccountId], references: [id])
+  quantityOnHand    Float    @default(0)
+  reorderLevel      Float    @default(0)
+  reorderQuantity   Float    @default(0)
+  isTracked         Boolean  @default(true)
+  isActive          Boolean  @default(true)
+  supplierId        String?
+  supplier          Contact? @relation("InventorySupplier", fields: [supplierId], references: [id])
+  location          String?
+  barcode           String?
+  weight            Float?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  movements         InventoryMovement[]
+  stockTakeItems    StockTakeItem[]
+
+  @@unique([organizationId, sku])
+  @@index([organizationId])
+  @@index([organizationId, category])
+  @@index([organizationId, isActive])
+}
+
+model InventoryMovement {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  type            String   // Purchase, Sale, Adjustment, Transfer, WriteOff, Return
+  quantity        Float    // positive for in, negative for out
+  unitCost        Float    @default(0)
+  totalCost       Float    @default(0)
+  reference       String?
+  referenceType   String?  // Invoice, Bill, Manual
+  referenceId     String?
+  date            DateTime
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([inventoryItemId])
+  @@index([organizationId, date])
+  @@index([referenceType, referenceId])
+}
+
+model StockTake {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  date           DateTime
+  status         String   @default("Draft") // Draft, InProgress, Completed, Cancelled
+  notes          String?
+  completedById  String?
+  completedBy    User?    @relation("StockTakeCompletedBy", fields: [completedById], references: [id])
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items          StockTakeItem[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+model StockTakeItem {
+  id               String        @id @default(cuid())
+  stockTakeId      String
+  stockTake        StockTake     @relation(fields: [stockTakeId], references: [id], onDelete: Cascade)
+  inventoryItemId  String
+  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  expectedQuantity Float         @default(0)
+  countedQuantity  Float         @default(0)
+  variance         Float         @default(0)
+  varianceCost     Float         @default(0)
+  adjusted         Boolean       @default(false)
+
+  @@index([stockTakeId])
+  @@index([inventoryItemId])
+}
+
+// ============================================
+// PROJECT MANAGEMENT & COSTING
+// ============================================
+
+model Project {
+  id               String    @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  name             String
+  code             String
+  description      String?
+  clientId         String?
+  client           Contact?  @relation("ProjectClient", fields: [clientId], references: [id])
+  status           String    @default("Planning") // Planning, Active, OnHold, Completed, Cancelled
+  startDate        DateTime?
+  endDate          DateTime?
+  budgetAmount     Float?
+  budgetHours      Float?
+  estimatedRevenue Float?
+  projectType      String    @default("FixedPrice") // FixedPrice, TimeAndMaterials, Internal, RD
+  billingMethod    String    @default("Fixed") // Hourly, Fixed, Milestone, NonBillable
+  hourlyRate       Float?
+  managerId        String?
+  manager          User?     @relation("ProjectManager", fields: [managerId], references: [id])
+  isRdProject      Boolean   @default(false)
+  rdProjectId      String?
+  rdProject        RdProject? @relation("ProjectRdProject", fields: [rdProjectId], references: [id])
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tasks            ProjectTask[]
+  timeEntries      TimeEntry[]
+  expenses         ProjectExpense[]
+  milestones       ProjectMilestone[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, projectType])
+}
+
+model ProjectTask {
+  id             String    @id @default(cuid())
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  assigneeId     String?
+  assignee       User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  status         String    @default("Todo") // Todo, InProgress, Review, Done
+  estimatedHours Float?
+  budgetAmount   Float?
+  startDate      DateTime?
+  dueDate        DateTime?
+  completedDate  DateTime?
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  timeEntries    TimeEntry[]
+
+  @@index([projectId])
+  @@index([projectId, status])
+}
+
+model TimeEntry {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id])
+  taskId          String?
+  task            ProjectTask? @relation(fields: [taskId], references: [id])
+  userId          String
+  user            User      @relation("TimeEntryUser", fields: [userId], references: [id])
+  date            DateTime
+  hours           Float
+  description     String?
+  billable        Boolean   @default(true)
+  billed          Boolean   @default(false)
+  invoiceId       String?
+  invoice         Invoice?  @relation(fields: [invoiceId], references: [id])
+  hourlyRate      Float?
+  amount          Float?
+  approvalStatus  String    @default("Pending") // Pending, Approved, Rejected
+  approvedById    String?
+  approvedBy      User?     @relation("TimeEntryApprover", fields: [approvedById], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([projectId, billable, billed])
+}
+
+model ProjectExpense {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id])
+  description     String
+  amount          Float
+  date            DateTime
+  category        String?
+  billable        Boolean   @default(true)
+  billed          Boolean   @default(false)
+  invoiceId       String?
+  invoice         Invoice?  @relation(fields: [invoiceId], references: [id])
+  receiptUrl      String?
+  approvalStatus  String    @default("Pending") // Pending, Approved, Rejected
+  approvedById    String?
+  approvedBy      User?     @relation("ProjectExpenseApprover", fields: [approvedById], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([projectId, billable, billed])
+}
+
+model ProjectMilestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  amount      Float     @default(0)
+  dueDate     DateTime?
+  status      String    @default("Pending") // Pending, Invoiced, Paid
+  invoiceId   String?
+  invoice     Invoice?  @relation(fields: [invoiceId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId])
+}
+
+// ============================================
+// DOCUMENT MANAGEMENT
+// ============================================
+
+model Document {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  fileName       String
+  fileSize       Int      @default(0)
+  mimeType       String?
+  storageKey     String?
+  entityType     String?  // Invoice, Bill, Expense, Contact, Project, Asset, Employee, General
+  entityId       String?
+  uploadedById   String?
+  uploadedBy     User?    @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  description    String?
+  tags           String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([organizationId, entityType])
+}
+
+// ============================================
+// BANK FEEDS
+// ============================================
+
+model BankFeed {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  bankName       String
+  accountNumber  String
+  accountName    String
+  status         String   @default("Active") // Active, Paused, Disconnected
+  lastSyncAt     DateTime?
+  connectionRef  String?
+  feedType       String   @default("Direct") // Direct, FileImport
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  transactions   BankFeedTransaction[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+model BankFeedTransaction {
+  id                    String           @id @default(cuid())
+  bankFeedId            String
+  bankFeed              BankFeed         @relation(fields: [bankFeedId], references: [id])
+  externalId            String
+  date                  DateTime
+  amount                Float
+  description           String
+  reference             String?
+  category              String?
+  status                String           @default("Pending") // Pending, Matched, Created, Ignored
+  matchedTransactionId  String?          @unique
+  matchedTransaction    BankTransaction? @relation(fields: [matchedTransactionId], references: [id])
+  createdAt             DateTime         @default(now())
+
+  @@index([bankFeedId])
+  @@index([bankFeedId, status])
+  @@index([externalId])
 }

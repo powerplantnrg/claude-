@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { DataTable, Column } from "@/components/ui/data-table"
 
 interface AccountRow {
@@ -99,6 +100,27 @@ const columns: Column<AccountRow>[] = [
           R&D Eligible
         </span>
       ) : null,
+  },
+  {
+    key: "actions",
+    label: "Actions",
+    sortable: false,
+    render: (row) => (
+      <div className="flex items-center gap-2">
+        <Link
+          href={`/accounts/${row.id}/edit`}
+          className="inline-flex items-center rounded px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 transition-colors"
+        >
+          Edit
+        </Link>
+        <Link
+          href={`/accounts/${row.id}/reconciliation`}
+          className="inline-flex items-center rounded px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          Ledger
+        </Link>
+      </div>
+    ),
   },
 ]
 

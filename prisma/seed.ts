@@ -737,8 +737,1270 @@ async function main() {
     })
   }
 
+  // ============================================
+  // PAYROLL MODULE: Seed Data
+  // ============================================
+
+  // Additional payroll-related accounts (only if not already present)
+  const payrollAccounts = [
+    { code: "2250", name: "Salary Sacrifice Liability", type: "Liability", subType: "Current Liability", taxType: "BAS-Excluded" },
+    { code: "2350", name: "FBT Payable", type: "Liability", subType: "Current Liability", taxType: "BAS-Excluded" },
+    { code: "2450", name: "Workers Comp Payable", type: "Liability", subType: "Current Liability", taxType: "BAS-Excluded" },
+    { code: "8200", name: "Salary Sacrifice - Super", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8250", name: "Novated Lease Deductions", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8300", name: "FBT Expense", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8350", name: "Leave Entitlements", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8400", name: "Overtime", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8450", name: "Allowances", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8500", name: "Bonuses", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+  ]
+
+  for (const acc of payrollAccounts) {
+    const exists = await prisma.account.findFirst({ where: { code: acc.code, organizationId: org.id } })
+    if (!exists) {
+      await prisma.account.create({
+        data: {
+          ...acc,
+          isSystemAccount: false,
+          isRdEligible: false,
+          organizationId: org.id,
+        },
+      })
+    }
+  }
+
+  // --- Employees (4: full-time, full-time, part-time, contractor) ---
+  const empSarah = await prisma.employee.create({
+    data: {
+      organizationId: org.id,
+      userId: adminUser.id,
+      firstName: "Sarah",
+      lastName: "Chen",
+      email: "sarah.chen@powerplantenergy.com.au",
+      dateOfBirth: new Date("1990-03-15"),
+      startDate: daysAgo(730),
+      employmentType: "FullTime",
+      taxFileNumber: "***-***-***",
+      residencyStatus: "Resident",
+      taxFreeThreshold: true,
+      helpDebt: true,
+      sfssDebt: false,
+      medicareLevyExemption: "None",
+      superFundName: "Australian Super",
+      superMemberNumber: "MEM-1234567",
+      superRate: 11.5,
+      bankBSB: "062-000",
+      bankAccountNumber: "****4321",
+      bankAccountName: "Sarah Chen",
+      annualSalary: 145000,
+      payFrequency: "Monthly",
+      leaveBalanceAnnual: 120,
+      leaveBalanceSick: 80,
+      leaveBalancePersonal: 16,
+      notes: "Lead ML Engineer - R&D team lead",
+      active: true,
+    },
+  })
+
+  const empJames = await prisma.employee.create({
+    data: {
+      organizationId: org.id,
+      firstName: "James",
+      lastName: "Nguyen",
+      email: "james.nguyen@powerplantenergy.com.au",
+      dateOfBirth: new Date("1985-08-22"),
+      startDate: daysAgo(365),
+      employmentType: "FullTime",
+      taxFileNumber: "***-***-***",
+      residencyStatus: "Resident",
+      taxFreeThreshold: true,
+      helpDebt: false,
+      sfssDebt: false,
+      medicareLevyExemption: "None",
+      superFundName: "REST Super",
+      superMemberNumber: "MEM-7654321",
+      superRate: 11.5,
+      bankBSB: "033-000",
+      bankAccountNumber: "****8765",
+      bankAccountName: "James Nguyen",
+      annualSalary: 125000,
+      payFrequency: "Monthly",
+      leaveBalanceAnnual: 80,
+      leaveBalanceSick: 60,
+      leaveBalancePersonal: 16,
+      notes: "Senior Software Engineer - Energy platform",
+      active: true,
+    },
+  })
+
+  const empLisa = await prisma.employee.create({
+    data: {
+      organizationId: org.id,
+      firstName: "Lisa",
+      lastName: "Patel",
+      email: "lisa.patel@powerplantenergy.com.au",
+      dateOfBirth: new Date("1995-11-05"),
+      startDate: daysAgo(180),
+      employmentType: "PartTime",
+      taxFileNumber: "***-***-***",
+      residencyStatus: "Resident",
+      taxFreeThreshold: true,
+      helpDebt: true,
+      sfssDebt: true,
+      medicareLevyExemption: "None",
+      superFundName: "Hostplus",
+      superMemberNumber: "MEM-3456789",
+      superRate: 11.5,
+      bankBSB: "084-004",
+      bankAccountNumber: "****2345",
+      bankAccountName: "Lisa Patel",
+      hourlyRate: 65,
+      payFrequency: "Fortnightly",
+      leaveBalanceAnnual: 40,
+      leaveBalanceSick: 30,
+      leaveBalancePersonal: 8,
+      notes: "Part-time data analyst - 3 days per week",
+      active: true,
+    },
+  })
+
+  const empMike = await prisma.employee.create({
+    data: {
+      organizationId: org.id,
+      firstName: "Mike",
+      lastName: "Thompson",
+      email: "mike.thompson@contractor.io",
+      dateOfBirth: new Date("1982-06-30"),
+      startDate: daysAgo(90),
+      employmentType: "Contractor",
+      taxFileNumber: "***-***-***",
+      residencyStatus: "Resident",
+      taxFreeThreshold: false,
+      helpDebt: false,
+      sfssDebt: false,
+      medicareLevyExemption: "Full",
+      superFundName: "Self Managed Super Fund",
+      superMemberNumber: "SMSF-001",
+      superRate: 11.5,
+      bankBSB: "012-003",
+      bankAccountNumber: "****9876",
+      bankAccountName: "Thompson Consulting Pty Ltd",
+      hourlyRate: 150,
+      payFrequency: "Monthly",
+      leaveBalanceAnnual: 0,
+      leaveBalanceSick: 0,
+      leaveBalancePersonal: 0,
+      notes: "DevOps contractor - infrastructure automation",
+      active: true,
+    },
+  })
+
+  // --- Pay Run (1 completed) ---
+  const payPeriodStart = new Date("2026-03-01")
+  const payPeriodEnd = new Date("2026-03-31")
+  const payDate = new Date("2026-03-31")
+
+  // Calculate gross pays
+  const sarahGross = 145000 / 12  // ~12083.33
+  const jamesGross = 125000 / 12  // ~10416.67
+  const lisaHours = 24 * (26 / 14) // ~44.57 hours in March (3 days/wk fortnightly approx)
+  const lisaGross = 65 * 24 * 2  // 2 fortnights, 24 hrs each = 3120
+  const mikeHours = 160
+  const mikeGross = 150 * mikeHours  // 24000
+
+  const sarahTax = 3547
+  const jamesTax = 2812
+  const lisaTax = 468
+  const mikeTax = 7200
+
+  const sarahSuper = Math.round(sarahGross * 0.115 * 100) / 100  // ~1389.58
+  const jamesSuper = Math.round(jamesGross * 0.115 * 100) / 100  // ~1197.92
+  const lisaSuper = Math.round(lisaGross * 0.115 * 100) / 100    // ~358.80
+  const mikeSuper = Math.round(mikeGross * 0.115 * 100) / 100    // ~2760.00
+
+  const sarahHelpRepayment = 604
+  const lisaHelpRepayment = 47
+  const lisaSfssRepayment = 23
+  const sarahSalarySacrifice = 500
+
+  const sarahNet = Math.round((sarahGross - sarahTax - sarahHelpRepayment - sarahSalarySacrifice) * 100) / 100
+  const jamesNet = Math.round((jamesGross - jamesTax) * 100) / 100
+  const lisaNet = Math.round((lisaGross - lisaTax - lisaHelpRepayment - lisaSfssRepayment) * 100) / 100
+  const mikeNet = Math.round((mikeGross - mikeTax) * 100) / 100
+
+  const totalGross = Math.round((sarahGross + jamesGross + lisaGross + mikeGross) * 100) / 100
+  const totalTax = sarahTax + jamesTax + lisaTax + mikeTax
+  const totalSuper = Math.round((sarahSuper + jamesSuper + lisaSuper + mikeSuper) * 100) / 100
+  const totalNet = Math.round((sarahNet + jamesNet + lisaNet + mikeNet) * 100) / 100
+  const totalDeductions = sarahHelpRepayment + lisaHelpRepayment + lisaSfssRepayment + sarahSalarySacrifice
+
+  const payRun = await prisma.payRun.create({
+    data: {
+      organizationId: org.id,
+      payPeriodStart,
+      payPeriodEnd,
+      payDate,
+      status: "Completed",
+      totalGross,
+      totalTax,
+      totalSuper,
+      totalNet,
+      totalDeductions,
+      processedAt: payDate,
+      processedById: adminUser.id,
+      notes: "March 2026 payroll",
+    },
+  })
+
+  // --- Payslips (4) ---
+  // Sarah's payslip
+  const payslipSarah = await prisma.payslip.create({
+    data: {
+      payRunId: payRun.id,
+      employeeId: empSarah.id,
+      organizationId: org.id,
+      payPeriodStart,
+      payPeriodEnd,
+      payDate,
+      hoursWorked: 160,
+      hourlyRate: Math.round(sarahGross / 160 * 100) / 100,
+      grossPay: Math.round(sarahGross * 100) / 100,
+      overtimeHours: 0,
+      overtimePay: 0,
+      allowances: 0,
+      bonuses: 0,
+      taxWithheld: sarahTax,
+      medicareLevyAmount: 242,
+      helpRepayment: sarahHelpRepayment,
+      sfssRepayment: 0,
+      superContribution: sarahSuper,
+      superSalarySacrifice: sarahSalarySacrifice,
+      preTaxDeductions: sarahSalarySacrifice,
+      postTaxDeductions: 0,
+      netPay: sarahNet,
+      yearToDateGross: Math.round(sarahGross * 9 * 100) / 100,
+      yearToDateTax: sarahTax * 9,
+      yearToDateSuper: Math.round(sarahSuper * 9 * 100) / 100,
+      status: "Paid",
+      earnings: {
+        create: [
+          { type: "Ordinary", description: "Base Salary", hours: 160, rate: Math.round(sarahGross / 160 * 100) / 100, amount: Math.round(sarahGross * 100) / 100 },
+        ],
+      },
+      deductions: {
+        create: [
+          { type: "PreTax", category: "SalarySacrifice", description: "Salary sacrifice to super", amount: sarahSalarySacrifice },
+        ],
+      },
+      leave: {
+        create: [
+          { type: "Annual", hoursAccrued: 12.67, hoursTaken: 0, balance: 120 },
+          { type: "Sick", hoursAccrued: 6.33, hoursTaken: 0, balance: 80 },
+          { type: "Personal", hoursAccrued: 1.33, hoursTaken: 0, balance: 16 },
+        ],
+      },
+    },
+  })
+
+  // James's payslip
+  const payslipJames = await prisma.payslip.create({
+    data: {
+      payRunId: payRun.id,
+      employeeId: empJames.id,
+      organizationId: org.id,
+      payPeriodStart,
+      payPeriodEnd,
+      payDate,
+      hoursWorked: 168,
+      hourlyRate: Math.round(jamesGross / 160 * 100) / 100,
+      grossPay: Math.round(jamesGross + 8 * (jamesGross / 160) * 1.5),
+      overtimeHours: 8,
+      overtimePay: Math.round(8 * (jamesGross / 160) * 1.5 * 100) / 100,
+      allowances: 0,
+      bonuses: 0,
+      taxWithheld: jamesTax,
+      medicareLevyAmount: 208,
+      helpRepayment: 0,
+      sfssRepayment: 0,
+      superContribution: jamesSuper,
+      superSalarySacrifice: 0,
+      preTaxDeductions: 0,
+      postTaxDeductions: 0,
+      netPay: jamesNet,
+      yearToDateGross: Math.round(jamesGross * 9 * 100) / 100,
+      yearToDateTax: jamesTax * 9,
+      yearToDateSuper: Math.round(jamesSuper * 9 * 100) / 100,
+      status: "Paid",
+      earnings: {
+        create: [
+          { type: "Ordinary", description: "Base Salary", hours: 160, rate: Math.round(jamesGross / 160 * 100) / 100, amount: Math.round(jamesGross * 100) / 100 },
+          { type: "Overtime", description: "Overtime (1.5x)", hours: 8, rate: Math.round((jamesGross / 160) * 1.5 * 100) / 100, amount: Math.round(8 * (jamesGross / 160) * 1.5 * 100) / 100 },
+        ],
+      },
+      leave: {
+        create: [
+          { type: "Annual", hoursAccrued: 12.67, hoursTaken: 0, balance: 80 },
+          { type: "Sick", hoursAccrued: 6.33, hoursTaken: 0, balance: 60 },
+        ],
+      },
+    },
+  })
+
+  // Lisa's payslip
+  const payslipLisa = await prisma.payslip.create({
+    data: {
+      payRunId: payRun.id,
+      employeeId: empLisa.id,
+      organizationId: org.id,
+      payPeriodStart,
+      payPeriodEnd,
+      payDate,
+      hoursWorked: 48,
+      hourlyRate: 65,
+      grossPay: lisaGross,
+      overtimeHours: 0,
+      overtimePay: 0,
+      allowances: 0,
+      bonuses: 0,
+      taxWithheld: lisaTax,
+      medicareLevyAmount: 62,
+      helpRepayment: lisaHelpRepayment,
+      sfssRepayment: lisaSfssRepayment,
+      superContribution: lisaSuper,
+      superSalarySacrifice: 0,
+      preTaxDeductions: 0,
+      postTaxDeductions: 0,
+      netPay: lisaNet,
+      yearToDateGross: lisaGross * 6,
+      yearToDateTax: lisaTax * 6,
+      yearToDateSuper: Math.round(lisaSuper * 6 * 100) / 100,
+      status: "Paid",
+      earnings: {
+        create: [
+          { type: "Ordinary", description: "Hourly - Part Time", hours: 48, rate: 65, amount: lisaGross },
+        ],
+      },
+      leave: {
+        create: [
+          { type: "Annual", hoursAccrued: 5.54, hoursTaken: 0, balance: 40 },
+          { type: "Sick", hoursAccrued: 2.77, hoursTaken: 0, balance: 30 },
+        ],
+      },
+    },
+  })
+
+  // Mike's payslip (contractor)
+  const payslipMike = await prisma.payslip.create({
+    data: {
+      payRunId: payRun.id,
+      employeeId: empMike.id,
+      organizationId: org.id,
+      payPeriodStart,
+      payPeriodEnd,
+      payDate,
+      hoursWorked: mikeHours,
+      hourlyRate: 150,
+      grossPay: mikeGross,
+      overtimeHours: 0,
+      overtimePay: 0,
+      allowances: 0,
+      bonuses: 0,
+      taxWithheld: mikeTax,
+      medicareLevyAmount: 0,
+      helpRepayment: 0,
+      sfssRepayment: 0,
+      superContribution: mikeSuper,
+      superSalarySacrifice: 0,
+      preTaxDeductions: 0,
+      postTaxDeductions: 0,
+      netPay: mikeNet,
+      yearToDateGross: mikeGross * 3,
+      yearToDateTax: mikeTax * 3,
+      yearToDateSuper: Math.round(mikeSuper * 3 * 100) / 100,
+      status: "Paid",
+      earnings: {
+        create: [
+          { type: "Ordinary", description: "Contractor Hours", hours: mikeHours, rate: 150, amount: mikeGross },
+        ],
+      },
+      leave: {
+        create: [],
+      },
+    },
+  })
+
+  // --- Tax Minimisation Strategies (2) ---
+  await prisma.taxMinimisationStrategy.create({
+    data: {
+      organizationId: org.id,
+      category: "SalarySacrifice",
+      title: "Salary Sacrifice to Superannuation",
+      description: "Employees can sacrifice up to $30,000 total (including employer SG contributions) into superannuation at the concessional 15% tax rate instead of their marginal rate. For employees earning over $120,000, this can save between $5,000-$12,000 per year in personal tax. The employer also saves on payroll tax for the sacrificed amount.",
+      estimatedSaving: 18500,
+      implemented: true,
+      implementedDate: daysAgo(365),
+      applicableTo: "Individual",
+      priority: "High",
+      notes: "Currently active for Sarah Chen ($500/month). James Nguyen has been advised but not yet opted in. Review concessional cap annually.",
+    },
+  })
+
+  await prisma.taxMinimisationStrategy.create({
+    data: {
+      organizationId: org.id,
+      category: "NovatedLease",
+      title: "Novated Lease - Electric Vehicle FBT Exemption",
+      description: "Under the Electric Car Discount legislation, electric vehicles under the luxury car tax threshold for fuel-efficient vehicles ($91,387 for 2025-26) are exempt from FBT. A novated lease on an eligible EV allows employees to pay for the vehicle and running costs from pre-tax income with zero FBT, providing significant savings compared to purchasing outright or leasing a non-exempt vehicle.",
+      estimatedSaving: 12000,
+      implemented: false,
+      applicableTo: "Individual",
+      priority: "High",
+      notes: "James Nguyen has expressed interest in a Tesla Model 3 (~$65,000). Estimated annual benefit: $12,000+ in combined tax and GST savings. Need to set up novated lease agreement with fleet provider.",
+    },
+  })
+
+  // ============================================
+  // FIXED ASSETS, APPROVALS, EXCHANGE RATES
+  // ============================================
+
+  // Additional accounts for fixed assets and FX
+  const assetAccounts = [
+    { code: "1330", name: "Motor Vehicles at Cost", type: "Asset", subType: "Fixed Asset", taxType: "GST" },
+    { code: "1340", name: "Software at Cost", type: "Asset", subType: "Fixed Asset", taxType: "GST" },
+    { code: "1410", name: "Accumulated Depreciation - Vehicles", type: "Asset", subType: "Fixed Asset", taxType: "BAS-Excluded" },
+    { code: "1420", name: "Accumulated Depreciation - Software", type: "Asset", subType: "Fixed Asset", taxType: "BAS-Excluded" },
+    { code: "1430", name: "Accumulated Depreciation - Computers", type: "Asset", subType: "Fixed Asset", taxType: "BAS-Excluded" },
+    { code: "1440", name: "Accumulated Depreciation - Lab Equipment", type: "Asset", subType: "Fixed Asset", taxType: "BAS-Excluded" },
+    { code: "6155", name: "Depreciation - Vehicles", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded" },
+    { code: "6160", name: "Depreciation - Software", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded" },
+    { code: "6165", name: "Depreciation - Computers", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded" },
+    { code: "6170", name: "Depreciation - Lab Equipment", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded", isRdEligible: true },
+    { code: "4600", name: "FX Gains", type: "Revenue", subType: "Other Revenue", taxType: "BAS-Excluded" },
+    { code: "6700", name: "FX Losses", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded" },
+    { code: "4700", name: "Gain on Disposal of Assets", type: "Revenue", subType: "Other Revenue", taxType: "BAS-Excluded" },
+    { code: "6750", name: "Loss on Disposal of Assets", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded" },
+  ]
+
+  const createdAssetAccounts: Record<string, string> = {}
+  for (const acc of assetAccounts) {
+    const exists = await prisma.account.findFirst({ where: { code: acc.code, organizationId: org.id } })
+    if (!exists) {
+      const created = await prisma.account.create({
+        data: {
+          ...acc,
+          isSystemAccount: false,
+          isRdEligible: (acc as { isRdEligible?: boolean }).isRdEligible || false,
+          organizationId: org.id,
+        },
+      })
+      createdAssetAccounts[acc.code] = created.id
+    } else {
+      createdAssetAccounts[acc.code] = exists.id
+    }
+  }
+
+  // Look up existing accounts we need
+  const computerEquipmentAccount = await prisma.account.findFirst({ where: { code: "1310", organizationId: org.id } })
+  const labEquipmentAccount = await prisma.account.findFirst({ where: { code: "1320", organizationId: org.id } })
+  const accumulatedDepAccount = await prisma.account.findFirst({ where: { code: "1400", organizationId: org.id } })
+  const depreciationExpenseAccount = await prisma.account.findFirst({ where: { code: "6150", organizationId: org.id } })
+
+  // --- Fixed Assets (5) ---
+
+  // Asset 1: MacBook Pro (Computer)
+  const assetMacBook = await prisma.fixedAsset.create({
+    data: {
+      organizationId: org.id,
+      assetNumber: "FA-001",
+      name: "MacBook Pro 16\" M3 Max",
+      description: "Developer workstation for ML engineering",
+      category: "Computer",
+      purchaseDate: new Date("2025-07-15"),
+      purchasePrice: 6499,
+      residualValue: 500,
+      usefulLifeYears: 4,
+      depreciationMethod: "DiminishingValue",
+      accountId: computerEquipmentAccount!.id,
+      depreciationAccountId: createdAssetAccounts["6165"],
+      accumulatedDepreciationAccountId: createdAssetAccounts["1430"],
+      currentBookValue: 4459.94,
+      status: "Active",
+      location: "Sydney Office - Desk 12",
+      serialNumber: "C02ZT1ABCD01",
+      supplier: "Apple Store Sydney",
+      warrantyExpiry: new Date("2028-07-15"),
+      isRdAsset: false,
+      notes: "Primary development machine for Sarah Chen",
+    },
+  })
+
+  // Asset 2: Dell Precision Workstation (Computer)
+  const assetDell = await prisma.fixedAsset.create({
+    data: {
+      organizationId: org.id,
+      assetNumber: "FA-002",
+      name: "Dell Precision 7875 Tower",
+      description: "High-performance workstation with NVIDIA RTX 6000",
+      category: "Computer",
+      purchaseDate: new Date("2025-09-01"),
+      purchasePrice: 12500,
+      residualValue: 800,
+      usefulLifeYears: 4,
+      depreciationMethod: "DiminishingValue",
+      accountId: computerEquipmentAccount!.id,
+      depreciationAccountId: createdAssetAccounts["6165"],
+      accumulatedDepreciationAccountId: createdAssetAccounts["1430"],
+      currentBookValue: 9234.38,
+      status: "Active",
+      location: "Sydney Office - Server Room",
+      serialNumber: "DPR-7875-X9K2",
+      supplier: "Dell Technologies Australia",
+      warrantyExpiry: new Date("2028-09-01"),
+      isRdAsset: true,
+      notes: "Used for local ML model training and experiments",
+    },
+  })
+
+  // Asset 3: Toyota HiLux (Vehicle)
+  const assetVehicle = await prisma.fixedAsset.create({
+    data: {
+      organizationId: org.id,
+      assetNumber: "FA-003",
+      name: "Toyota HiLux SR5 4x4",
+      description: "Company vehicle for site visits and equipment transport",
+      category: "Vehicle",
+      purchaseDate: new Date("2025-03-10"),
+      purchasePrice: 62000,
+      residualValue: 25000,
+      usefulLifeYears: 8,
+      depreciationMethod: "StraightLine",
+      accountId: createdAssetAccounts["1330"],
+      depreciationAccountId: createdAssetAccounts["6155"],
+      accumulatedDepreciationAccountId: createdAssetAccounts["1410"],
+      currentBookValue: 57375,
+      status: "Active",
+      location: "Sydney Office - Basement Parking",
+      serialNumber: "VIN-JTFDA21R350123456",
+      supplier: "Sydney City Toyota",
+      warrantyExpiry: new Date("2030-03-10"),
+      isRdAsset: false,
+      notes: "Novated lease arrangement under consideration",
+    },
+  })
+
+  // Asset 4: JIRA & Confluence Perpetual License (Software)
+  const assetSoftware = await prisma.fixedAsset.create({
+    data: {
+      organizationId: org.id,
+      assetNumber: "FA-004",
+      name: "Atlassian Data Center License",
+      description: "Perpetual license for JIRA and Confluence Data Center",
+      category: "Software",
+      purchaseDate: new Date("2025-06-01"),
+      purchasePrice: 18000,
+      residualValue: 0,
+      usefulLifeYears: 3,
+      depreciationMethod: "StraightLine",
+      accountId: createdAssetAccounts["1340"],
+      depreciationAccountId: createdAssetAccounts["6160"],
+      accumulatedDepreciationAccountId: createdAssetAccounts["1420"],
+      currentBookValue: 13000,
+      status: "Active",
+      location: "Cloud / On-Premise",
+      supplier: "Atlassian Pty Ltd",
+      isRdAsset: false,
+      notes: "Used across all teams for project management and documentation",
+    },
+  })
+
+  // Asset 5: Lab Equipment - Spectral Analyzer (linked to R&D project)
+  // Get the NAS project for linking
+  const nasProjectForAsset = await prisma.rdProject.findFirst({
+    where: { organizationId: org.id, name: { contains: "Neural Architecture" } },
+  })
+
+  const assetLabEquipment = await prisma.fixedAsset.create({
+    data: {
+      organizationId: org.id,
+      assetNumber: "FA-005",
+      name: "Keysight N9040B Signal Analyzer",
+      description: "UXA signal analyzer for IoT sensor calibration and energy grid signal analysis",
+      category: "Equipment",
+      purchaseDate: new Date("2025-08-20"),
+      purchasePrice: 45000,
+      residualValue: 5000,
+      usefulLifeYears: 10,
+      depreciationMethod: "StraightLine",
+      accountId: labEquipmentAccount!.id,
+      depreciationAccountId: createdAssetAccounts["6170"],
+      accumulatedDepreciationAccountId: createdAssetAccounts["1440"],
+      currentBookValue: 42666.67,
+      status: "Active",
+      location: "Sydney Office - R&D Lab",
+      serialNumber: "MY-N9040B-00234",
+      supplier: "Keysight Technologies Australia",
+      warrantyExpiry: new Date("2028-08-20"),
+      isRdAsset: true,
+      rdProjectId: nasProjectForAsset?.id || null,
+      notes: "Primary R&D equipment - 100% R&D eligible. Used for energy grid sensor signal analysis.",
+    },
+  })
+
+  // --- Depreciation Schedules for current FY (Jul 2025 - Jun 2026) ---
+  // Generate monthly schedules for each asset from Jul 2025 to Mar 2026
+
+  const fyMonths: Array<{ start: Date; end: Date }> = []
+  for (let m = 6; m <= 14; m++) { // Jul 2025 (month 6) to Mar 2026 (month 14 = 2+12)
+    const year = m < 12 ? 2025 : 2026
+    const month = m % 12
+    const start = new Date(year, month, 1)
+    const end = new Date(year, month + 1, 0) // Last day of month
+    fyMonths.push({ start, end })
+  }
+
+  // Helper: straight-line monthly dep
+  const slMonthly = (cost: number, residual: number, years: number) =>
+    Math.round(((cost - residual) / years / 12) * 100) / 100
+
+  // Helper: diminishing value monthly dep
+  const dvMonthly = (bookValue: number, years: number) =>
+    Math.round((bookValue * (2 / years) / 12) * 100) / 100
+
+  // MacBook Pro - purchased Jul 15 2025, DV method
+  let macBookBV = 6499
+  for (const period of fyMonths) {
+    if (period.start < new Date("2025-07-01")) continue
+    const isFirstMonth = period.start.getFullYear() === 2025 && period.start.getMonth() === 6
+    const fraction = isFirstMonth ? 17 / 31 : 1 // Jul 15 -> Jul 31 = 17 days
+    const dep = Math.round(dvMonthly(macBookBV, 4) * fraction * 100) / 100
+    const prevAccum = 6499 - macBookBV
+    await prisma.depreciationSchedule.create({
+      data: {
+        fixedAssetId: assetMacBook.id,
+        periodStart: period.start,
+        periodEnd: period.end,
+        openingValue: Math.round(macBookBV * 100) / 100,
+        depreciationAmount: dep,
+        accumulatedDepreciation: Math.round((prevAccum + dep) * 100) / 100,
+        closingValue: Math.round((macBookBV - dep) * 100) / 100,
+        status: "Scheduled",
+      },
+    })
+    macBookBV -= dep
+  }
+
+  // Dell Precision - purchased Sep 1 2025, DV method
+  let dellBV = 12500
+  for (const period of fyMonths) {
+    if (period.start < new Date("2025-09-01")) continue
+    const dep = dvMonthly(dellBV, 4)
+    const prevAccum = 12500 - dellBV
+    await prisma.depreciationSchedule.create({
+      data: {
+        fixedAssetId: assetDell.id,
+        periodStart: period.start,
+        periodEnd: period.end,
+        openingValue: Math.round(dellBV * 100) / 100,
+        depreciationAmount: dep,
+        accumulatedDepreciation: Math.round((prevAccum + dep) * 100) / 100,
+        closingValue: Math.round((dellBV - dep) * 100) / 100,
+        status: "Scheduled",
+      },
+    })
+    dellBV -= dep
+  }
+
+  // Toyota HiLux - purchased Mar 10 2025, SL method
+  let vehicleBV = 62000
+  const vehicleMonthlyDep = slMonthly(62000, 25000, 8)
+  // Vehicle starts depreciating before FY (March 2025), calculate opening BV
+  // Mar 2025 (pro-rata ~22/31 days), Apr, May, Jun = 3.71 months
+  const vehiclePreFYDep = Math.round((vehicleMonthlyDep * (22 / 31) + vehicleMonthlyDep * 3) * 100) / 100
+  vehicleBV = Math.round((62000 - vehiclePreFYDep) * 100) / 100
+
+  for (const period of fyMonths) {
+    const dep = vehicleMonthlyDep
+    const prevAccum = 62000 - vehicleBV
+    await prisma.depreciationSchedule.create({
+      data: {
+        fixedAssetId: assetVehicle.id,
+        periodStart: period.start,
+        periodEnd: period.end,
+        openingValue: Math.round(vehicleBV * 100) / 100,
+        depreciationAmount: dep,
+        accumulatedDepreciation: Math.round((prevAccum + dep) * 100) / 100,
+        closingValue: Math.round((vehicleBV - dep) * 100) / 100,
+        status: "Scheduled",
+      },
+    })
+    vehicleBV -= dep
+  }
+
+  // Atlassian License - purchased Jun 1 2025, SL method
+  let softwareBV = 18000
+  const softwareMonthlyDep = slMonthly(18000, 0, 3)
+  // Pre-FY: 1 month (Jun 2025)
+  softwareBV = Math.round((18000 - softwareMonthlyDep) * 100) / 100
+
+  for (const period of fyMonths) {
+    const dep = softwareMonthlyDep
+    const prevAccum = 18000 - softwareBV
+    await prisma.depreciationSchedule.create({
+      data: {
+        fixedAssetId: assetSoftware.id,
+        periodStart: period.start,
+        periodEnd: period.end,
+        openingValue: Math.round(softwareBV * 100) / 100,
+        depreciationAmount: dep,
+        accumulatedDepreciation: Math.round((prevAccum + dep) * 100) / 100,
+        closingValue: Math.round((softwareBV - dep) * 100) / 100,
+        status: "Scheduled",
+      },
+    })
+    softwareBV -= dep
+  }
+
+  // Signal Analyzer - purchased Aug 20 2025, SL method
+  let labBV = 45000
+  const labMonthlyDep = slMonthly(45000, 5000, 10)
+  for (const period of fyMonths) {
+    if (period.start < new Date("2025-08-01")) continue
+    const isFirstMonth = period.start.getFullYear() === 2025 && period.start.getMonth() === 7
+    const fraction = isFirstMonth ? 12 / 31 : 1 // Aug 20 -> Aug 31 = 12 days
+    const dep = Math.round(labMonthlyDep * fraction * 100) / 100
+    const prevAccum = 45000 - labBV
+    await prisma.depreciationSchedule.create({
+      data: {
+        fixedAssetId: assetLabEquipment.id,
+        periodStart: period.start,
+        periodEnd: period.end,
+        openingValue: Math.round(labBV * 100) / 100,
+        depreciationAmount: dep,
+        accumulatedDepreciation: Math.round((prevAccum + dep) * 100) / 100,
+        closingValue: Math.round((labBV - dep) * 100) / 100,
+        status: "Scheduled",
+      },
+    })
+    labBV -= dep
+  }
+
+  // --- Approval Workflows (2) ---
+
+  // Workflow 1: Bills over $5,000 need manager approval
+  const billWorkflow = await prisma.approvalWorkflow.create({
+    data: {
+      organizationId: org.id,
+      name: "Bill Approval - Manager Sign-off",
+      entityType: "Bill",
+      minAmount: 5000,
+      maxAmount: null,
+      requiredApprovers: 1,
+      autoApproveBelow: 5000,
+      active: true,
+      steps: {
+        create: [
+          {
+            stepOrder: 1,
+            approverId: adminUser.id,
+            role: "Approver",
+            canDelegate: true,
+          },
+        ],
+      },
+    },
+  })
+
+  // Workflow 2: Expenses over $1,000 need approval
+  const expenseWorkflow = await prisma.approvalWorkflow.create({
+    data: {
+      organizationId: org.id,
+      name: "Expense Claim Approval",
+      entityType: "Expense",
+      minAmount: 1000,
+      maxAmount: null,
+      requiredApprovers: 1,
+      autoApproveBelow: 1000,
+      active: true,
+      steps: {
+        create: [
+          {
+            stepOrder: 1,
+            approverId: adminUser.id,
+            role: "Approver",
+            canDelegate: false,
+          },
+        ],
+      },
+    },
+  })
+
+  // --- Exchange Rates (USD, GBP, EUR, NZD against AUD) ---
+  const exchangeRateDates = [
+    new Date("2025-07-01"),
+    new Date("2025-10-01"),
+    new Date("2026-01-01"),
+    new Date("2026-03-01"),
+  ]
+
+  const fxRates = [
+    // USD/AUD rates across quarters
+    { from: "USD", to: "AUD", rates: [1.53, 1.55, 1.57, 1.54] },
+    // GBP/AUD rates
+    { from: "GBP", to: "AUD", rates: [1.92, 1.95, 1.97, 1.94] },
+    // EUR/AUD rates
+    { from: "EUR", to: "AUD", rates: [1.67, 1.69, 1.71, 1.68] },
+    // NZD/AUD rates
+    { from: "NZD", to: "AUD", rates: [0.92, 0.93, 0.91, 0.92] },
+  ]
+
+  for (const pair of fxRates) {
+    for (let i = 0; i < exchangeRateDates.length; i++) {
+      await prisma.exchangeRate.create({
+        data: {
+          organizationId: org.id,
+          fromCurrency: pair.from,
+          toCurrency: pair.to,
+          rate: pair.rates[i],
+          effectiveDate: exchangeRateDates[i],
+          source: "Manual",
+        },
+      })
+    }
+  }
+
+  // ============================================
+  // INVENTORY: Items & Movements
+  // ============================================
+
+  const inventoryAcct = await accountByCode("1200") // Inventory asset account
+  const cogsAcct = await accountByCode("5000") // Cost of Goods Sold
+
+  const gstTaxRate = await prisma.taxRate.findFirst({
+    where: { organizationId: org.id, taxType: "GST", isDefault: true },
+  })
+
+  const inventoryItems = [
+    { sku: "OFF-001", name: "A4 Copy Paper (Ream)", category: "Office Supplies", unitOfMeasure: "ream", costPrice: 5.50, sellingPrice: 8.00, quantityOnHand: 200, reorderLevel: 50, reorderQuantity: 100, location: "Storeroom A" },
+    { sku: "OFF-002", name: "Ballpoint Pens (Box of 12)", category: "Office Supplies", unitOfMeasure: "box", costPrice: 3.20, sellingPrice: 6.00, quantityOnHand: 80, reorderLevel: 20, reorderQuantity: 50, location: "Storeroom A" },
+    { sku: "TECH-001", name: "USB-C Hub Docking Station", category: "Tech Equipment", unitOfMeasure: "each", costPrice: 89.00, sellingPrice: 149.00, quantityOnHand: 15, reorderLevel: 5, reorderQuantity: 10, location: "IT Cupboard" },
+    { sku: "TECH-002", name: "Wireless Mouse", category: "Tech Equipment", unitOfMeasure: "each", costPrice: 25.00, sellingPrice: 45.00, quantityOnHand: 30, reorderLevel: 10, reorderQuantity: 20, location: "IT Cupboard" },
+    { sku: "TECH-003", name: "27\" Monitor", category: "Tech Equipment", unitOfMeasure: "each", costPrice: 380.00, sellingPrice: 599.00, quantityOnHand: 8, reorderLevel: 3, reorderQuantity: 5, location: "Warehouse B" },
+    { sku: "LAB-001", name: "Thermal Paste Compound (Tube)", category: "Lab Materials", unitOfMeasure: "tube", costPrice: 12.50, sellingPrice: 22.00, quantityOnHand: 45, reorderLevel: 15, reorderQuantity: 30, location: "Lab Storage" },
+    { sku: "LAB-002", name: "Circuit Board Prototype Kit", category: "Lab Materials", unitOfMeasure: "kit", costPrice: 65.00, sellingPrice: 120.00, quantityOnHand: 12, reorderLevel: 5, reorderQuantity: 10, location: "Lab Storage" },
+    { sku: "LAB-003", name: "Anti-static Wrist Strap", category: "Lab Materials", unitOfMeasure: "each", costPrice: 8.00, sellingPrice: 15.00, quantityOnHand: 3, reorderLevel: 10, reorderQuantity: 20, location: "Lab Storage" },
+  ]
+
+  const createdItems: Record<string, string> = {}
+  for (const item of inventoryItems) {
+    const created = await prisma.inventoryItem.create({
+      data: {
+        organizationId: org.id,
+        sku: item.sku,
+        name: item.name,
+        category: item.category,
+        unitOfMeasure: item.unitOfMeasure,
+        costPrice: item.costPrice,
+        sellingPrice: item.sellingPrice,
+        quantityOnHand: item.quantityOnHand,
+        reorderLevel: item.reorderLevel,
+        reorderQuantity: item.reorderQuantity,
+        isTracked: true,
+        isActive: true,
+        location: item.location,
+        accountId: inventoryAcct.id,
+        cogsAccountId: cogsAcct.id,
+        revenueAccountId: salesRevenueAcct.id,
+        taxRateId: gstTaxRate?.id,
+        supplierId: nvidia.id,
+      },
+    })
+    createdItems[item.sku] = created.id
+  }
+
+  // Inventory movements
+  const movements = [
+    { sku: "OFF-001", type: "Purchase", quantity: 200, unitCost: 5.50, ref: "PO-001", refType: "Bill" },
+    { sku: "OFF-001", type: "Sale", quantity: -25, unitCost: 5.50, ref: "INV-0003", refType: "Invoice" },
+    { sku: "TECH-001", type: "Purchase", quantity: 20, unitCost: 89.00, ref: "PO-002", refType: "Bill" },
+    { sku: "TECH-001", type: "Sale", quantity: -5, unitCost: 89.00, ref: "INV-0004", refType: "Invoice" },
+    { sku: "TECH-003", type: "Purchase", quantity: 10, unitCost: 380.00, ref: "PO-003", refType: "Bill" },
+    { sku: "TECH-003", type: "Sale", quantity: -2, unitCost: 380.00, ref: "INV-0005", refType: "Invoice" },
+    { sku: "LAB-001", type: "Purchase", quantity: 50, unitCost: 12.50, ref: "PO-004", refType: "Bill" },
+    { sku: "LAB-001", type: "Adjustment", quantity: -5, unitCost: 12.50, ref: "ADJ-001", refType: "Manual", notes: "Expired stock write-off" },
+    { sku: "LAB-002", type: "Purchase", quantity: 15, unitCost: 65.00, ref: "PO-005", refType: "Bill" },
+    { sku: "LAB-002", type: "Sale", quantity: -3, unitCost: 65.00, ref: "INV-0006", refType: "Invoice" },
+    { sku: "LAB-003", type: "Purchase", quantity: 25, unitCost: 8.00, ref: "PO-006", refType: "Bill" },
+    { sku: "LAB-003", type: "WriteOff", quantity: -2, unitCost: 8.00, ref: "WO-001", refType: "Manual", notes: "Damaged units" },
+  ]
+
+  for (const m of movements) {
+    await prisma.inventoryMovement.create({
+      data: {
+        organizationId: org.id,
+        inventoryItemId: createdItems[m.sku],
+        type: m.type,
+        quantity: m.quantity,
+        unitCost: m.unitCost,
+        totalCost: m.quantity * m.unitCost,
+        reference: m.ref,
+        referenceType: m.refType,
+        date: daysAgo(Math.floor(Math.random() * 60) + 10),
+        notes: (m as { notes?: string }).notes,
+      },
+    })
+  }
+
+  // ============================================
+  // PROJECTS: 3 projects with tasks and time entries
+  // ============================================
+
+  // Project 1: Client fixed-price project
+  const project1 = await prisma.project.create({
+    data: {
+      organizationId: org.id,
+      name: "TechCorp AI Platform",
+      code: "PRJ-001",
+      description: "Fixed-price AI platform development for TechCorp Solutions",
+      clientId: techCorp.id,
+      status: "Active",
+      startDate: daysAgo(120),
+      endDate: daysAgo(-60),
+      budgetAmount: 95000,
+      budgetHours: 400,
+      estimatedRevenue: 120000,
+      projectType: "FixedPrice",
+      billingMethod: "Milestone",
+      managerId: adminUser.id,
+      notes: "Phase 2 of the AI consulting engagement",
+    },
+  })
+
+  // Project 2: T&M project
+  const project2 = await prisma.project.create({
+    data: {
+      organizationId: org.id,
+      name: "Green Energy Dashboard",
+      code: "PRJ-002",
+      description: "Time and materials dashboard development for Green Energy Co",
+      clientId: greenEnergy.id,
+      status: "Active",
+      startDate: daysAgo(90),
+      budgetAmount: 60000,
+      budgetHours: 250,
+      estimatedRevenue: 75000,
+      projectType: "TimeAndMaterials",
+      billingMethod: "Hourly",
+      hourlyRate: 280,
+      managerId: adminUser.id,
+    },
+  })
+
+  // Project 3: Internal R&D project linked to existing RdProject
+  const project3 = await prisma.project.create({
+    data: {
+      organizationId: org.id,
+      name: "Neural Architecture Search - Internal",
+      code: "PRJ-RD01",
+      description: "Internal R&D project tracking for NAS research aligned with R&D tax incentive claim",
+      status: "Active",
+      startDate: daysAgo(150),
+      budgetAmount: 150000,
+      budgetHours: 800,
+      projectType: "RD",
+      billingMethod: "NonBillable",
+      managerId: adminUser.id,
+      isRdProject: true,
+      rdProjectId: nasProject.id,
+      notes: "Linked to R&D Tax Incentive project for NAS research",
+    },
+  })
+
+  // Tasks for project 1
+  const task1_1 = await prisma.projectTask.create({
+    data: {
+      projectId: project1.id,
+      name: "Requirements Analysis",
+      description: "Gather and document detailed requirements",
+      assigneeId: adminUser.id,
+      status: "Done",
+      estimatedHours: 40,
+      budgetAmount: 12000,
+      startDate: daysAgo(120),
+      dueDate: daysAgo(100),
+      completedDate: daysAgo(102),
+      sortOrder: 1,
+    },
+  })
+
+  const task1_2 = await prisma.projectTask.create({
+    data: {
+      projectId: project1.id,
+      name: "Architecture Design",
+      description: "Design system architecture and data models",
+      assigneeId: adminUser.id,
+      status: "Done",
+      estimatedHours: 60,
+      budgetAmount: 18000,
+      startDate: daysAgo(100),
+      dueDate: daysAgo(75),
+      completedDate: daysAgo(78),
+      sortOrder: 2,
+    },
+  })
+
+  const task1_3 = await prisma.projectTask.create({
+    data: {
+      projectId: project1.id,
+      name: "Core Development",
+      description: "Build core AI processing pipeline",
+      assigneeId: adminUser.id,
+      status: "InProgress",
+      estimatedHours: 200,
+      budgetAmount: 45000,
+      startDate: daysAgo(75),
+      dueDate: daysAgo(-10),
+      sortOrder: 3,
+    },
+  })
+
+  const task1_4 = await prisma.projectTask.create({
+    data: {
+      projectId: project1.id,
+      name: "Testing & QA",
+      description: "End-to-end testing and quality assurance",
+      assigneeId: adminUser.id,
+      status: "Todo",
+      estimatedHours: 80,
+      budgetAmount: 16000,
+      startDate: daysAgo(-10),
+      dueDate: daysAgo(-40),
+      sortOrder: 4,
+    },
+  })
+
+  // Tasks for project 2
+  const task2_1 = await prisma.projectTask.create({
+    data: {
+      projectId: project2.id,
+      name: "Dashboard UI Design",
+      assigneeId: adminUser.id,
+      status: "Done",
+      estimatedHours: 30,
+      startDate: daysAgo(90),
+      dueDate: daysAgo(75),
+      completedDate: daysAgo(76),
+      sortOrder: 1,
+    },
+  })
+
+  const task2_2 = await prisma.projectTask.create({
+    data: {
+      projectId: project2.id,
+      name: "API Integration",
+      assigneeId: adminUser.id,
+      status: "InProgress",
+      estimatedHours: 60,
+      startDate: daysAgo(75),
+      dueDate: daysAgo(-5),
+      sortOrder: 2,
+    },
+  })
+
+  // Tasks for project 3 (R&D)
+  const task3_1 = await prisma.projectTask.create({
+    data: {
+      projectId: project3.id,
+      name: "Literature Review & Hypothesis Formation",
+      assigneeId: adminUser.id,
+      status: "Done",
+      estimatedHours: 80,
+      startDate: daysAgo(150),
+      dueDate: daysAgo(120),
+      completedDate: daysAgo(122),
+      sortOrder: 1,
+    },
+  })
+
+  const task3_2 = await prisma.projectTask.create({
+    data: {
+      projectId: project3.id,
+      name: "Experimental Architecture Prototyping",
+      assigneeId: adminUser.id,
+      status: "InProgress",
+      estimatedHours: 200,
+      startDate: daysAgo(120),
+      dueDate: daysAgo(-30),
+      sortOrder: 2,
+    },
+  })
+
+  // Time entries for project 1
+  const timeEntryData = [
+    { projectId: project1.id, taskId: task1_1.id, hours: 38, date: daysAgo(105), desc: "Requirements workshops and documentation", billable: true, billed: true, rate: 350, invoiceId: inv1.id },
+    { projectId: project1.id, taskId: task1_2.id, hours: 55, date: daysAgo(85), desc: "System architecture and technical design", billable: true, billed: true, rate: 350, invoiceId: inv1.id },
+    { projectId: project1.id, taskId: task1_3.id, hours: 120, date: daysAgo(40), desc: "Core pipeline development - sprint 1-3", billable: true, billed: false, rate: 350 },
+    { projectId: project1.id, taskId: task1_3.id, hours: 45, date: daysAgo(15), desc: "Core pipeline development - sprint 4", billable: true, billed: false, rate: 350 },
+    // Project 2 entries
+    { projectId: project2.id, taskId: task2_1.id, hours: 28, date: daysAgo(80), desc: "Dashboard mockups and Figma designs", billable: true, billed: true, rate: 280, invoiceId: inv2.id },
+    { projectId: project2.id, taskId: task2_2.id, hours: 42, date: daysAgo(50), desc: "REST API integration for energy feeds", billable: true, billed: false, rate: 280 },
+    { projectId: project2.id, taskId: task2_2.id, hours: 18, date: daysAgo(20), desc: "WebSocket real-time data streaming", billable: true, billed: false, rate: 280 },
+    // Project 3 (R&D, non-billable)
+    { projectId: project3.id, taskId: task3_1.id, hours: 75, date: daysAgo(130), desc: "Literature review of NAS techniques", billable: false, billed: false, rate: 0 },
+    { projectId: project3.id, taskId: task3_2.id, hours: 160, date: daysAgo(60), desc: "Evolutionary architecture search experiments", billable: false, billed: false, rate: 0 },
+    { projectId: project3.id, taskId: task3_2.id, hours: 85, date: daysAgo(20), desc: "Differentiable NAS prototyping", billable: false, billed: false, rate: 0 },
+  ]
+
+  for (const te of timeEntryData) {
+    await prisma.timeEntry.create({
+      data: {
+        organizationId: org.id,
+        projectId: te.projectId,
+        taskId: te.taskId,
+        userId: adminUser.id,
+        date: te.date,
+        hours: te.hours,
+        description: te.desc,
+        billable: te.billable,
+        billed: te.billed,
+        invoiceId: (te as { invoiceId?: string }).invoiceId,
+        hourlyRate: te.rate,
+        amount: te.hours * te.rate,
+        approvalStatus: "Approved",
+        approvedById: adminUser.id,
+      },
+    })
+  }
+
+  // Project expenses
+  const projectExpenses = [
+    { projectId: project1.id, desc: "Cloud hosting for dev environment", amount: 450, date: daysAgo(60), category: "Infrastructure", billable: true, billed: false },
+    { projectId: project1.id, desc: "AI model training compute (GPU)", amount: 2200, date: daysAgo(35), category: "Compute", billable: true, billed: false },
+    { projectId: project2.id, desc: "Third-party energy data API subscription", amount: 180, date: daysAgo(70), category: "Software", billable: true, billed: false },
+    { projectId: project3.id, desc: "NAS experiment GPU compute (A100 cluster)", amount: 8500, date: daysAgo(45), category: "Compute", billable: false, billed: false },
+    { projectId: project3.id, desc: "Research paper access and datasets", amount: 320, date: daysAgo(100), category: "Research", billable: false, billed: false },
+  ]
+
+  for (const pe of projectExpenses) {
+    await prisma.projectExpense.create({
+      data: {
+        organizationId: org.id,
+        projectId: pe.projectId,
+        description: pe.desc,
+        amount: pe.amount,
+        date: pe.date,
+        category: pe.category,
+        billable: pe.billable,
+        billed: pe.billed,
+        approvalStatus: "Approved",
+        approvedById: adminUser.id,
+      },
+    })
+  }
+
+  // Project milestones (2 for the fixed-price project)
+  await prisma.projectMilestone.create({
+    data: {
+      projectId: project1.id,
+      name: "Phase 1 - Requirements & Design Complete",
+      description: "Delivery of requirements document and architectural design",
+      amount: 45000,
+      dueDate: daysAgo(75),
+      status: "Paid",
+      invoiceId: inv1.id,
+    },
+  })
+
+  await prisma.projectMilestone.create({
+    data: {
+      projectId: project1.id,
+      name: "Phase 2 - Core Platform Delivery",
+      description: "Working AI pipeline with testing and documentation",
+      amount: 75000,
+      dueDate: daysAgo(-60),
+      status: "Pending",
+    },
+  })
+
+  // ============================================
+  // DOCUMENTS: 5 sample documents (metadata only)
+  // ============================================
+
+  const documents = [
+    { name: "TechCorp SOW", fileName: "techcorp-sow-v2.pdf", fileSize: 245760, mimeType: "application/pdf", entityType: "Project", entityId: project1.id, description: "Statement of Work for AI Platform project", tags: "contract,sow,techcorp" },
+    { name: "Invoice INV-0001 PDF", fileName: "INV-0001.pdf", fileSize: 102400, mimeType: "application/pdf", entityType: "Invoice", entityId: inv1.id, description: "Generated invoice PDF for TechCorp Phase 1", tags: "invoice,techcorp" },
+    { name: "NAS Research Summary", fileName: "nas-research-summary-q4.docx", fileSize: 512000, mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", entityType: "Project", entityId: project3.id, description: "Quarterly research summary for NAS project", tags: "research,rd,nas" },
+    { name: "GPU Receipt - A100 Cluster", fileName: "gpu-receipt-dec2025.pdf", fileSize: 87040, mimeType: "application/pdf", entityType: "Expense", entityId: null, description: "Receipt for A100 GPU cluster usage", tags: "receipt,compute,gpu" },
+    { name: "Employee Handbook 2026", fileName: "employee-handbook-2026.pdf", fileSize: 1048576, mimeType: "application/pdf", entityType: "General", entityId: null, description: "Updated employee handbook for FY 2025-26", tags: "hr,handbook,policy" },
+  ]
+
+  for (const doc of documents) {
+    await prisma.document.create({
+      data: {
+        organizationId: org.id,
+        name: doc.name,
+        fileName: doc.fileName,
+        fileSize: doc.fileSize,
+        mimeType: doc.mimeType,
+        storageKey: `docs/${org.id}/${doc.fileName}`,
+        entityType: doc.entityType,
+        entityId: doc.entityId,
+        uploadedById: adminUser.id,
+        description: doc.description,
+        tags: doc.tags,
+      },
+    })
+  }
+
+  // ============================================
+  // BANK FEEDS: 1 feed with sample transactions
+  // ============================================
+
+  const bankFeed = await prisma.bankFeed.create({
+    data: {
+      organizationId: org.id,
+      bankName: "Commonwealth Bank",
+      accountNumber: "0623-1234-5678",
+      accountName: "Business Cheque Account",
+      status: "Active",
+      lastSyncAt: daysAgo(1),
+      connectionRef: "CBA-FEED-001",
+      feedType: "Direct",
+    },
+  })
+
+  const feedTransactions = [
+    { externalId: "CBA-TXN-001", date: daysAgo(5), amount: -1250.00, description: "NVIDIA Computing - Invoice Payment", reference: "BPAY-88166", category: "Supplier Payment", status: "Matched" },
+    { externalId: "CBA-TXN-002", date: daysAgo(4), amount: 45000.00, description: "TechCorp Solutions - Payment Received", reference: "DIRECT-TC01", category: "Customer Payment", status: "Matched" },
+    { externalId: "CBA-TXN-003", date: daysAgo(3), amount: -89.00, description: "AWS SERVICES - Monthly Charge", reference: "AWS-2026-03", category: "Cloud Services", status: "Pending" },
+    { externalId: "CBA-TXN-004", date: daysAgo(2), amount: -320.00, description: "OFFICE WORKS SUPPLIES", reference: "OW-98712", category: "Office Supplies", status: "Pending" },
+    { externalId: "CBA-TXN-005", date: daysAgo(1), amount: 12500.00, description: "Green Energy Co - Milestone Payment", reference: "DIRECT-GE02", category: "Customer Payment", status: "Pending" },
+  ]
+
+  for (const ft of feedTransactions) {
+    await prisma.bankFeedTransaction.create({
+      data: {
+        bankFeedId: bankFeed.id,
+        externalId: ft.externalId,
+        date: ft.date,
+        amount: ft.amount,
+        description: ft.description,
+        reference: ft.reference,
+        category: ft.category,
+        status: ft.status,
+      },
+    })
+  }
+
   console.log("Seed completed successfully!")
   console.log("Demo data created: 6 contacts, 6 invoices, 4 bills, 2 R&D projects, 3 experiments, 8 time entries, 6 cloud costs, 8 bank transactions")
+  console.log("Payroll data created: 4 employees, 1 pay run (completed), 4 payslips, 2 tax minimisation strategies, 10 payroll accounts")
+  console.log("Fixed assets created: 5 assets (2 computers, 1 vehicle, 1 software, 1 lab equipment), depreciation schedules for FY 2025-26")
+  console.log("Approval workflows: 2 (bills >$5K, expenses >$1K)")
+  console.log("Exchange rates: USD, GBP, EUR, NZD against AUD (4 dates)")
+  console.log("Inventory: 8 items, 12 movements")
+  console.log("Projects: 3 (1 fixed-price, 1 T&M, 1 R&D), 8 tasks, 10 time entries, 5 expenses, 2 milestones")
+  console.log("Documents: 5 metadata records")
+  console.log("Bank feeds: 1 feed, 5 transactions")
   console.log("Login: admin@powerplantenergy.com.au / admin123")
 }
 
