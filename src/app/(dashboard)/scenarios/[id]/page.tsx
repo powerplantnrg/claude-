@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { redirect, notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
+import { ScenarioActions } from "./scenario-actions"
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -156,10 +157,15 @@ export default async function ScenarioDetailPage({
       <div className="flex gap-3">
         <Link
           href="/scenarios"
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
           Back to Simulator
         </Link>
+        <ScenarioActions
+          scenarioId={id}
+          variables={variables}
+          baseline={baseline}
+        />
       </div>
     </div>
   )
