@@ -8,6 +8,8 @@ import {
   CashFlowChart,
   RdSpendByCategoryChart,
 } from "@/components/charts/dashboard-charts"
+import { SparklineCard } from "@/components/dashboard/sparkline-cards"
+import { RecentActivity } from "@/components/dashboard/recent-activity"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -170,6 +172,28 @@ export default async function DashboardPage() {
     .filter((d) => d.value > 0)
     .sort((a, b) => b.value - a.value)
 
+  // Build 7-day sparkline data for revenue and expenses
+  const sparklineDays = 7
+  const sparklineRevenue: { value: number }[] = []
+  const sparklineExpenses: { value: number }[] = []
+  const sparklineProfit: { value: number }[] = []
+  for (let i = sparklineDays - 1; i >= 0; i--) {
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
+    const dayEnd = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate(), 23, 59, 59)
+    let dayRev = 0
+    let dayExp = 0
+    for (const line of monthlyJournalLines) {
+      const lineDate = new Date(line.journalEntry.date)
+      if (lineDate >= dayStart && lineDate <= dayEnd) {
+        if (line.account.type === "Revenue") dayRev += line.credit
+        if (line.account.type === "Expense") dayExp += line.debit
+      }
+    }
+    sparklineRevenue.push({ value: dayRev })
+    sparklineExpenses.push({ value: dayExp })
+    sparklineProfit.push({ value: dayRev - dayExp })
+  }
+
   const kpis = [
     {
       label: "Revenue",
@@ -177,6 +201,8 @@ export default async function DashboardPage() {
       color: "text-indigo-700",
       bg: "bg-indigo-50",
       border: "border-indigo-200",
+      sparklineData: sparklineRevenue,
+      sparklineColor: "#4f46e5",
       icon: (
         <svg className="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.306a11.95 11.95 0 015.814-5.518l2.74-1.22m0 0l-5.94-2.281m5.94 2.28l-2.28 5.941" />
@@ -189,6 +215,8 @@ export default async function DashboardPage() {
       color: "text-rose-700",
       bg: "bg-rose-50",
       border: "border-rose-200",
+      sparklineData: sparklineExpenses,
+      sparklineColor: "#f43f5e",
       icon: (
         <svg className="h-5 w-5 text-rose-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6L9 12.75l4.306-4.306a11.95 11.95 0 015.814 5.518l2.74 1.22m0 0l-5.94 2.281m5.94-2.28l-2.28-5.941" />
@@ -201,6 +229,8 @@ export default async function DashboardPage() {
       color: netProfit >= 0 ? "text-emerald-700" : "text-rose-700",
       bg: netProfit >= 0 ? "bg-emerald-50" : "bg-rose-50",
       border: netProfit >= 0 ? "border-emerald-200" : "border-rose-200",
+      sparklineData: sparklineProfit,
+      sparklineColor: netProfit >= 0 ? "#10b981" : "#f43f5e",
       icon: (
         <svg className="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -258,20 +288,17 @@ export default async function DashboardPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {kpis.map((kpi) => (
-          <div
+          <SparklineCard
             key={kpi.label}
-            className={`rounded-xl border ${kpi.border} ${kpi.bg} dark:bg-slate-800 dark:border-slate-700 p-5 shadow-sm transition-shadow hover:shadow-md`}
-          >
-            <div className="flex items-center gap-2">
-              {kpi.icon}
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {kpi.label}
-              </p>
-            </div>
-            <p className={`mt-3 text-xl font-bold ${kpi.color}`}>
-              {kpi.value}
-            </p>
-          </div>
+            label={kpi.label}
+            value={kpi.value}
+            color={kpi.color}
+            bg={kpi.bg}
+            border={kpi.border}
+            icon={kpi.icon}
+            sparklineData={kpi.sparklineData}
+            sparklineColor={kpi.sparklineColor}
+          />
         ))}
       </div>
 
@@ -415,6 +442,9 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Recent Activity */}
+      <RecentActivity />
     </div>
   )
 }

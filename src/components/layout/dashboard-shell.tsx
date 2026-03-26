@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { QuickActions } from "@/components/layout/quick-actions"
+import { KeyboardShortcuts } from "@/components/layout/keyboard-shortcuts"
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -19,6 +21,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+      <QuickActions />
+      <KeyboardShortcuts />
     </div>
   )
 }

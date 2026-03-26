@@ -82,6 +82,8 @@ const navSections: NavSection[] = [
       { label: "Trial Balance", href: "/reports/trial-balance", icon: ClipboardList },
       { label: "Cash Flow", href: "/reports/cash-flow", icon: DollarSign },
       { label: "GST/BAS", href: "/reports/gst", icon: FileBarChart },
+      { label: "BAS Preparation", href: "/reports/bas", icon: FileCheck },
+      { label: "Tax Summary", href: "/reports/tax-summary", icon: Calculator },
       { label: "R&D Expenditure", href: "/reports/rd-expenditure", icon: FlaskConical },
       { label: "Aged Receivables", href: "/reports/aged-receivables", icon: ClipboardList },
       { label: "Aged Payables", href: "/reports/aged-payables", icon: Receipt },
