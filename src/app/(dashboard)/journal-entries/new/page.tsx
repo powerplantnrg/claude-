@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "@/lib/toast-store"
 
 interface Account {
   id: string
@@ -64,6 +65,7 @@ export default function NewJournalEntryPage() {
   const [lines, setLines] = useState<JournalLineItem[]>([{ ...emptyLine }, { ...emptyLine }])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetch("/api/accounts")
