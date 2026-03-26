@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 
 export default async function GrantDetailPage({
   params,

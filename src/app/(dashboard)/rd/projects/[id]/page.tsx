@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import AuditPackButton from "./AuditPackButton"
 
 export default async function RdProjectDetailPage({
@@ -115,18 +116,14 @@ export default async function RdProjectDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/rd" className="hover:text-indigo-600">
-          R&D Intelligence
-        </Link>
-        <span>/</span>
-        <Link href="/rd/projects" className="hover:text-indigo-600">
-          Projects
-        </Link>
-        <span>/</span>
-        <span className="text-slate-700">{project.name}</span>
-      </div>
+      {/* Back navigation */}
+      <Link
+        href="/rd/projects"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Projects
+      </Link>
 
       {/* Header */}
       <div className="flex items-start justify-between">
