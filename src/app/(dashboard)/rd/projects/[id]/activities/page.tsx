@@ -110,9 +110,12 @@ export default async function ActivitiesPage({
                 activities.map((activity) => (
                   <tr key={activity.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4">
-                      <p className="font-medium text-slate-900">
+                      <Link
+                        href={`/rd/projects/${id}/activities/${activity.id}`}
+                        className="font-medium text-indigo-600 hover:text-indigo-800"
+                      >
                         {activity.name}
-                      </p>
+                      </Link>
                       {activity.methodology && (
                         <p className="mt-0.5 truncate text-xs text-slate-400 max-w-xs">
                           {activity.methodology}
