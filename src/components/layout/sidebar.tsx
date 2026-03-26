@@ -29,6 +29,8 @@ import {
   Award,
   Calculator,
   FolderOpen,
+  Leaf,
+  Gauge,
   Settings,
   ChevronDown,
   PanelLeftClose,
@@ -52,6 +54,7 @@ const navSections: NavSection[] = [
   {
     title: "Overview",
     items: [
+      { label: "Command Center", href: "/command-center", icon: Gauge },
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     ],
   },
@@ -104,6 +107,12 @@ const navSections: NavSection[] = [
     items: [
       { label: "Grants", href: "/grants", icon: Award },
       { label: "Scenarios", href: "/scenarios", icon: Calculator },
+    ],
+  },
+  {
+    title: "Sustainability",
+    items: [
+      { label: "Carbon", href: "/carbon", icon: Leaf },
     ],
   },
   {

@@ -62,8 +62,8 @@ export function EmissionsByScopePie({ data }: { data: ScopeData[] }) {
               outerRadius={100}
               paddingAngle={5}
               dataKey="value"
-              label={({ name, percent }) =>
-                `${name}: ${(percent * 100).toFixed(0)}%`
+              label={({ name, percent }: { name: string; percent?: number }) =>
+                `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
               }
             >
               {data.map((entry) => (
@@ -74,7 +74,8 @@ export function EmissionsByScopePie({ data }: { data: ScopeData[] }) {
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number) => `${value.toFixed(1)} kg CO2e`}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter={(value: any) => `${Number(value ?? 0).toFixed(1)} kg CO2e`}
             />
             <Legend />
           </PieChart>
@@ -125,9 +126,10 @@ export function MonthlyEmissionsTrend({ data }: { data: MonthlyTrendData[] }) {
             <XAxis dataKey="month" tick={{ fontSize: 12 }} />
             <YAxis tick={{ fontSize: 12 }} />
             <Tooltip
-              formatter={(value: number, name: string) => [
-                `${value.toFixed(1)} kg CO2e`,
-                name,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              formatter={(value: any, name: any) => [
+                `${Number(value ?? 0).toFixed(1)} kg CO2e`,
+                String(name),
               ]}
             />
             <Legend />
