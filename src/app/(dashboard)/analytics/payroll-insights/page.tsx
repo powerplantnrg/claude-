@@ -57,11 +57,12 @@ export default async function PayrollInsightsPage() {
 
   const months = getLast12Months()
 
-  const [employees, payRuns, journalLines, leaveBalances] = await Promise.all([
+  const [employees, payRuns, journalLines, novatedLeases, taxStrategies] = await Promise.all([
     prisma.employee.findMany({
       where: { organizationId: orgId },
       include: {
-        taxStrategies: true,
+        novatedLeases: true,
+        fbtRecords: true,
       },
     }),
     prisma.payRun.findMany({
@@ -70,7 +71,8 @@ export default async function PayrollInsightsPage() {
         payslips: {
           include: {
             employee: true,
-            items: true,
+            earnings: true,
+            deductions: true,
           },
         },
       },
@@ -86,9 +88,11 @@ export default async function PayrollInsightsPage() {
         journalEntry: { select: { date: true } },
       },
     }),
-    prisma.leaveBalance.findMany({
-      where: { employee: { organizationId: orgId } },
-      include: { employee: true },
+    prisma.novatedLease.findMany({
+      where: { organizationId: orgId },
+    }),
+    prisma.taxMinimisationStrategy.findMany({
+      where: { organizationId: orgId },
     }),
   ])
 
@@ -96,83 +100,106 @@ export default async function PayrollInsightsPage() {
   const employeeCompData = employees.map((emp) => {
     let baseSalary = 0
     let superAmount = 0
-    let fbt = 0
+    let fbtAmount = 0
     let otherBenefits = 0
 
     for (const run of payRuns) {
       for (const slip of run.payslips) {
         if (slip.employeeId === emp.id) {
-          for (const item of slip.items) {
-            if (item.type === "Earning" || item.type === "BasePay") baseSalary += item.amount
-            else if (item.type === "Super" || item.type === "Superannuation") superAmount += item.amount
-            else if (item.type === "FBT") fbt += item.amount
-            else if (item.type === "Allowance" || item.type === "Benefit") otherBenefits += item.amount
-          }
+          baseSalary += slip.grossPay
+          superAmount += slip.superContribution + slip.superSalarySacrifice
+          otherBenefits += slip.allowances + slip.bonuses
         }
       }
+    }
+
+    // FBT from records
+    for (const fbt of emp.fbtRecords) {
+      fbtAmount += fbt.grossValue || 0
     }
 
     return {
       label: `${emp.firstName} ${emp.lastName}`.substring(0, 20),
       baseSalary,
       super: superAmount,
-      fbt,
+      fbt: fbtAmount,
       benefits: otherBenefits,
     }
   }).filter((d) => d.baseSalary > 0 || d.super > 0)
 
   // --- Tax efficiency score per employee ---
   const taxEfficiencyData = employees.map((emp) => {
-    const strategies = emp.taxStrategies || []
-    const activeStrategies = strategies.filter((s) => s.status === "Active")
-    // Score based on number of active strategies and salary sacrifice usage
+    let score = 0
     const maxScore = 100
-    const strategyScore = Math.min(activeStrategies.length * 20, 60) // Up to 60 points for strategies
-    const hasSalarySacrifice = activeStrategies.some(
-      (s) => s.type === "SalarySacrifice" || s.strategyType === "SalarySacrifice"
-    )
-    const sacScore = hasSalarySacrifice ? 20 : 0
-    const hasNovatedLease = activeStrategies.some(
-      (s) => s.type === "NovatedLease" || s.strategyType === "NovatedLease"
-    )
-    const leaseScore = hasNovatedLease ? 20 : 0
+
+    // Check salary sacrifice usage
+    let hasSalarySacrifice = false
+    for (const run of payRuns) {
+      for (const slip of run.payslips) {
+        if (slip.employeeId === emp.id && slip.superSalarySacrifice > 0) {
+          hasSalarySacrifice = true
+        }
+      }
+    }
+    if (hasSalarySacrifice) score += 30
+
+    // Check novated lease
+    const hasNovatedLease = emp.novatedLeases.some((nl) => nl.status === "Active")
+    if (hasNovatedLease) score += 25
+
+    // Check pre-tax deductions
+    let hasPreTaxDeductions = false
+    for (const run of payRuns) {
+      for (const slip of run.payslips) {
+        if (slip.employeeId === emp.id && slip.preTaxDeductions > 0) {
+          hasPreTaxDeductions = true
+        }
+      }
+    }
+    if (hasPreTaxDeductions) score += 20
+
+    // Check if claiming tax-free threshold optimally
+    if (emp.taxFreeThreshold) score += 15
+
+    // Super rate above minimum
+    if (emp.superRate > 11.5) score += 10
 
     return {
       name: `${emp.firstName} ${emp.lastName}`,
-      score: Math.min(strategyScore + sacScore + leaseScore, maxScore),
-      activeStrategies: activeStrategies.length,
+      score: Math.min(score, maxScore),
+      hasSalarySacrifice,
+      hasNovatedLease,
     }
   })
 
   const avgTaxEfficiency = taxEfficiencyData.length > 0
-    ? taxEfficiencyData.reduce((sum, d) => sum + d.score, 0) / taxEfficiencyData.length
+    ? taxEfficiencyData.reduce((sum: number, d) => sum + d.score, 0) / taxEfficiencyData.length
     : 0
 
   // --- Salary sacrifice utilization ---
-  const employeesWithSalarySacrifice = taxEfficiencyData.filter((d) => d.activeStrategies > 0).length
+  const employeesWithSalarySacrifice = taxEfficiencyData.filter((d) => d.hasSalarySacrifice).length
   const salarySacrificeRate = employees.length > 0
     ? (employeesWithSalarySacrifice / employees.length) * 100
     : 0
 
   // --- Leave liability trend ---
   const leaveLiabilityData = months.map((m) => {
-    // Approximate leave liability: sum of leave balances * average hourly rate
     let totalLiability = 0
-    for (const balance of leaveBalances) {
-      const emp = employees.find((e) => e.id === balance.employeeId)
-      const annualSalary = emp?.annualSalary || 0
-      const hourlyRate = annualSalary / 2080 // ~40hrs * 52weeks
-      totalLiability += (balance.balance || 0) * hourlyRate
+    for (const emp of employees) {
+      const annualSalary = emp.annualSalary || 0
+      const hourlyRate = annualSalary / 2080
+      const totalLeaveHours = (emp.leaveBalanceAnnual || 0) + (emp.leaveBalanceSick || 0) + (emp.leaveBalancePersonal || 0)
+      totalLiability += totalLeaveHours * hourlyRate
     }
     return { label: m.label, value: totalLiability }
   })
 
   // --- Payroll cost as % of revenue ---
   const totalPayrollCost = employeeCompData.reduce(
-    (sum, d) => sum + d.baseSalary + d.super + d.fbt + d.benefits,
+    (sum: number, d) => sum + d.baseSalary + d.super + d.fbt + d.benefits,
     0
   )
-  const totalRevenue = journalLines.reduce((sum, l) => sum + l.credit - l.debit, 0)
+  const totalRevenue = journalLines.reduce((sum: number, l) => sum + l.credit - l.debit, 0)
   const payrollPctRevenue = totalRevenue > 0 ? (totalPayrollCost / totalRevenue) * 100 : 0
 
   const payrollPctData = months.map((m) => {
@@ -183,7 +210,6 @@ export default async function PayrollInsightsPage() {
         monthRevenue += line.credit - line.debit
       }
     }
-    // Approximate monthly payroll cost from pay runs
     let monthPayroll = 0
     for (const run of payRuns) {
       const runDate = new Date(run.payPeriodEnd)
@@ -198,14 +224,19 @@ export default async function PayrollInsightsPage() {
   })
 
   // --- Tax savings breakdown ---
-  const totalPotentialSavings = employees.length * 5000 // Estimated $5k per employee potential
-  const realizedSavings = taxEfficiencyData.reduce((sum, d) => sum + d.score * 50, 0) // Approximate
-  const savingsData = [
-    { name: "Salary Sacrifice", value: realizedSavings * 0.4 },
-    { name: "Novated Leases", value: realizedSavings * 0.25 },
-    { name: "Super Optimization", value: realizedSavings * 0.2 },
-    { name: "FBT Strategies", value: realizedSavings * 0.15 },
-  ].filter((d) => d.value > 0)
+  const implementedStrategies = taxStrategies.filter((s) => s.implemented)
+  const realizedSavings = implementedStrategies.reduce((sum: number, s) => sum + (s.estimatedSaving || 0), 0)
+  const potentialSavings = taxStrategies.reduce((sum: number, s) => sum + (s.estimatedSaving || 0), 0)
+
+  const savingsByCategory: Record<string, number> = {}
+  for (const strategy of implementedStrategies) {
+    const cat = strategy.category || "Other"
+    savingsByCategory[cat] = (savingsByCategory[cat] || 0) + (strategy.estimatedSaving || 0)
+  }
+  const savingsData = Object.entries(savingsByCategory)
+    .map(([name, value]) => ({ name, value }))
+    .filter((d) => d.value > 0)
+    .sort((a, b) => b.value - a.value)
 
   return (
     <div className="space-y-6">
@@ -242,10 +273,10 @@ export default async function PayrollInsightsPage() {
           trendLabel="Across all employees"
         />
         <MetricCard
-          label="Salary Sacrifice Rate"
-          value={`${salarySacrificeRate.toFixed(0)}%`}
-          trend={salarySacrificeRate >= 50 ? "up" : "down"}
-          trendLabel={`${employeesWithSalarySacrifice} of ${employees.length} employees`}
+          label="Realized vs Potential Savings"
+          value={formatCurrency(realizedSavings)}
+          trend={potentialSavings > 0 && realizedSavings / potentialSavings > 0.5 ? "up" : "down"}
+          trendLabel={`${formatCurrency(potentialSavings)} potential`}
         />
       </div>
 
@@ -329,7 +360,7 @@ export default async function PayrollInsightsPage() {
         <BreakdownPieChart
           data={savingsData}
           title="Tax Minimisation Savings"
-          subtitle="Realized savings by strategy type"
+          subtitle="Realized savings by strategy category"
         />
       </div>
 
