@@ -56,6 +56,14 @@ model Organization {
   purchaseOrders      PurchaseOrder[]
   knowledgeBase       KnowledgeBase[]
   contactTags         ContactTag[]
+  employees           Employee[]
+  payRuns             PayRun[]
+  payslips            Payslip[]
+  leaveRequests       LeaveRequest[]
+  taxMinimisationStrategies TaxMinimisationStrategy[]
+  novatedLeases       NovatedLease[]
+  fbtRecords          FBTRecord[]
+  payrollTaxSummaries PayrollTaxSummary[]
 }
 
 model User {
@@ -74,6 +82,9 @@ model User {
   expenseClaims  ExpenseClaim[]
   favorites      UserFavorite[]
   knowledgeBase  KnowledgeBase[]
+  employees      Employee[]
+  processedPayRuns PayRun[]
+  approvedLeaveRequests LeaveRequest[]
 }
 
 // ============================================
@@ -1024,4 +1035,279 @@ model KnowledgeBase {
   isPublished    Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+}
+
+// ============================================
+// PAYROLL MODULE
+// ============================================
+
+model Employee {
+  id                    String   @id @default(cuid())
+  organizationId        String
+  organization          Organization @relation(fields: [organizationId], references: [id])
+  userId                String?
+  user                  User?    @relation(fields: [userId], references: [id])
+  firstName             String
+  lastName              String
+  email                 String
+  dateOfBirth           DateTime?
+  startDate             DateTime
+  endDate               DateTime?
+  employmentType        String   @default("FullTime") // FullTime, PartTime, Casual, Contractor
+  taxFileNumber         String?  // encrypted/masked
+  residencyStatus       String   @default("Resident") // Resident, NonResident, WorkingHoliday
+  taxFreeThreshold      Boolean  @default(true)
+  helpDebt              Boolean  @default(false) // HECS/HELP
+  sfssDebt              Boolean  @default(false)
+  medicareLevyExemption String   @default("None") // None, Full, Half
+  superFundName         String?
+  superMemberNumber     String?
+  superRate             Float    @default(11.5)
+  bankBSB               String?
+  bankAccountNumber     String?
+  bankAccountName       String?
+  annualSalary          Float?
+  hourlyRate            Float?
+  payFrequency          String   @default("Monthly") // Weekly, Fortnightly, Monthly
+  leaveBalanceAnnual    Float    @default(0)
+  leaveBalanceSick      Float    @default(0)
+  leaveBalancePersonal  Float    @default(0)
+  notes                 String?
+  active                Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  payslips              Payslip[]
+  leaveRequests         LeaveRequest[]
+  novatedLeases         NovatedLease[]
+  fbtRecords            FBTRecord[]
+  payrollTaxSummaries   PayrollTaxSummary[]
+
+  @@index([organizationId])
+  @@index([organizationId, active])
+  @@index([organizationId, employmentType])
+}
+
+model PayRun {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  payPeriodStart  DateTime
+  payPeriodEnd    DateTime
+  payDate         DateTime
+  status          String    @default("Draft") // Draft, Processing, Completed, Voided
+  totalGross      Float     @default(0)
+  totalTax        Float     @default(0)
+  totalSuper      Float     @default(0)
+  totalNet        Float     @default(0)
+  totalDeductions Float     @default(0)
+  processedAt     DateTime?
+  processedById   String?
+  processedBy     User?     @relation(fields: [processedById], references: [id])
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  payslips        Payslip[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, payPeriodStart, payPeriodEnd])
+}
+
+model Payslip {
+  id                   String   @id @default(cuid())
+  payRunId             String
+  payRun               PayRun   @relation(fields: [payRunId], references: [id])
+  employeeId           String
+  employee             Employee @relation(fields: [employeeId], references: [id])
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id])
+  payPeriodStart       DateTime
+  payPeriodEnd         DateTime
+  payDate              DateTime
+  hoursWorked          Float    @default(0)
+  hourlyRate           Float    @default(0)
+  grossPay             Float    @default(0)
+  overtimeHours        Float    @default(0)
+  overtimePay          Float    @default(0)
+  allowances           Float    @default(0)
+  bonuses              Float    @default(0)
+  taxWithheld          Float    @default(0)
+  medicareLevyAmount   Float    @default(0)
+  helpRepayment        Float    @default(0)
+  sfssRepayment        Float    @default(0)
+  superContribution    Float    @default(0)
+  superSalarySacrifice Float    @default(0)
+  preTaxDeductions     Float    @default(0)
+  postTaxDeductions    Float    @default(0)
+  netPay               Float    @default(0)
+  yearToDateGross      Float    @default(0)
+  yearToDateTax        Float    @default(0)
+  yearToDateSuper      Float    @default(0)
+  status               String   @default("Draft") // Draft, Approved, Paid, Voided
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  earnings             PayslipEarning[]
+  deductions           PayslipDeduction[]
+  leave                PayslipLeave[]
+
+  @@index([organizationId])
+  @@index([organizationId, employeeId])
+  @@index([payRunId])
+  @@index([employeeId, payPeriodStart])
+}
+
+model PayslipEarning {
+  id          String  @id @default(cuid())
+  payslipId   String
+  payslip     Payslip @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+  type        String  // Ordinary, Overtime, Bonus, Commission, Allowance, BackPay, TerminationPay, LeaveLoading
+  description String
+  hours       Float?
+  rate        Float?
+  amount      Float
+
+  @@index([payslipId])
+}
+
+model PayslipDeduction {
+  id          String  @id @default(cuid())
+  payslipId   String
+  payslip     Payslip @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+  type        String  // PreTax, PostTax
+  category    String  // SalarySacrifice, UnionFees, WorkplaceGiving, ChildSupport, Other
+  description String
+  amount      Float
+
+  @@index([payslipId])
+}
+
+model PayslipLeave {
+  id           String  @id @default(cuid())
+  payslipId    String
+  payslip      Payslip @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+  type         String  // Annual, Sick, Personal, LongService, Parental, Compassionate, Unpaid
+  hoursAccrued Float   @default(0)
+  hoursTaken   Float   @default(0)
+  balance      Float   @default(0)
+
+  @@index([payslipId])
+}
+
+model LeaveRequest {
+  id             String    @id @default(cuid())
+  employeeId     String
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  type           String    // Annual, Sick, Personal, LongService, Parental, Compassionate, Unpaid
+  startDate      DateTime
+  endDate        DateTime
+  hoursRequested Float
+  status         String    @default("Pending") // Pending, Approved, Rejected, Cancelled
+  approvedById   String?
+  approvedBy     User?     @relation(fields: [approvedById], references: [id])
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([organizationId, status])
+}
+
+model TaxMinimisationStrategy {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  category        String    // SalarySacrifice, NovatedLease, FBTExempt, WorkFromHome, ProfessionalDevelopment, CharitableDonation, DepreciationDeduction, RDOffset, SuperContribution, IncomeSmoothing
+  title           String
+  description     String?
+  estimatedSaving Float?
+  implemented     Boolean   @default(false)
+  implementedDate DateTime?
+  applicableTo    String    @default("Both") // Individual, Corporate, Both
+  priority        String    @default("Medium") // High, Medium, Low
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, category])
+}
+
+model NovatedLease {
+  id                 String    @id @default(cuid())
+  employeeId         String
+  employee           Employee  @relation(fields: [employeeId], references: [id])
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  vehicleDescription String
+  leaseStartDate     DateTime
+  leaseEndDate       DateTime
+  annualLeaseAmount  Float
+  preTaxDeduction    Float
+  postTaxDeduction   Float
+  fbtValue           Float     @default(0)
+  fbtExemptEV        Boolean   @default(false)
+  runningCostsAnnual Float     @default(0)
+  status             String    @default("Pending") // Active, Ended, Pending
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([employeeId])
+}
+
+model FBTRecord {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  fyYear         String
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  benefitType    String   // Vehicle, Parking, Entertainment, LivingAway, Other
+  grossValue     Float    @default(0)
+  exemptAmount   Float    @default(0)
+  taxableValue   Float    @default(0)
+  fbtRate        Float    @default(0.47)
+  fbtPayable     Float    @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, fyYear])
+  @@index([employeeId])
+}
+
+model PayrollTaxSummary {
+  id                       String  @id @default(cuid())
+  organizationId           String
+  organization             Organization @relation(fields: [organizationId], references: [id])
+  employeeId               String
+  employee                 Employee @relation(fields: [employeeId], references: [id])
+  fyYear                   String
+  totalGross               Float   @default(0)
+  totalTax                 Float   @default(0)
+  totalSuper               Float   @default(0)
+  totalAllowances          Float   @default(0)
+  totalDeductions          Float   @default(0)
+  totalFBT                 Float   @default(0)
+  totalNovatedLease        Float   @default(0)
+  reportableEmployerSuper  Float   @default(0)
+  reportableFringeBenefits Float   @default(0)
+  lumpSumPayments          Float   @default(0)
+  terminationPayments      Float   @default(0)
+  etpTaxFree               Float   @default(0)
+  etpTaxable               Float   @default(0)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([organizationId, fyYear])
+  @@index([employeeId, fyYear])
 }
