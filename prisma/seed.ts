@@ -1159,9 +1159,421 @@ async function main() {
     },
   })
 
+  // ============================================
+  // FIXED ASSETS, APPROVALS, EXCHANGE RATES
+  // ============================================
+
+  // Additional accounts for fixed assets and FX
+  const assetAccounts = [
+    { code: "1330", name: "Motor Vehicles at Cost", type: "Asset", subType: "Fixed Asset", taxType: "GST" },
+    { code: "1340", name: "Software at Cost", type: "Asset", subType: "Fixed Asset", taxType: "GST" },
+    { code: "1410", name: "Accumulated Depreciation - Vehicles", type: "Asset", subType: "Fixed Asset", taxType: "BAS-Excluded" },
+    { code: "1420", name: "Accumulated Depreciation - Software", type: "Asset", subType: "Fixed Asset", taxType: "BAS-Excluded" },
+    { code: "1430", name: "Accumulated Depreciation - Computers", type: "Asset", subType: "Fixed Asset", taxType: "BAS-Excluded" },
+    { code: "1440", name: "Accumulated Depreciation - Lab Equipment", type: "Asset", subType: "Fixed Asset", taxType: "BAS-Excluded" },
+    { code: "6155", name: "Depreciation - Vehicles", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded" },
+    { code: "6160", name: "Depreciation - Software", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded" },
+    { code: "6165", name: "Depreciation - Computers", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded" },
+    { code: "6170", name: "Depreciation - Lab Equipment", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded", isRdEligible: true },
+    { code: "4600", name: "FX Gains", type: "Revenue", subType: "Other Revenue", taxType: "BAS-Excluded" },
+    { code: "6700", name: "FX Losses", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded" },
+    { code: "4700", name: "Gain on Disposal of Assets", type: "Revenue", subType: "Other Revenue", taxType: "BAS-Excluded" },
+    { code: "6750", name: "Loss on Disposal of Assets", type: "Expense", subType: "Operating Expense", taxType: "BAS-Excluded" },
+  ]
+
+  const createdAssetAccounts: Record<string, string> = {}
+  for (const acc of assetAccounts) {
+    const exists = await prisma.account.findFirst({ where: { code: acc.code, organizationId: org.id } })
+    if (!exists) {
+      const created = await prisma.account.create({
+        data: {
+          ...acc,
+          isSystemAccount: false,
+          isRdEligible: (acc as { isRdEligible?: boolean }).isRdEligible || false,
+          organizationId: org.id,
+        },
+      })
+      createdAssetAccounts[acc.code] = created.id
+    } else {
+      createdAssetAccounts[acc.code] = exists.id
+    }
+  }
+
+  // Look up existing accounts we need
+  const computerEquipmentAccount = await prisma.account.findFirst({ where: { code: "1310", organizationId: org.id } })
+  const labEquipmentAccount = await prisma.account.findFirst({ where: { code: "1320", organizationId: org.id } })
+  const accumulatedDepAccount = await prisma.account.findFirst({ where: { code: "1400", organizationId: org.id } })
+  const depreciationExpenseAccount = await prisma.account.findFirst({ where: { code: "6150", organizationId: org.id } })
+
+  // --- Fixed Assets (5) ---
+
+  // Asset 1: MacBook Pro (Computer)
+  const assetMacBook = await prisma.fixedAsset.create({
+    data: {
+      organizationId: org.id,
+      assetNumber: "FA-001",
+      name: "MacBook Pro 16\" M3 Max",
+      description: "Developer workstation for ML engineering",
+      category: "Computer",
+      purchaseDate: new Date("2025-07-15"),
+      purchasePrice: 6499,
+      residualValue: 500,
+      usefulLifeYears: 4,
+      depreciationMethod: "DiminishingValue",
+      accountId: computerEquipmentAccount!.id,
+      depreciationAccountId: createdAssetAccounts["6165"],
+      accumulatedDepreciationAccountId: createdAssetAccounts["1430"],
+      currentBookValue: 4459.94,
+      status: "Active",
+      location: "Sydney Office - Desk 12",
+      serialNumber: "C02ZT1ABCD01",
+      supplier: "Apple Store Sydney",
+      warrantyExpiry: new Date("2028-07-15"),
+      isRdAsset: false,
+      notes: "Primary development machine for Sarah Chen",
+    },
+  })
+
+  // Asset 2: Dell Precision Workstation (Computer)
+  const assetDell = await prisma.fixedAsset.create({
+    data: {
+      organizationId: org.id,
+      assetNumber: "FA-002",
+      name: "Dell Precision 7875 Tower",
+      description: "High-performance workstation with NVIDIA RTX 6000",
+      category: "Computer",
+      purchaseDate: new Date("2025-09-01"),
+      purchasePrice: 12500,
+      residualValue: 800,
+      usefulLifeYears: 4,
+      depreciationMethod: "DiminishingValue",
+      accountId: computerEquipmentAccount!.id,
+      depreciationAccountId: createdAssetAccounts["6165"],
+      accumulatedDepreciationAccountId: createdAssetAccounts["1430"],
+      currentBookValue: 9234.38,
+      status: "Active",
+      location: "Sydney Office - Server Room",
+      serialNumber: "DPR-7875-X9K2",
+      supplier: "Dell Technologies Australia",
+      warrantyExpiry: new Date("2028-09-01"),
+      isRdAsset: true,
+      notes: "Used for local ML model training and experiments",
+    },
+  })
+
+  // Asset 3: Toyota HiLux (Vehicle)
+  const assetVehicle = await prisma.fixedAsset.create({
+    data: {
+      organizationId: org.id,
+      assetNumber: "FA-003",
+      name: "Toyota HiLux SR5 4x4",
+      description: "Company vehicle for site visits and equipment transport",
+      category: "Vehicle",
+      purchaseDate: new Date("2025-03-10"),
+      purchasePrice: 62000,
+      residualValue: 25000,
+      usefulLifeYears: 8,
+      depreciationMethod: "StraightLine",
+      accountId: createdAssetAccounts["1330"],
+      depreciationAccountId: createdAssetAccounts["6155"],
+      accumulatedDepreciationAccountId: createdAssetAccounts["1410"],
+      currentBookValue: 57375,
+      status: "Active",
+      location: "Sydney Office - Basement Parking",
+      serialNumber: "VIN-JTFDA21R350123456",
+      supplier: "Sydney City Toyota",
+      warrantyExpiry: new Date("2030-03-10"),
+      isRdAsset: false,
+      notes: "Novated lease arrangement under consideration",
+    },
+  })
+
+  // Asset 4: JIRA & Confluence Perpetual License (Software)
+  const assetSoftware = await prisma.fixedAsset.create({
+    data: {
+      organizationId: org.id,
+      assetNumber: "FA-004",
+      name: "Atlassian Data Center License",
+      description: "Perpetual license for JIRA and Confluence Data Center",
+      category: "Software",
+      purchaseDate: new Date("2025-06-01"),
+      purchasePrice: 18000,
+      residualValue: 0,
+      usefulLifeYears: 3,
+      depreciationMethod: "StraightLine",
+      accountId: createdAssetAccounts["1340"],
+      depreciationAccountId: createdAssetAccounts["6160"],
+      accumulatedDepreciationAccountId: createdAssetAccounts["1420"],
+      currentBookValue: 13000,
+      status: "Active",
+      location: "Cloud / On-Premise",
+      supplier: "Atlassian Pty Ltd",
+      isRdAsset: false,
+      notes: "Used across all teams for project management and documentation",
+    },
+  })
+
+  // Asset 5: Lab Equipment - Spectral Analyzer (linked to R&D project)
+  // Get the NAS project for linking
+  const nasProjectForAsset = await prisma.rdProject.findFirst({
+    where: { organizationId: org.id, name: { contains: "Neural Architecture" } },
+  })
+
+  const assetLabEquipment = await prisma.fixedAsset.create({
+    data: {
+      organizationId: org.id,
+      assetNumber: "FA-005",
+      name: "Keysight N9040B Signal Analyzer",
+      description: "UXA signal analyzer for IoT sensor calibration and energy grid signal analysis",
+      category: "Equipment",
+      purchaseDate: new Date("2025-08-20"),
+      purchasePrice: 45000,
+      residualValue: 5000,
+      usefulLifeYears: 10,
+      depreciationMethod: "StraightLine",
+      accountId: labEquipmentAccount!.id,
+      depreciationAccountId: createdAssetAccounts["6170"],
+      accumulatedDepreciationAccountId: createdAssetAccounts["1440"],
+      currentBookValue: 42666.67,
+      status: "Active",
+      location: "Sydney Office - R&D Lab",
+      serialNumber: "MY-N9040B-00234",
+      supplier: "Keysight Technologies Australia",
+      warrantyExpiry: new Date("2028-08-20"),
+      isRdAsset: true,
+      rdProjectId: nasProjectForAsset?.id || null,
+      notes: "Primary R&D equipment - 100% R&D eligible. Used for energy grid sensor signal analysis.",
+    },
+  })
+
+  // --- Depreciation Schedules for current FY (Jul 2025 - Jun 2026) ---
+  // Generate monthly schedules for each asset from Jul 2025 to Mar 2026
+
+  const fyMonths: Array<{ start: Date; end: Date }> = []
+  for (let m = 6; m <= 14; m++) { // Jul 2025 (month 6) to Mar 2026 (month 14 = 2+12)
+    const year = m < 12 ? 2025 : 2026
+    const month = m % 12
+    const start = new Date(year, month, 1)
+    const end = new Date(year, month + 1, 0) // Last day of month
+    fyMonths.push({ start, end })
+  }
+
+  // Helper: straight-line monthly dep
+  const slMonthly = (cost: number, residual: number, years: number) =>
+    Math.round(((cost - residual) / years / 12) * 100) / 100
+
+  // Helper: diminishing value monthly dep
+  const dvMonthly = (bookValue: number, years: number) =>
+    Math.round((bookValue * (2 / years) / 12) * 100) / 100
+
+  // MacBook Pro - purchased Jul 15 2025, DV method
+  let macBookBV = 6499
+  for (const period of fyMonths) {
+    if (period.start < new Date("2025-07-01")) continue
+    const isFirstMonth = period.start.getFullYear() === 2025 && period.start.getMonth() === 6
+    const fraction = isFirstMonth ? 17 / 31 : 1 // Jul 15 -> Jul 31 = 17 days
+    const dep = Math.round(dvMonthly(macBookBV, 4) * fraction * 100) / 100
+    const prevAccum = 6499 - macBookBV
+    await prisma.depreciationSchedule.create({
+      data: {
+        fixedAssetId: assetMacBook.id,
+        periodStart: period.start,
+        periodEnd: period.end,
+        openingValue: Math.round(macBookBV * 100) / 100,
+        depreciationAmount: dep,
+        accumulatedDepreciation: Math.round((prevAccum + dep) * 100) / 100,
+        closingValue: Math.round((macBookBV - dep) * 100) / 100,
+        status: "Scheduled",
+      },
+    })
+    macBookBV -= dep
+  }
+
+  // Dell Precision - purchased Sep 1 2025, DV method
+  let dellBV = 12500
+  for (const period of fyMonths) {
+    if (period.start < new Date("2025-09-01")) continue
+    const dep = dvMonthly(dellBV, 4)
+    const prevAccum = 12500 - dellBV
+    await prisma.depreciationSchedule.create({
+      data: {
+        fixedAssetId: assetDell.id,
+        periodStart: period.start,
+        periodEnd: period.end,
+        openingValue: Math.round(dellBV * 100) / 100,
+        depreciationAmount: dep,
+        accumulatedDepreciation: Math.round((prevAccum + dep) * 100) / 100,
+        closingValue: Math.round((dellBV - dep) * 100) / 100,
+        status: "Scheduled",
+      },
+    })
+    dellBV -= dep
+  }
+
+  // Toyota HiLux - purchased Mar 10 2025, SL method
+  let vehicleBV = 62000
+  const vehicleMonthlyDep = slMonthly(62000, 25000, 8)
+  // Vehicle starts depreciating before FY (March 2025), calculate opening BV
+  // Mar 2025 (pro-rata ~22/31 days), Apr, May, Jun = 3.71 months
+  const vehiclePreFYDep = Math.round((vehicleMonthlyDep * (22 / 31) + vehicleMonthlyDep * 3) * 100) / 100
+  vehicleBV = Math.round((62000 - vehiclePreFYDep) * 100) / 100
+
+  for (const period of fyMonths) {
+    const dep = vehicleMonthlyDep
+    const prevAccum = 62000 - vehicleBV
+    await prisma.depreciationSchedule.create({
+      data: {
+        fixedAssetId: assetVehicle.id,
+        periodStart: period.start,
+        periodEnd: period.end,
+        openingValue: Math.round(vehicleBV * 100) / 100,
+        depreciationAmount: dep,
+        accumulatedDepreciation: Math.round((prevAccum + dep) * 100) / 100,
+        closingValue: Math.round((vehicleBV - dep) * 100) / 100,
+        status: "Scheduled",
+      },
+    })
+    vehicleBV -= dep
+  }
+
+  // Atlassian License - purchased Jun 1 2025, SL method
+  let softwareBV = 18000
+  const softwareMonthlyDep = slMonthly(18000, 0, 3)
+  // Pre-FY: 1 month (Jun 2025)
+  softwareBV = Math.round((18000 - softwareMonthlyDep) * 100) / 100
+
+  for (const period of fyMonths) {
+    const dep = softwareMonthlyDep
+    const prevAccum = 18000 - softwareBV
+    await prisma.depreciationSchedule.create({
+      data: {
+        fixedAssetId: assetSoftware.id,
+        periodStart: period.start,
+        periodEnd: period.end,
+        openingValue: Math.round(softwareBV * 100) / 100,
+        depreciationAmount: dep,
+        accumulatedDepreciation: Math.round((prevAccum + dep) * 100) / 100,
+        closingValue: Math.round((softwareBV - dep) * 100) / 100,
+        status: "Scheduled",
+      },
+    })
+    softwareBV -= dep
+  }
+
+  // Signal Analyzer - purchased Aug 20 2025, SL method
+  let labBV = 45000
+  const labMonthlyDep = slMonthly(45000, 5000, 10)
+  for (const period of fyMonths) {
+    if (period.start < new Date("2025-08-01")) continue
+    const isFirstMonth = period.start.getFullYear() === 2025 && period.start.getMonth() === 7
+    const fraction = isFirstMonth ? 12 / 31 : 1 // Aug 20 -> Aug 31 = 12 days
+    const dep = Math.round(labMonthlyDep * fraction * 100) / 100
+    const prevAccum = 45000 - labBV
+    await prisma.depreciationSchedule.create({
+      data: {
+        fixedAssetId: assetLabEquipment.id,
+        periodStart: period.start,
+        periodEnd: period.end,
+        openingValue: Math.round(labBV * 100) / 100,
+        depreciationAmount: dep,
+        accumulatedDepreciation: Math.round((prevAccum + dep) * 100) / 100,
+        closingValue: Math.round((labBV - dep) * 100) / 100,
+        status: "Scheduled",
+      },
+    })
+    labBV -= dep
+  }
+
+  // --- Approval Workflows (2) ---
+
+  // Workflow 1: Bills over $5,000 need manager approval
+  const billWorkflow = await prisma.approvalWorkflow.create({
+    data: {
+      organizationId: org.id,
+      name: "Bill Approval - Manager Sign-off",
+      entityType: "Bill",
+      minAmount: 5000,
+      maxAmount: null,
+      requiredApprovers: 1,
+      autoApproveBelow: 5000,
+      active: true,
+      steps: {
+        create: [
+          {
+            stepOrder: 1,
+            approverId: adminUser.id,
+            role: "Approver",
+            canDelegate: true,
+          },
+        ],
+      },
+    },
+  })
+
+  // Workflow 2: Expenses over $1,000 need approval
+  const expenseWorkflow = await prisma.approvalWorkflow.create({
+    data: {
+      organizationId: org.id,
+      name: "Expense Claim Approval",
+      entityType: "Expense",
+      minAmount: 1000,
+      maxAmount: null,
+      requiredApprovers: 1,
+      autoApproveBelow: 1000,
+      active: true,
+      steps: {
+        create: [
+          {
+            stepOrder: 1,
+            approverId: adminUser.id,
+            role: "Approver",
+            canDelegate: false,
+          },
+        ],
+      },
+    },
+  })
+
+  // --- Exchange Rates (USD, GBP, EUR, NZD against AUD) ---
+  const exchangeRateDates = [
+    new Date("2025-07-01"),
+    new Date("2025-10-01"),
+    new Date("2026-01-01"),
+    new Date("2026-03-01"),
+  ]
+
+  const fxRates = [
+    // USD/AUD rates across quarters
+    { from: "USD", to: "AUD", rates: [1.53, 1.55, 1.57, 1.54] },
+    // GBP/AUD rates
+    { from: "GBP", to: "AUD", rates: [1.92, 1.95, 1.97, 1.94] },
+    // EUR/AUD rates
+    { from: "EUR", to: "AUD", rates: [1.67, 1.69, 1.71, 1.68] },
+    // NZD/AUD rates
+    { from: "NZD", to: "AUD", rates: [0.92, 0.93, 0.91, 0.92] },
+  ]
+
+  for (const pair of fxRates) {
+    for (let i = 0; i < exchangeRateDates.length; i++) {
+      await prisma.exchangeRate.create({
+        data: {
+          organizationId: org.id,
+          fromCurrency: pair.from,
+          toCurrency: pair.to,
+          rate: pair.rates[i],
+          effectiveDate: exchangeRateDates[i],
+          source: "Manual",
+        },
+      })
+    }
+  }
+
   console.log("Seed completed successfully!")
   console.log("Demo data created: 6 contacts, 6 invoices, 4 bills, 2 R&D projects, 3 experiments, 8 time entries, 6 cloud costs, 8 bank transactions")
   console.log("Payroll data created: 4 employees, 1 pay run (completed), 4 payslips, 2 tax minimisation strategies, 10 payroll accounts")
+  console.log("Fixed assets created: 5 assets (2 computers, 1 vehicle, 1 software, 1 lab equipment), depreciation schedules for FY 2025-26")
+  console.log("Approval workflows: 2 (bills >$5K, expenses >$1K)")
+  console.log("Exchange rates: USD, GBP, EUR, NZD against AUD (4 dates)")
   console.log("Login: admin@powerplantenergy.com.au / admin123")
 }
 

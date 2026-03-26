@@ -55,6 +55,8 @@ import {
   Shield,
   FileSpreadsheet,
   Briefcase,
+  CheckSquare,
+  Coins,
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -104,6 +106,13 @@ const navSections: NavSection[] = [
       { label: "Tax Strategies", href: "/payroll/tax-strategies", icon: Shield },
       { label: "FBT", href: "/payroll/fbt", icon: Briefcase },
       { label: "Reports", href: "/payroll/reports", icon: FileSpreadsheet },
+    ],
+  },
+  {
+    title: "Approvals",
+    items: [
+      { label: "Approvals", href: "/approvals", icon: CheckSquare },
+      { label: "Workflows", href: "/approvals/workflows", icon: GitBranch },
     ],
   },
   {
@@ -169,6 +178,7 @@ const navSections: NavSection[] = [
       { label: "Users", href: "/settings/users", icon: Users },
       { label: "Activity", href: "/settings/activity", icon: Activity },
       { label: "Integrations", href: "/settings/integrations", icon: Plug },
+      { label: "Currencies", href: "/settings/currencies", icon: Coins },
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook },
     ],
   },
