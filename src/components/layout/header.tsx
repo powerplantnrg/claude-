@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import {
   ChevronRight,
-  User,
   LogOut,
   Building2,
+  Menu,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { GlobalSearch } from "./global-search"
 
 const routeLabels: Record<string, string> = {
   dashboard: "Dashboard",
@@ -54,7 +56,11 @@ function buildBreadcrumbs(pathname: string) {
   return crumbs
 }
 
-export function Header() {
+interface HeaderProps {
+  onToggleMobileSidebar?: () => void
+}
+
+export function Header({ onToggleMobileSidebar }: HeaderProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -84,67 +90,88 @@ export function Header() {
   }, [])
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
-      {/* Breadcrumb */}
-      <nav className="flex items-center text-sm">
-        {breadcrumbs.map((crumb, index) => (
-          <Fragment key={crumb.href}>
-            {index > 0 && (
-              <ChevronRight className="mx-2 h-3.5 w-3.5 text-slate-400" />
-            )}
-            <span
-              className={cn(
-                "font-medium",
-                index === breadcrumbs.length - 1
-                  ? "text-slate-900"
-                  : "text-slate-500"
+    <header className="flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 sm:px-6">
+      <div className="flex items-center gap-2">
+        {/* Mobile hamburger */}
+        <button
+          onClick={onToggleMobileSidebar}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 md:hidden"
+          aria-label="Toggle sidebar"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
+        {/* Breadcrumb */}
+        <nav className="flex items-center text-sm">
+          {breadcrumbs.map((crumb, index) => (
+            <Fragment key={crumb.href}>
+              {index > 0 && (
+                <ChevronRight className="mx-2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
               )}
-            >
-              {crumb.label}
-            </span>
-          </Fragment>
-        ))}
-      </nav>
+              <span
+                className={cn(
+                  "font-medium",
+                  index === breadcrumbs.length - 1
+                    ? "text-slate-900 dark:text-slate-100"
+                    : "text-slate-500 dark:text-slate-400"
+                )}
+              >
+                {crumb.label}
+              </span>
+            </Fragment>
+          ))}
+        </nav>
+      </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Global Search */}
+        <GlobalSearch />
+
+        <div className="hidden h-6 w-px bg-slate-200 dark:bg-slate-700 sm:block" />
+
         {/* Organization */}
-        <div className="hidden items-center gap-1.5 text-sm text-slate-600 sm:flex">
-          <Building2 className="h-4 w-4 text-slate-400" />
+        <div className="hidden items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400 sm:flex">
+          <Building2 className="h-4 w-4 text-slate-400 dark:text-slate-500" />
           <span>{organizationName}</span>
         </div>
 
-        <div className="h-6 w-px bg-slate-200" />
+        <div className="hidden h-6 w-px bg-slate-200 dark:bg-slate-700 sm:block" />
+
+        {/* Theme toggle */}
+        <ThemeToggle />
+
+        <div className="h-6 w-px bg-slate-200 dark:bg-slate-700" />
 
         {/* User dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-100 transition-colors"
+            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white">
               {initials}
             </div>
-            <span className="hidden font-medium text-slate-700 sm:block">
+            <span className="hidden font-medium text-slate-700 dark:text-slate-200 sm:block">
               {userName}
             </span>
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-lg z-50">
-              <div className="border-b border-slate-100 px-4 py-3">
-                <p className="text-sm font-medium text-slate-900">{userName}</p>
+            <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-1 shadow-lg z-50">
+              <div className="border-b border-slate-100 dark:border-slate-700 px-4 py-3">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{userName}</p>
                 {userRole && (
-                  <p className="text-xs text-slate-500 capitalize">{userRole}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{userRole}</p>
                 )}
-                <p className="text-xs text-slate-400 mt-0.5">{session?.user?.email}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{session?.user?.email}</p>
               </div>
               <div className="py-1">
                 <button
                   onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
-                  <LogOut className="h-4 w-4 text-slate-400" />
+                  <LogOut className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                   Sign out
                 </button>
               </div>

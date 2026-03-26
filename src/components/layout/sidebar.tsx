@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -29,9 +29,9 @@ import {
   Calculator,
   Settings,
   ChevronDown,
-  ChevronLeft,
   PanelLeftClose,
   PanelLeft,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -109,9 +109,15 @@ const navSections: NavSection[] = [
   },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean
+  onMobileClose?: () => void
+}
+
+export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const [isTablet, setIsTablet] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {}
     for (const section of navSections) {
@@ -119,6 +125,24 @@ export function Sidebar() {
     }
     return initial
   })
+
+  useEffect(() => {
+    function handleResize() {
+      const w = window.innerWidth
+      setIsTablet(w >= 768 && w < 1024)
+    }
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    onMobileClose?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
+  const effectiveCollapsed = isTablet || collapsed
 
   function toggleSection(title: string) {
     setExpandedSections((prev) => ({
@@ -134,25 +158,20 @@ export function Sidebar() {
     return pathname === href || pathname.startsWith(href + "/")
   }
 
-  return (
-    <aside
-      className={cn(
-        "flex flex-col bg-slate-900 text-white transition-all duration-300 h-full",
-        collapsed ? "w-16" : "w-64"
-      )}
-    >
+  const sidebarContent = (
+    <>
       {/* Logo / Brand */}
       <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700/50">
-        {!collapsed && (
-          <Link href="/dashboard" className="flex items-center gap-2">
+        {!effectiveCollapsed && (
+          <Link href="/dashboard" className="flex items-center gap-2" onClick={onMobileClose}>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
               <FlaskConical className="h-4 w-4 text-white" />
             </div>
             <span className="text-base font-semibold tracking-tight">R&D Ledger</span>
           </Link>
         )}
-        {collapsed && (
-          <Link href="/dashboard" className="mx-auto">
+        {effectiveCollapsed && (
+          <Link href="/dashboard" className="mx-auto" onClick={onMobileClose}>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
               <FlaskConical className="h-4 w-4 text-white" />
             </div>
@@ -160,10 +179,10 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Collapse toggle */}
+      {/* Collapse toggle - hidden on mobile and tablet */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center justify-center h-8 mx-2 mt-2 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        className="hidden lg:flex items-center justify-center h-8 mx-2 mt-2 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? (
@@ -178,7 +197,7 @@ export function Sidebar() {
         {navSections.map((section) => (
           <div key={section.title}>
             {/* Section header */}
-            {!collapsed ? (
+            {!effectiveCollapsed ? (
               <button
                 onClick={() => toggleSection(section.title)}
                 className="flex w-full items-center justify-between px-2 py-2 mt-2 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-200 transition-colors"
@@ -196,7 +215,7 @@ export function Sidebar() {
             )}
 
             {/* Section items */}
-            {(collapsed || expandedSections[section.title]) && (
+            {(effectiveCollapsed || expandedSections[section.title]) && (
               <ul className="space-y-0.5">
                 {section.items.map((item) => {
                   const Icon = item.icon
@@ -205,17 +224,18 @@ export function Sidebar() {
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        onClick={onMobileClose}
                         className={cn(
                           "flex items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors",
                           active
                             ? "bg-indigo-600/20 text-indigo-300"
                             : "text-slate-300 hover:bg-slate-800 hover:text-white",
-                          collapsed && "justify-center px-0"
+                          effectiveCollapsed && "justify-center px-0"
                         )}
-                        title={collapsed ? item.label : undefined}
+                        title={effectiveCollapsed ? item.label : undefined}
                       >
                         <Icon className={cn("h-4 w-4 shrink-0", active && "text-indigo-400")} />
-                        {!collapsed && <span>{item.label}</span>}
+                        {!effectiveCollapsed && <span>{item.label}</span>}
                       </Link>
                     </li>
                   )
@@ -227,11 +247,48 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      {!collapsed && (
+      {!effectiveCollapsed && (
         <div className="border-t border-slate-700/50 px-4 py-3">
           <p className="text-xs text-slate-500">R&D Accounting Platform</p>
         </div>
       )}
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Desktop / Tablet sidebar */}
+      <aside
+        className={cn(
+          "hidden md:flex flex-col bg-slate-900 text-white transition-all duration-300 h-full",
+          effectiveCollapsed ? "w-16" : "w-64"
+        )}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile sidebar overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50"
+            onClick={onMobileClose}
+          />
+          {/* Sidebar panel */}
+          <aside className="fixed inset-y-0 left-0 flex w-64 flex-col bg-slate-900 text-white shadow-xl">
+            {/* Close button */}
+            <button
+              onClick={onMobileClose}
+              className="absolute right-2 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              aria-label="Close sidebar"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+    </>
   )
 }
