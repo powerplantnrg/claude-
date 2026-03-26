@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/utils"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { ContactTabs } from "./contact-tabs"
+import { DeleteContactButton } from "./delete-contact-button"
 
 export default async function ContactDetailPage({
   params,
@@ -145,6 +146,7 @@ export default async function ContactDetailPage({
           >
             New Bill
           </Link>
+          <DeleteContactButton contactId={contact.id} contactName={contact.name} />
         </div>
       </div>
 
