@@ -48,6 +48,8 @@ model Organization {
   payments            Payment[]
   expenseClaims       ExpenseClaim[]
   basReturns          BASReturn[]
+  bankRules           BankRule[]
+  creditNotes         CreditNote[]
 }
 
 model User {
@@ -107,6 +109,7 @@ model Account {
   journalLines    JournalLine[]
   invoiceLines    InvoiceLine[]
   billLines       BillLine[]
+  bankRules       BankRule[]
 
   @@unique([code, organizationId])
 }
@@ -173,6 +176,7 @@ model Contact {
   invoices        Invoice[]
   bills           Bill[]
   recurringInvoices RecurringInvoice[]
+  creditNotes     CreditNote[]
 }
 
 // ============================================
@@ -803,4 +807,62 @@ model BASReturn {
   w2Withheld             Float        @default(0)
   lodgedAt               DateTime?
   createdAt              DateTime     @default(now())
+}
+
+// ============================================
+// BANKING: Auto-Categorization Rules
+// ============================================
+
+model BankRule {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  matchField     String       // description, amount, reference
+  matchType      String       // contains, exact, startsWith, regex
+  matchValue     String
+  accountId      String       // account to categorize to
+  account        Account      @relation(fields: [accountId], references: [id])
+  contactId      String?      // optional contact to assign
+  taxType        String?      // GST, GST Free, etc.
+  rdProjectId    String?      // optional R&D project tagging
+  isActive       Boolean      @default(true)
+  priority       Int          @default(0)
+  createdAt      DateTime     @default(now())
+}
+
+// ============================================
+// ACCOUNTING: Credit Notes
+// ============================================
+
+model CreditNote {
+  id               String           @id @default(cuid())
+  organizationId   String
+  organization     Organization     @relation(fields: [organizationId], references: [id])
+  creditNoteNumber String
+  contactId        String
+  contact          Contact          @relation(fields: [contactId], references: [id])
+  invoiceId        String?          // optional linked invoice
+  date             DateTime
+  status           String           @default("Draft") // Draft, Approved, Applied, Void
+  subtotal         Float            @default(0)
+  taxTotal         Float            @default(0)
+  total            Float            @default(0)
+  reason           String?
+  notes            String?
+  lines            CreditNoteLine[]
+  createdAt        DateTime         @default(now())
+}
+
+model CreditNoteLine {
+  id           String     @id @default(cuid())
+  creditNoteId String
+  creditNote   CreditNote @relation(fields: [creditNoteId], references: [id])
+  description  String
+  quantity     Float      @default(1)
+  unitPrice    Float
+  accountId    String
+  taxType      String     @default("GST")
+  amount       Float
+  taxAmount    Float      @default(0)
 }
