@@ -80,7 +80,7 @@ export async function POST(
         projectId: id,
         name,
         description: description || null,
-        amount: amount ? parseFloat(amount) : null,
+        amount: amount ? parseFloat(amount) : undefined,
         dueDate: dueDate ? new Date(dueDate) : null,
         status: "Pending",
       },
