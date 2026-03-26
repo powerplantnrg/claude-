@@ -43,6 +43,7 @@ import {
   Repeat,
   FileMinus,
   ListChecks,
+  ArrowRightLeft,
   Plug,
   Webhook,
   Wallet,
@@ -176,6 +177,7 @@ const navSections: NavSection[] = [
       { label: "Bank Feeds", href: "/integrations/bank-feeds", icon: Landmark },
       { label: "STP Filing", href: "/integrations/stp", icon: FileSpreadsheet },
       { label: "Data Export", href: "/integrations/export", icon: FileBarChart },
+      { label: "Data Migration", href: "/migration", icon: ArrowRightLeft },
     ],
   },
   {
