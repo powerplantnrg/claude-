@@ -24,10 +24,7 @@ export async function GET(
           select: {
             firstName: true,
             lastName: true,
-            employeeNumber: true,
             email: true,
-            jobTitle: true,
-            department: true,
             taxFileNumber: true,
             superFundName: true,
             superMemberNumber: true,
@@ -35,11 +32,9 @@ export async function GET(
         },
         payRun: {
           select: {
-            payRunNumber: true,
             payPeriodStart: true,
             payPeriodEnd: true,
             payDate: true,
-            payFrequency: true,
             status: true,
           },
         },
@@ -97,7 +92,7 @@ export async function PATCH(
 
     const body = await request.json()
     const {
-      grossEarnings,
+      grossPay,
       hoursWorked,
       earnings,
       deductions,
@@ -106,7 +101,7 @@ export async function PATCH(
 
     // Update basic payslip fields
     const updateData: any = {}
-    if (grossEarnings !== undefined) updateData.grossEarnings = grossEarnings
+    if (grossPay !== undefined) updateData.grossPay = grossPay
     if (hoursWorked !== undefined) updateData.hoursWorked = hoursWorked
 
     // Update earnings line items
@@ -116,8 +111,8 @@ export async function PATCH(
       await prisma.payslipEarning.createMany({
         data: earnings.map((e: any) => ({
           payslipId: id,
-          name: e.name,
           type: e.type || "Allowance",
+          description: e.description || e.name || "",
           hours: e.hours || null,
           rate: e.rate || null,
           amount: e.amount,
@@ -131,10 +126,10 @@ export async function PATCH(
       await prisma.payslipDeduction.createMany({
         data: deductions.map((d: any) => ({
           payslipId: id,
-          name: d.name,
-          type: d.type || "Other",
+          type: d.type || "PostTax",
+          category: d.category || "Other",
+          description: d.description || d.name || "",
           amount: d.amount,
-          preTax: d.preTax || false,
         })),
       })
     }
@@ -145,9 +140,10 @@ export async function PATCH(
       await prisma.payslipLeave.createMany({
         data: leave.map((l: any) => ({
           payslipId: id,
-          leaveType: l.leaveType,
-          hours: l.hours,
-          amount: l.amount || 0,
+          type: l.type || l.leaveType,
+          hoursAccrued: l.hoursAccrued || 0,
+          hoursTaken: l.hoursTaken || l.hours || 0,
+          balance: l.balance || 0,
         })),
       })
     }
@@ -157,7 +153,7 @@ export async function PATCH(
       data: updateData,
       include: {
         employee: {
-          select: { firstName: true, lastName: true, employeeNumber: true },
+          select: { firstName: true, lastName: true },
         },
         earnings: true,
         deductions: true,
@@ -171,7 +167,7 @@ export async function PATCH(
         action: "Update",
         entityType: "Payslip",
         entityId: id,
-        details: `Updated payslip for pay run ${payslip.payRun.payRunNumber}`,
+        details: `Updated payslip for pay run ${payslip.payRunId}`,
         organizationId: orgId,
       },
     })

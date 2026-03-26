@@ -82,7 +82,6 @@ async function generatePaymentSummary(
           id: true,
           firstName: true,
           lastName: true,
-          employeeNumber: true,
           taxFileNumber: true,
           startDate: true,
           endDate: true,
@@ -109,13 +108,13 @@ async function generatePaymentSummary(
       }
     }
     const summary = byEmployee[empId]
-    summary.totalGrossPayments += slip.grossEarnings || 0
+    summary.totalGrossPayments += slip.grossPay || 0
     summary.totalTaxWithheld += slip.taxWithheld || 0
     summary.totalSuperContributions += slip.superContribution || 0
-    summary.totalAllowances += (slip.earnings || []).reduce(
+    summary.totalAllowances += (slip.earnings).reduce(
       (sum: number, e: any) => sum + (e.amount || 0), 0
     )
-    summary.totalDeductions += (slip.deductions || []).reduce(
+    summary.totalDeductions += (slip.deductions).reduce(
       (sum: number, d: any) => sum + (d.amount || 0), 0
     )
     summary.payslipCount += 1
@@ -166,7 +165,7 @@ async function generatePayrollTaxReport(orgId: string, financialYear: string) {
         where: { status: "Processed" },
         include: {
           employee: {
-            select: { id: true, firstName: true, lastName: true, employeeNumber: true },
+            select: { id: true, firstName: true, lastName: true },
           },
         },
       },
@@ -272,7 +271,6 @@ async function generateSuperSummary(
           id: true,
           firstName: true,
           lastName: true,
-          employeeNumber: true,
           superFundName: true,
           superMemberNumber: true,
           superRate: true,
@@ -293,7 +291,7 @@ async function generateSuperSummary(
         payslipCount: 0,
       }
     }
-    byEmployee[empId].ordinaryTimeEarnings += slip.grossEarnings || 0
+    byEmployee[empId].ordinaryTimeEarnings += slip.grossPay || 0
     byEmployee[empId].superContributions += slip.superContribution || 0
     byEmployee[empId].payslipCount += 1
   }
@@ -356,11 +354,6 @@ async function generateTaxMinimisationReport(orgId: string) {
 
   const existingStrategies = await prisma.taxMinimisationStrategy.findMany({
     where: { organizationId: orgId },
-    include: {
-      employee: {
-        select: { id: true, firstName: true, lastName: true, employeeNumber: true },
-      },
-    },
   })
 
   // Generate suggestions for each employee

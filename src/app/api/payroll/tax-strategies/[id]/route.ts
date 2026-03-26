@@ -17,11 +17,6 @@ export async function PATCH(
 
     const existing = await prisma.taxMinimisationStrategy.findFirst({
       where: { id, organizationId: orgId },
-      include: {
-        employee: {
-          select: { firstName: true, lastName: true, employeeNumber: true },
-        },
-      },
     })
 
     if (!existing) {
@@ -29,28 +24,22 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { status, estimatedSavings, actualSavings, description, details, implementedAt } = body
+    const { implemented, estimatedSaving, description, notes, implementedDate } = body
 
     const updateData: any = {}
-    if (status) updateData.status = status
-    if (estimatedSavings !== undefined) updateData.estimatedSavings = estimatedSavings
-    if (actualSavings !== undefined) updateData.actualSavings = actualSavings
+    if (implemented !== undefined) updateData.implemented = implemented
+    if (estimatedSaving !== undefined) updateData.estimatedSaving = estimatedSaving
     if (description) updateData.description = description
-    if (details) updateData.details = details
+    if (notes) updateData.notes = notes
 
     // If marking as implemented, set the implementation date
-    if (status === "Implemented") {
-      updateData.implementedAt = implementedAt ? new Date(implementedAt) : new Date()
+    if (implemented === true) {
+      updateData.implementedDate = implementedDate ? new Date(implementedDate) : new Date()
     }
 
     const updated = await prisma.taxMinimisationStrategy.update({
       where: { id },
       data: updateData,
-      include: {
-        employee: {
-          select: { firstName: true, lastName: true, employeeNumber: true },
-        },
-      },
     })
 
     await prisma.auditLog.create({
@@ -59,7 +48,7 @@ export async function PATCH(
         action: "Update",
         entityType: "TaxMinimisationStrategy",
         entityId: id,
-        details: `Updated tax strategy "${existing.strategyType}" for ${existing.employee.firstName} ${existing.employee.lastName}${status ? ` - status: ${status}` : ""}`,
+        details: `Updated tax strategy "${existing.category}" - ${existing.title}${implemented !== undefined ? ` - implemented: ${implemented}` : ""}`,
         organizationId: orgId,
       },
     })
@@ -89,11 +78,6 @@ export async function DELETE(
 
     const existing = await prisma.taxMinimisationStrategy.findFirst({
       where: { id, organizationId: orgId },
-      include: {
-        employee: {
-          select: { firstName: true, lastName: true },
-        },
-      },
     })
 
     if (!existing) {
@@ -110,7 +94,7 @@ export async function DELETE(
         action: "Delete",
         entityType: "TaxMinimisationStrategy",
         entityId: id,
-        details: `Deleted tax strategy "${existing.strategyType}" for ${existing.employee.firstName} ${existing.employee.lastName}`,
+        details: `Deleted tax strategy "${existing.category}" - ${existing.title}`,
         organizationId: orgId,
       },
     })
