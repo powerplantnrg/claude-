@@ -28,6 +28,7 @@ import {
   BarChart3,
   Award,
   Calculator,
+  FolderOpen,
   Settings,
   ChevronDown,
   PanelLeftClose,
@@ -108,6 +109,7 @@ const navSections: NavSection[] = [
   {
     title: "System",
     items: [
+      { label: "Data Room", href: "/data-room", icon: FolderOpen },
       { label: "Settings", href: "/settings", icon: Settings },
     ],
   },
