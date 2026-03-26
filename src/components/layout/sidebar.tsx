@@ -40,6 +40,7 @@ import {
   Activity,
   Sparkles,
   ClipboardCheck,
+  Repeat,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -66,6 +67,7 @@ const navSections: NavSection[] = [
     title: "Accounting",
     items: [
       { label: "Invoices", href: "/invoices", icon: FileText },
+      { label: "Recurring", href: "/invoices/recurring", icon: Repeat },
       { label: "Bills", href: "/bills", icon: Receipt },
       { label: "Banking", href: "/banking", icon: Landmark },
       { label: "Chart of Accounts", href: "/accounts", icon: BookOpen },
