@@ -57,6 +57,7 @@ import {
   Briefcase,
   CheckSquare,
   Coins,
+  Package,
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -79,6 +80,10 @@ const navSections: NavSection[] = [
       { label: "Command Center", href: "/command-center", icon: Gauge },
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
       { label: "Analytics", href: "/analytics", icon: BarChart3 },
+      { label: "Financial Analytics", href: "/analytics/financial", icon: TrendingUp },
+      { label: "R&D ROI", href: "/analytics/rd-roi", icon: FlaskConical },
+      { label: "Payroll Insights", href: "/analytics/payroll-insights", icon: Banknote },
+      { label: "Cash Flow Intel", href: "/analytics/cash-flow", icon: DollarSign },
     ],
   },
   {
@@ -93,6 +98,7 @@ const navSections: NavSection[] = [
       { label: "Chart of Accounts", href: "/accounts", icon: BookOpen },
       { label: "Purchase Orders", href: "/purchase-orders", icon: ShoppingCart },
       { label: "Budgets", href: "/budgets", icon: Wallet },
+      { label: "Fixed Assets", href: "/assets", icon: Package },
       { label: "Contacts", href: "/contacts", icon: Users },
     ],
   },
