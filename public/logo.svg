@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <polygon points="24,2 44,14 44,34 24,46 4,34 4,14" fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="24,8 38,16 38,32 24,40 10,32 10,16" fill="#4f46e5" opacity="0.1"/>
+  <text x="24" y="30" text-anchor="middle" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#4f46e5">RD</text>
+  <circle cx="12" cy="18" r="1.5" fill="#4f46e5"/>
+  <circle cx="36" cy="18" r="1.5" fill="#4f46e5"/>
+  <circle cx="36" cy="30" r="1.5" fill="#4f46e5"/>
+  <circle cx="12" cy="30" r="1.5" fill="#4f46e5"/>
+  <line x1="12" y1="18" x2="18" y2="22" stroke="#4f46e5" stroke-width="1" opacity="0.4"/>
+  <line x1="36" y1="18" x2="30" y2="22" stroke="#4f46e5" stroke-width="1" opacity="0.4"/>
+  <line x1="36" y1="30" x2="30" y2="26" stroke="#4f46e5" stroke-width="1" opacity="0.4"/>
+  <line x1="12" y1="30" x2="18" y2="26" stroke="#4f46e5" stroke-width="1" opacity="0.4"/>
+</svg>

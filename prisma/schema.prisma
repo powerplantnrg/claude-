@@ -1,0 +1,939 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CORE: Organization & Users
+// ============================================
+
+model Organization {
+  id                  String   @id @default(cuid())
+  name                String
+  abn                 String?
+  address             String?
+  city                String?
+  state               String?
+  postcode            String?
+  country             String   @default("Australia")
+  financialYearEnd    Int      @default(6)
+  baseCurrency        String   @default("AUD")
+  aggregatedTurnover  Float?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  users               User[]
+  accounts            Account[]
+  contacts            Contact[]
+  journalEntries      JournalEntry[]
+  invoices            Invoice[]
+  bills               Bill[]
+  bankTransactions    BankTransaction[]
+  taxRates            TaxRate[]
+  rdProjects          RdProject[]
+  cloudProviders      CloudProvider[]
+  grants              Grant[]
+  scenarios           Scenario[]
+  auditLogs           AuditLog[]
+  rdAdviceItems       RdAdviceItem[]
+  rdPipelineStages    RdPipelineStage[]
+  dataRoomTokens      DataRoomToken[]
+  carbonEntries       CarbonEntry[]
+  currencies          Currency[]
+  recurringInvoices   RecurringInvoice[]
+  payments            Payment[]
+  expenseClaims       ExpenseClaim[]
+  basReturns          BASReturn[]
+  bankRules           BankRule[]
+  creditNotes         CreditNote[]
+  budgets             Budget[]
+  webhooks            Webhook[]
+  integrations        Integration[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String?
+  passwordHash   String
+  role           String   @default("Viewer")
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  rdTimeEntries  RdTimeEntry[]
+  auditLogs      AuditLog[]
+  expenseClaims  ExpenseClaim[]
+  favorites      UserFavorite[]
+}
+
+// ============================================
+// USER: Favorites / Bookmarks
+// ============================================
+
+model UserFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  label     String
+  path      String
+  icon      String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, path])
+}
+
+// ============================================
+// ACCOUNTING: Chart of Accounts & Ledger
+// ============================================
+
+model Account {
+  id              String   @id @default(cuid())
+  code            String
+  name            String
+  type            String
+  subType         String?
+  description     String?
+  taxType         String?
+  isSystemAccount Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  isRdEligible    Boolean  @default(false)
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization   @relation(fields: [organizationId], references: [id])
+  journalLines    JournalLine[]
+  invoiceLines    InvoiceLine[]
+  billLines       BillLine[]
+  bankRules       BankRule[]
+  budgetItems     BudgetItem[]
+
+  @@unique([code, organizationId])
+}
+
+model JournalEntry {
+  id              String   @id @default(cuid())
+  entryNumber     Int
+  date            DateTime
+  reference       String?
+  narration       String
+  status          String   @default("Draft")
+  sourceType      String?
+  sourceId        String?
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  lines           JournalLine[]
+  bankTransaction BankTransaction? @relation("MatchedJournal")
+}
+
+model JournalLine {
+  id              String   @id @default(cuid())
+  journalEntryId  String
+  accountId       String
+  description     String?
+  debit           Float    @default(0)
+  credit          Float    @default(0)
+  taxCode         String?
+  rdProjectId     String?
+  rdActivityId    String?
+  experimentId    String?
+
+  journalEntry    JournalEntry @relation(fields: [journalEntryId], references: [id])
+  account         Account      @relation(fields: [accountId], references: [id])
+  rdProject       RdProject?   @relation(fields: [rdProjectId], references: [id])
+  rdActivity      RdActivity?  @relation(fields: [rdActivityId], references: [id])
+  experiment      Experiment?  @relation(fields: [experimentId], references: [id])
+  rdExpenses      RdExpense[]
+}
+
+// ============================================
+// ACCOUNTING: Contacts
+// ============================================
+
+model Contact {
+  id              String   @id @default(cuid())
+  name            String
+  email           String?
+  phone           String?
+  abn             String?
+  contactType     String   @default("Customer")
+  address         String?
+  city            String?
+  state           String?
+  postcode        String?
+  isRdContractor  Boolean  @default(false)
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  invoices        Invoice[]
+  bills           Bill[]
+  recurringInvoices RecurringInvoice[]
+  creditNotes     CreditNote[]
+}
+
+// ============================================
+// ACCOUNTING: Invoices
+// ============================================
+
+model Invoice {
+  id              String   @id @default(cuid())
+  invoiceNumber   String
+  contactId       String
+  date            DateTime
+  dueDate         DateTime
+  status          String   @default("Draft")
+  subtotal        Float    @default(0)
+  taxTotal        Float    @default(0)
+  total           Float    @default(0)
+  amountDue       Float?
+  notes           String?
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  contact         Contact       @relation(fields: [contactId], references: [id])
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  lines           InvoiceLine[]
+  payments        Payment[]
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float
+  accountId   String
+  taxType     String?
+  amount      Float
+
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  account     Account @relation(fields: [accountId], references: [id])
+}
+
+// ============================================
+// ACCOUNTING: Bills
+// ============================================
+
+model Bill {
+  id              String   @id @default(cuid())
+  billNumber      String
+  contactId       String
+  date            DateTime
+  dueDate         DateTime
+  status          String   @default("Draft")
+  subtotal        Float    @default(0)
+  taxTotal        Float    @default(0)
+  total           Float    @default(0)
+  amountDue       Float?
+  notes           String?
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  contact         Contact       @relation(fields: [contactId], references: [id])
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  lines           BillLine[]
+  payments        Payment[]
+}
+
+model BillLine {
+  id          String  @id @default(cuid())
+  billId      String
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float
+  accountId   String
+  taxType     String?
+  amount      Float
+
+  bill        Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
+  account     Account @relation(fields: [accountId], references: [id])
+}
+
+// ============================================
+// ACCOUNTING: Banking
+// ============================================
+
+model BankTransaction {
+  id              String   @id @default(cuid())
+  date            DateTime
+  description     String
+  amount          Float
+  reference       String?
+  reconciled      Boolean  @default(false)
+  matchedJournalId String?  @unique
+  organizationId  String
+  createdAt       DateTime @default(now())
+
+  matchedJournal  JournalEntry? @relation("MatchedJournal", fields: [matchedJournalId], references: [id])
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+}
+
+model TaxRate {
+  id              String   @id @default(cuid())
+  name            String
+  rate            Float
+  taxType         String
+  isDefault       Boolean  @default(false)
+  organizationId  String
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+}
+
+// ============================================
+// R&D INTELLIGENCE: Projects & Activities
+// ============================================
+
+model RdProject {
+  id                      String   @id @default(cuid())
+  name                    String
+  description             String?
+  startDate               DateTime
+  endDate                 DateTime?
+  status                  String   @default("Active")
+  coreActivityDescription String?
+  hypothesisSummary       String?
+  technicalUncertainty    String?
+  newKnowledgeSought      String?
+  eligibilityStatus       String   @default("Pending")
+  budget                  Float?
+  organizationId          String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  organization            Organization          @relation(fields: [organizationId], references: [id])
+  activities              RdActivity[]
+  journalLines            JournalLine[]
+  rdExpenses              RdExpense[]
+  complianceChecklist     RdComplianceChecklist[]
+  portfolioEntry          RdPortfolioEntry?
+  claimDrafts             RdClaimDraft[]
+  auditPacks              AuditPack[]
+  carbonEntries           CarbonEntry[]
+  expenseClaimItems       ExpenseClaimItem[]
+}
+
+model RdActivity {
+  id                   String   @id @default(cuid())
+  rdProjectId          String
+  name                 String
+  activityType         String   @default("Core")
+  hypothesis           String?
+  methodology          String?
+  outcome              String?
+  technicalUncertainty String?
+  newKnowledgeSought   String?
+  status               String   @default("InProgress")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  rdProject            RdProject     @relation(fields: [rdProjectId], references: [id])
+  experiments          Experiment[]
+  evidence             RdEvidence[]
+  timeEntries          RdTimeEntry[]
+  journalLines         JournalLine[]
+  rdExpenses           RdExpense[]
+}
+
+// ============================================
+// R&D INTELLIGENCE: Experiments
+// ============================================
+
+model Experiment {
+  id              String   @id @default(cuid())
+  rdActivityId    String
+  name            String
+  hypothesis      String?
+  status          String   @default("Planned")
+  startDate       DateTime?
+  endDate         DateTime?
+  outcome         String?
+  iterationNumber Int      @default(1)
+  pipelineStageId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  rdActivity      RdActivity          @relation(fields: [rdActivityId], references: [id])
+  pipelineStage   RdPipelineStage?    @relation(fields: [pipelineStageId], references: [id])
+  resources       ExperimentResource[]
+  outcomes        ExperimentOutcome[]
+  journalLines    JournalLine[]
+  cloudCosts      CloudCostEntry[]
+}
+
+model ExperimentResource {
+  id           String  @id @default(cuid())
+  experimentId String
+  resourceType String
+  description  String
+  cost         Float
+  quantity     Float?
+  unit         String?
+
+  experiment   Experiment @relation(fields: [experimentId], references: [id])
+}
+
+model ExperimentOutcome {
+  id           String   @id @default(cuid())
+  experimentId String
+  outcomeType  String
+  notes        String?
+  metricsJson  String?
+  recordedAt   DateTime @default(now())
+
+  experiment   Experiment @relation(fields: [experimentId], references: [id])
+}
+
+// ============================================
+// R&D INTELLIGENCE: Evidence & Time Tracking
+// ============================================
+
+model RdEvidence {
+  id           String   @id @default(cuid())
+  rdActivityId String
+  fileName     String
+  fileType     String
+  filePath     String
+  fileSize     Int?
+  description  String?
+  category     String   @default("Other")
+  uploadedAt   DateTime @default(now())
+
+  rdActivity   RdActivity @relation(fields: [rdActivityId], references: [id])
+}
+
+model RdTimeEntry {
+  id           String   @id @default(cuid())
+  userId       String
+  rdActivityId String
+  date         DateTime
+  hours        Float
+  description  String?
+  hourlyRate   Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User       @relation(fields: [userId], references: [id])
+  rdActivity   RdActivity @relation(fields: [rdActivityId], references: [id])
+}
+
+model RdExpense {
+  id             String  @id @default(cuid())
+  journalLineId  String
+  rdProjectId    String
+  rdActivityId   String?
+  category       String
+  classification String  @default("NeedsReview")
+
+  journalLine    JournalLine @relation(fields: [journalLineId], references: [id])
+  rdProject      RdProject   @relation(fields: [rdProjectId], references: [id])
+  rdActivity     RdActivity? @relation(fields: [rdActivityId], references: [id])
+}
+
+// ============================================
+// AI INFRASTRUCTURE: Cloud Costs
+// ============================================
+
+model CloudProvider {
+  id              String   @id @default(cuid())
+  name            String
+  displayName     String
+  enabled         Boolean  @default(true)
+  organizationId  String
+  createdAt       DateTime @default(now())
+
+  organization    Organization   @relation(fields: [organizationId], references: [id])
+  costEntries     CloudCostEntry[]
+  computeUsage    ComputeUsage[]
+  tokenUsage      TokenUsage[]
+}
+
+model CloudCostEntry {
+  id           String   @id @default(cuid())
+  providerId   String
+  date         DateTime
+  service      String
+  description  String?
+  amount       Float
+  currency     String   @default("AUD")
+  tags         String?
+  projectId    String?
+  experimentId String?
+  createdAt    DateTime @default(now())
+
+  provider     CloudProvider @relation(fields: [providerId], references: [id])
+  experiment   Experiment?   @relation(fields: [experimentId], references: [id])
+}
+
+model ComputeUsage {
+  id           String   @id @default(cuid())
+  providerId   String
+  date         DateTime
+  instanceType String
+  hours        Float
+  cost         Float
+  experimentId String?
+  modelName    String?
+
+  provider     CloudProvider @relation(fields: [providerId], references: [id])
+}
+
+model TokenUsage {
+  id           String   @id @default(cuid())
+  providerId   String
+  date         DateTime
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  cost         Float
+  experimentId String?
+
+  provider     CloudProvider @relation(fields: [providerId], references: [id])
+}
+
+// ============================================
+// R&D PIPELINE & PORTFOLIO
+// ============================================
+
+model RdPipelineStage {
+  id              String   @id @default(cuid())
+  name            String
+  stageOrder      Int
+  description     String?
+  organizationId  String
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  experiments     Experiment[]
+}
+
+model RdPortfolioEntry {
+  id                   String  @id @default(cuid())
+  rdProjectId          String  @unique
+  probabilityOfSuccess Float?
+  expectedROI          Float?
+  capitalAllocated     Float?
+  actualSpend          Float?
+  status               String  @default("Active")
+
+  rdProject            RdProject @relation(fields: [rdProjectId], references: [id])
+}
+
+// ============================================
+// GRANTS & INCENTIVES
+// ============================================
+
+model Grant {
+  id                  String   @id @default(cuid())
+  name                String
+  provider            String
+  status              String   @default("Discovered")
+  amount              Float?
+  applicationDeadline DateTime?
+  description         String?
+  organizationId      String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organization        Organization    @relation(fields: [organizationId], references: [id])
+  milestones          GrantMilestone[]
+}
+
+model GrantMilestone {
+  id          String   @id @default(cuid())
+  grantId     String
+  title       String
+  dueDate     DateTime?
+  completed   Boolean  @default(false)
+  spendToDate Float?
+  evidence    String?
+  createdAt   DateTime @default(now())
+
+  grant       Grant @relation(fields: [grantId], references: [id])
+}
+
+model RdClaimDraft {
+  id                       String   @id @default(cuid())
+  rdProjectId              String?
+  financialYear            String
+  totalEligibleExpenditure Float
+  offsetRate               Float
+  estimatedOffset          Float
+  status                   String   @default("Draft")
+  breakdownJson            String?
+  generatedAt              DateTime @default(now())
+
+  rdProject                RdProject? @relation(fields: [rdProjectId], references: [id])
+}
+
+// ============================================
+// COMPLIANCE & AUDIT
+// ============================================
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  userId         String?
+  action         String
+  entityType     String
+  entityId       String?
+  details        String?
+  organizationId String
+  timestamp      DateTime @default(now())
+
+  user           User?        @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model RdComplianceChecklist {
+  id          String   @id @default(cuid())
+  rdProjectId String
+  item        String
+  category    String
+  completed   Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rdProject   RdProject @relation(fields: [rdProjectId], references: [id])
+}
+
+model AuditPack {
+  id              String   @id @default(cuid())
+  rdProjectId     String
+  financialYear   String
+  status          String   @default("Generated")
+  filePath        String?
+  generatedAt     DateTime @default(now())
+
+  rdProject       RdProject @relation(fields: [rdProjectId], references: [id])
+}
+
+// ============================================
+// DATA ROOM: Share Tokens
+// ============================================
+
+model DataRoomToken {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  token          String       @unique
+  name           String
+  expiresAt      DateTime?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  lastAccessedAt DateTime?
+}
+
+// ============================================
+// SCENARIO SIMULATION
+// ============================================
+
+model Scenario {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  baselineJson    String?
+  variablesJson   String?
+  resultsJson     String?
+  organizationId  String
+  createdAt       DateTime @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+}
+
+// ============================================
+// R&D ADVICE
+// ============================================
+
+model RdAdviceItem {
+  id              String   @id @default(cuid())
+  title           String
+  content         String
+  category        String
+  priority        Int      @default(0)
+  applicableWhen  String?
+  organizationId  String?
+
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+}
+
+// ============================================
+// SUSTAINABILITY: Carbon & Energy Accounting
+// ============================================
+
+model CarbonEntry {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  date           DateTime
+  category       String       // Scope1, Scope2, Scope3
+  source         String       // e.g., "Electricity", "GPU Compute", "Air Travel", "Cloud Data Center"
+  quantity       Float        // e.g., kWh, km, hours
+  unit           String       // kWh, km, GPU-hours, etc.
+  emissionFactor Float        // kg CO2e per unit
+  totalEmissions Float        // quantity * emissionFactor (kg CO2e)
+  cost           Float?       // associated cost if any
+  notes          String?
+  projectId      String?      // optional link to R&D project
+  project        RdProject?   @relation(fields: [projectId], references: [id])
+  createdAt      DateTime     @default(now())
+}
+
+// ============================================
+// MULTI-CURRENCY
+// ============================================
+
+model Currency {
+  id             String       @id @default(cuid())
+  code           String       // AUD, USD, GBP, EUR, etc.
+  name           String       // Australian Dollar
+  symbol         String       // $, £, €
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  isBase         Boolean      @default(false)
+  exchangeRate   Float        @default(1.0) // rate relative to base currency
+  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime     @default(now())
+
+  @@unique([organizationId, code])
+}
+
+// ============================================
+// RECURRING INVOICES
+// ============================================
+
+model RecurringInvoice {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  contactId      String
+  contact        Contact      @relation(fields: [contactId], references: [id])
+  frequency      String       // weekly, fortnightly, monthly, quarterly, annually
+  nextDate       DateTime
+  endDate        DateTime?
+  dayOfMonth     Int?         // for monthly: which day
+  isActive       Boolean      @default(true)
+  templateData   String       // JSON: line items, notes, tax settings
+  lastGenerated  DateTime?
+  invoiceCount   Int          @default(0)
+  createdAt      DateTime     @default(now())
+}
+
+// ============================================
+// PAYMENTS
+// ============================================
+
+model Payment {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  type           String       // received (from customer) or made (to supplier)
+  amount         Float
+  date           DateTime
+  reference      String?
+  method         String       // bank_transfer, cash, credit_card, cheque
+  invoiceId      String?
+  invoice        Invoice?     @relation(fields: [invoiceId], references: [id])
+  billId         String?
+  bill           Bill?        @relation(fields: [billId], references: [id])
+  journalEntryId String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+}
+
+// ============================================
+// EXPENSE CLAIMS
+// ============================================
+
+model ExpenseClaim {
+  id             String             @id @default(cuid())
+  organizationId String
+  organization   Organization       @relation(fields: [organizationId], references: [id])
+  userId         String
+  user           User               @relation(fields: [userId], references: [id])
+  claimNumber    String
+  date           DateTime
+  status         String             @default("Draft") // Draft, Submitted, Approved, Paid, Rejected
+  totalAmount    Float              @default(0)
+  notes          String?
+  items          ExpenseClaimItem[]
+  createdAt      DateTime           @default(now())
+}
+
+model ExpenseClaimItem {
+  id          String        @id @default(cuid())
+  claimId     String
+  claim       ExpenseClaim  @relation(fields: [claimId], references: [id])
+  date        DateTime
+  description String
+  category    String        // travel, meals, supplies, software, equipment, other
+  amount      Float
+  taxAmount   Float         @default(0)
+  accountId   String?
+  receiptPath String?       // uploaded receipt file
+  rdProjectId String?       // optional R&D allocation
+  rdProject   RdProject?    @relation(fields: [rdProjectId], references: [id])
+}
+
+// ============================================
+// TAX: BAS Returns
+// ============================================
+
+model BASReturn {
+  id                     String       @id @default(cuid())
+  organizationId         String
+  organization           Organization @relation(fields: [organizationId], references: [id])
+  period                 String       // e.g., "Q1 2025-26", "Jan 2026"
+  startDate              DateTime
+  endDate                DateTime
+  status                 String       @default("Draft") // Draft, Lodged
+  g1TotalSales           Float        @default(0)
+  g2ExportSales          Float        @default(0)
+  g3GstFreeSales         Float        @default(0)
+  g10CapitalPurchases    Float        @default(0)
+  g11NonCapitalPurchases Float        @default(0)
+  gstOnSales             Float        @default(0) // 1A
+  gstOnPurchases         Float        @default(0) // 1B
+  netGst                 Float        @default(0)
+  w1TotalWages           Float        @default(0)
+  w2Withheld             Float        @default(0)
+  lodgedAt               DateTime?
+  createdAt              DateTime     @default(now())
+}
+
+// ============================================
+// BANKING: Auto-Categorization Rules
+// ============================================
+
+model BankRule {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  matchField     String       // description, amount, reference
+  matchType      String       // contains, exact, startsWith, regex
+  matchValue     String
+  accountId      String       // account to categorize to
+  account        Account      @relation(fields: [accountId], references: [id])
+  contactId      String?      // optional contact to assign
+  taxType        String?      // GST, GST Free, etc.
+  rdProjectId    String?      // optional R&D project tagging
+  isActive       Boolean      @default(true)
+  priority       Int          @default(0)
+  createdAt      DateTime     @default(now())
+}
+
+// ============================================
+// ACCOUNTING: Credit Notes
+// ============================================
+
+model CreditNote {
+  id               String           @id @default(cuid())
+  organizationId   String
+  organization     Organization     @relation(fields: [organizationId], references: [id])
+  creditNoteNumber String
+  contactId        String
+  contact          Contact          @relation(fields: [contactId], references: [id])
+  invoiceId        String?          // optional linked invoice
+  date             DateTime
+  status           String           @default("Draft") // Draft, Approved, Applied, Void
+  subtotal         Float            @default(0)
+  taxTotal         Float            @default(0)
+  total            Float            @default(0)
+  reason           String?
+  notes            String?
+  lines            CreditNoteLine[]
+  createdAt        DateTime         @default(now())
+}
+
+model CreditNoteLine {
+  id           String     @id @default(cuid())
+  creditNoteId String
+  creditNote   CreditNote @relation(fields: [creditNoteId], references: [id])
+  description  String
+  quantity     Float      @default(1)
+  unitPrice    Float
+  accountId    String
+  taxType      String     @default("GST")
+  amount       Float
+  taxAmount    Float      @default(0)
+}
+
+// ============================================
+// BUDGETING & FORECASTING
+// ============================================
+
+model Budget {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String       // e.g., "FY 2025-26 Operating Budget"
+  financialYear  String       // e.g., "2025-26"
+  status         String       @default("Draft") // Draft, Active, Closed
+  items          BudgetItem[]
+  createdAt      DateTime     @default(now())
+}
+
+model BudgetItem {
+  id        String  @id @default(cuid())
+  budgetId  String
+  budget    Budget  @relation(fields: [budgetId], references: [id])
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id])
+  jan       Float   @default(0)
+  feb       Float   @default(0)
+  mar       Float   @default(0)
+  apr       Float   @default(0)
+  may       Float   @default(0)
+  jun       Float   @default(0)
+  jul       Float   @default(0)
+  aug       Float   @default(0)
+  sep       Float   @default(0)
+  oct       Float   @default(0)
+  nov       Float   @default(0)
+  dec       Float   @default(0)
+  total     Float   @default(0)
+  notes     String?
+}
+
+// ============================================
+// WEBHOOKS & INTEGRATIONS
+// ============================================
+
+model Webhook {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  name            String
+  url             String
+  events          String       // comma-separated: invoice.created, bill.created, payment.received, etc.
+  secret          String?      // for HMAC-SHA256 signature verification
+  isActive        Boolean      @default(true)
+  lastTriggeredAt DateTime?
+  failCount       Int          @default(0)
+  createdAt       DateTime     @default(now())
+}
+
+model Integration {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  type            String       // xero, myob, stripe, slack, github
+  name            String
+  config          String       // JSON config
+  isActive        Boolean      @default(true)
+  lastSyncAt      DateTime?
+  createdAt       DateTime     @default(now())
+}
