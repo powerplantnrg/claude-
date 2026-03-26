@@ -737,8 +737,431 @@ async function main() {
     })
   }
 
+  // ============================================
+  // PAYROLL MODULE: Seed Data
+  // ============================================
+
+  // Additional payroll-related accounts (only if not already present)
+  const payrollAccounts = [
+    { code: "2250", name: "Salary Sacrifice Liability", type: "Liability", subType: "Current Liability", taxType: "BAS-Excluded" },
+    { code: "2350", name: "FBT Payable", type: "Liability", subType: "Current Liability", taxType: "BAS-Excluded" },
+    { code: "2450", name: "Workers Comp Payable", type: "Liability", subType: "Current Liability", taxType: "BAS-Excluded" },
+    { code: "8200", name: "Salary Sacrifice - Super", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8250", name: "Novated Lease Deductions", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8300", name: "FBT Expense", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8350", name: "Leave Entitlements", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8400", name: "Overtime", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8450", name: "Allowances", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+    { code: "8500", name: "Bonuses", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
+  ]
+
+  for (const acc of payrollAccounts) {
+    const exists = await prisma.account.findFirst({ where: { code: acc.code, organizationId: org.id } })
+    if (!exists) {
+      await prisma.account.create({
+        data: {
+          ...acc,
+          isSystemAccount: false,
+          isRdEligible: false,
+          organizationId: org.id,
+        },
+      })
+    }
+  }
+
+  // --- Employees (4: full-time, full-time, part-time, contractor) ---
+  const empSarah = await prisma.employee.create({
+    data: {
+      organizationId: org.id,
+      userId: adminUser.id,
+      firstName: "Sarah",
+      lastName: "Chen",
+      email: "sarah.chen@powerplantenergy.com.au",
+      dateOfBirth: new Date("1990-03-15"),
+      startDate: daysAgo(730),
+      employmentType: "FullTime",
+      taxFileNumber: "***-***-***",
+      residencyStatus: "Resident",
+      taxFreeThreshold: true,
+      helpDebt: true,
+      sfssDebt: false,
+      medicareLevyExemption: "None",
+      superFundName: "Australian Super",
+      superMemberNumber: "MEM-1234567",
+      superRate: 11.5,
+      bankBSB: "062-000",
+      bankAccountNumber: "****4321",
+      bankAccountName: "Sarah Chen",
+      annualSalary: 145000,
+      payFrequency: "Monthly",
+      leaveBalanceAnnual: 120,
+      leaveBalanceSick: 80,
+      leaveBalancePersonal: 16,
+      notes: "Lead ML Engineer - R&D team lead",
+      active: true,
+    },
+  })
+
+  const empJames = await prisma.employee.create({
+    data: {
+      organizationId: org.id,
+      firstName: "James",
+      lastName: "Nguyen",
+      email: "james.nguyen@powerplantenergy.com.au",
+      dateOfBirth: new Date("1985-08-22"),
+      startDate: daysAgo(365),
+      employmentType: "FullTime",
+      taxFileNumber: "***-***-***",
+      residencyStatus: "Resident",
+      taxFreeThreshold: true,
+      helpDebt: false,
+      sfssDebt: false,
+      medicareLevyExemption: "None",
+      superFundName: "REST Super",
+      superMemberNumber: "MEM-7654321",
+      superRate: 11.5,
+      bankBSB: "033-000",
+      bankAccountNumber: "****8765",
+      bankAccountName: "James Nguyen",
+      annualSalary: 125000,
+      payFrequency: "Monthly",
+      leaveBalanceAnnual: 80,
+      leaveBalanceSick: 60,
+      leaveBalancePersonal: 16,
+      notes: "Senior Software Engineer - Energy platform",
+      active: true,
+    },
+  })
+
+  const empLisa = await prisma.employee.create({
+    data: {
+      organizationId: org.id,
+      firstName: "Lisa",
+      lastName: "Patel",
+      email: "lisa.patel@powerplantenergy.com.au",
+      dateOfBirth: new Date("1995-11-05"),
+      startDate: daysAgo(180),
+      employmentType: "PartTime",
+      taxFileNumber: "***-***-***",
+      residencyStatus: "Resident",
+      taxFreeThreshold: true,
+      helpDebt: true,
+      sfssDebt: true,
+      medicareLevyExemption: "None",
+      superFundName: "Hostplus",
+      superMemberNumber: "MEM-3456789",
+      superRate: 11.5,
+      bankBSB: "084-004",
+      bankAccountNumber: "****2345",
+      bankAccountName: "Lisa Patel",
+      hourlyRate: 65,
+      payFrequency: "Fortnightly",
+      leaveBalanceAnnual: 40,
+      leaveBalanceSick: 30,
+      leaveBalancePersonal: 8,
+      notes: "Part-time data analyst - 3 days per week",
+      active: true,
+    },
+  })
+
+  const empMike = await prisma.employee.create({
+    data: {
+      organizationId: org.id,
+      firstName: "Mike",
+      lastName: "Thompson",
+      email: "mike.thompson@contractor.io",
+      dateOfBirth: new Date("1982-06-30"),
+      startDate: daysAgo(90),
+      employmentType: "Contractor",
+      taxFileNumber: "***-***-***",
+      residencyStatus: "Resident",
+      taxFreeThreshold: false,
+      helpDebt: false,
+      sfssDebt: false,
+      medicareLevyExemption: "Full",
+      superFundName: "Self Managed Super Fund",
+      superMemberNumber: "SMSF-001",
+      superRate: 11.5,
+      bankBSB: "012-003",
+      bankAccountNumber: "****9876",
+      bankAccountName: "Thompson Consulting Pty Ltd",
+      hourlyRate: 150,
+      payFrequency: "Monthly",
+      leaveBalanceAnnual: 0,
+      leaveBalanceSick: 0,
+      leaveBalancePersonal: 0,
+      notes: "DevOps contractor - infrastructure automation",
+      active: true,
+    },
+  })
+
+  // --- Pay Run (1 completed) ---
+  const payPeriodStart = new Date("2026-03-01")
+  const payPeriodEnd = new Date("2026-03-31")
+  const payDate = new Date("2026-03-31")
+
+  // Calculate gross pays
+  const sarahGross = 145000 / 12  // ~12083.33
+  const jamesGross = 125000 / 12  // ~10416.67
+  const lisaHours = 24 * (26 / 14) // ~44.57 hours in March (3 days/wk fortnightly approx)
+  const lisaGross = 65 * 24 * 2  // 2 fortnights, 24 hrs each = 3120
+  const mikeHours = 160
+  const mikeGross = 150 * mikeHours  // 24000
+
+  const sarahTax = 3547
+  const jamesTax = 2812
+  const lisaTax = 468
+  const mikeTax = 7200
+
+  const sarahSuper = Math.round(sarahGross * 0.115 * 100) / 100  // ~1389.58
+  const jamesSuper = Math.round(jamesGross * 0.115 * 100) / 100  // ~1197.92
+  const lisaSuper = Math.round(lisaGross * 0.115 * 100) / 100    // ~358.80
+  const mikeSuper = Math.round(mikeGross * 0.115 * 100) / 100    // ~2760.00
+
+  const sarahHelpRepayment = 604
+  const lisaHelpRepayment = 47
+  const lisaSfssRepayment = 23
+  const sarahSalarySacrifice = 500
+
+  const sarahNet = Math.round((sarahGross - sarahTax - sarahHelpRepayment - sarahSalarySacrifice) * 100) / 100
+  const jamesNet = Math.round((jamesGross - jamesTax) * 100) / 100
+  const lisaNet = Math.round((lisaGross - lisaTax - lisaHelpRepayment - lisaSfssRepayment) * 100) / 100
+  const mikeNet = Math.round((mikeGross - mikeTax) * 100) / 100
+
+  const totalGross = Math.round((sarahGross + jamesGross + lisaGross + mikeGross) * 100) / 100
+  const totalTax = sarahTax + jamesTax + lisaTax + mikeTax
+  const totalSuper = Math.round((sarahSuper + jamesSuper + lisaSuper + mikeSuper) * 100) / 100
+  const totalNet = Math.round((sarahNet + jamesNet + lisaNet + mikeNet) * 100) / 100
+  const totalDeductions = sarahHelpRepayment + lisaHelpRepayment + lisaSfssRepayment + sarahSalarySacrifice
+
+  const payRun = await prisma.payRun.create({
+    data: {
+      organizationId: org.id,
+      payPeriodStart,
+      payPeriodEnd,
+      payDate,
+      status: "Completed",
+      totalGross,
+      totalTax,
+      totalSuper,
+      totalNet,
+      totalDeductions,
+      processedAt: payDate,
+      processedById: adminUser.id,
+      notes: "March 2026 payroll",
+    },
+  })
+
+  // --- Payslips (4) ---
+  // Sarah's payslip
+  const payslipSarah = await prisma.payslip.create({
+    data: {
+      payRunId: payRun.id,
+      employeeId: empSarah.id,
+      organizationId: org.id,
+      payPeriodStart,
+      payPeriodEnd,
+      payDate,
+      hoursWorked: 160,
+      hourlyRate: Math.round(sarahGross / 160 * 100) / 100,
+      grossPay: Math.round(sarahGross * 100) / 100,
+      overtimeHours: 0,
+      overtimePay: 0,
+      allowances: 0,
+      bonuses: 0,
+      taxWithheld: sarahTax,
+      medicareLevyAmount: 242,
+      helpRepayment: sarahHelpRepayment,
+      sfssRepayment: 0,
+      superContribution: sarahSuper,
+      superSalarySacrifice: sarahSalarySacrifice,
+      preTaxDeductions: sarahSalarySacrifice,
+      postTaxDeductions: 0,
+      netPay: sarahNet,
+      yearToDateGross: Math.round(sarahGross * 9 * 100) / 100,
+      yearToDateTax: sarahTax * 9,
+      yearToDateSuper: Math.round(sarahSuper * 9 * 100) / 100,
+      status: "Paid",
+      earnings: {
+        create: [
+          { type: "Ordinary", description: "Base Salary", hours: 160, rate: Math.round(sarahGross / 160 * 100) / 100, amount: Math.round(sarahGross * 100) / 100 },
+        ],
+      },
+      deductions: {
+        create: [
+          { type: "PreTax", category: "SalarySacrifice", description: "Salary sacrifice to super", amount: sarahSalarySacrifice },
+        ],
+      },
+      leave: {
+        create: [
+          { type: "Annual", hoursAccrued: 12.67, hoursTaken: 0, balance: 120 },
+          { type: "Sick", hoursAccrued: 6.33, hoursTaken: 0, balance: 80 },
+          { type: "Personal", hoursAccrued: 1.33, hoursTaken: 0, balance: 16 },
+        ],
+      },
+    },
+  })
+
+  // James's payslip
+  const payslipJames = await prisma.payslip.create({
+    data: {
+      payRunId: payRun.id,
+      employeeId: empJames.id,
+      organizationId: org.id,
+      payPeriodStart,
+      payPeriodEnd,
+      payDate,
+      hoursWorked: 168,
+      hourlyRate: Math.round(jamesGross / 160 * 100) / 100,
+      grossPay: Math.round(jamesGross + 8 * (jamesGross / 160) * 1.5),
+      overtimeHours: 8,
+      overtimePay: Math.round(8 * (jamesGross / 160) * 1.5 * 100) / 100,
+      allowances: 0,
+      bonuses: 0,
+      taxWithheld: jamesTax,
+      medicareLevyAmount: 208,
+      helpRepayment: 0,
+      sfssRepayment: 0,
+      superContribution: jamesSuper,
+      superSalarySacrifice: 0,
+      preTaxDeductions: 0,
+      postTaxDeductions: 0,
+      netPay: jamesNet,
+      yearToDateGross: Math.round(jamesGross * 9 * 100) / 100,
+      yearToDateTax: jamesTax * 9,
+      yearToDateSuper: Math.round(jamesSuper * 9 * 100) / 100,
+      status: "Paid",
+      earnings: {
+        create: [
+          { type: "Ordinary", description: "Base Salary", hours: 160, rate: Math.round(jamesGross / 160 * 100) / 100, amount: Math.round(jamesGross * 100) / 100 },
+          { type: "Overtime", description: "Overtime (1.5x)", hours: 8, rate: Math.round((jamesGross / 160) * 1.5 * 100) / 100, amount: Math.round(8 * (jamesGross / 160) * 1.5 * 100) / 100 },
+        ],
+      },
+      leave: {
+        create: [
+          { type: "Annual", hoursAccrued: 12.67, hoursTaken: 0, balance: 80 },
+          { type: "Sick", hoursAccrued: 6.33, hoursTaken: 0, balance: 60 },
+        ],
+      },
+    },
+  })
+
+  // Lisa's payslip
+  const payslipLisa = await prisma.payslip.create({
+    data: {
+      payRunId: payRun.id,
+      employeeId: empLisa.id,
+      organizationId: org.id,
+      payPeriodStart,
+      payPeriodEnd,
+      payDate,
+      hoursWorked: 48,
+      hourlyRate: 65,
+      grossPay: lisaGross,
+      overtimeHours: 0,
+      overtimePay: 0,
+      allowances: 0,
+      bonuses: 0,
+      taxWithheld: lisaTax,
+      medicareLevyAmount: 62,
+      helpRepayment: lisaHelpRepayment,
+      sfssRepayment: lisaSfssRepayment,
+      superContribution: lisaSuper,
+      superSalarySacrifice: 0,
+      preTaxDeductions: 0,
+      postTaxDeductions: 0,
+      netPay: lisaNet,
+      yearToDateGross: lisaGross * 6,
+      yearToDateTax: lisaTax * 6,
+      yearToDateSuper: Math.round(lisaSuper * 6 * 100) / 100,
+      status: "Paid",
+      earnings: {
+        create: [
+          { type: "Ordinary", description: "Hourly - Part Time", hours: 48, rate: 65, amount: lisaGross },
+        ],
+      },
+      leave: {
+        create: [
+          { type: "Annual", hoursAccrued: 5.54, hoursTaken: 0, balance: 40 },
+          { type: "Sick", hoursAccrued: 2.77, hoursTaken: 0, balance: 30 },
+        ],
+      },
+    },
+  })
+
+  // Mike's payslip (contractor)
+  const payslipMike = await prisma.payslip.create({
+    data: {
+      payRunId: payRun.id,
+      employeeId: empMike.id,
+      organizationId: org.id,
+      payPeriodStart,
+      payPeriodEnd,
+      payDate,
+      hoursWorked: mikeHours,
+      hourlyRate: 150,
+      grossPay: mikeGross,
+      overtimeHours: 0,
+      overtimePay: 0,
+      allowances: 0,
+      bonuses: 0,
+      taxWithheld: mikeTax,
+      medicareLevyAmount: 0,
+      helpRepayment: 0,
+      sfssRepayment: 0,
+      superContribution: mikeSuper,
+      superSalarySacrifice: 0,
+      preTaxDeductions: 0,
+      postTaxDeductions: 0,
+      netPay: mikeNet,
+      yearToDateGross: mikeGross * 3,
+      yearToDateTax: mikeTax * 3,
+      yearToDateSuper: Math.round(mikeSuper * 3 * 100) / 100,
+      status: "Paid",
+      earnings: {
+        create: [
+          { type: "Ordinary", description: "Contractor Hours", hours: mikeHours, rate: 150, amount: mikeGross },
+        ],
+      },
+      leave: {
+        create: [],
+      },
+    },
+  })
+
+  // --- Tax Minimisation Strategies (2) ---
+  await prisma.taxMinimisationStrategy.create({
+    data: {
+      organizationId: org.id,
+      category: "SalarySacrifice",
+      title: "Salary Sacrifice to Superannuation",
+      description: "Employees can sacrifice up to $30,000 total (including employer SG contributions) into superannuation at the concessional 15% tax rate instead of their marginal rate. For employees earning over $120,000, this can save between $5,000-$12,000 per year in personal tax. The employer also saves on payroll tax for the sacrificed amount.",
+      estimatedSaving: 18500,
+      implemented: true,
+      implementedDate: daysAgo(365),
+      applicableTo: "Individual",
+      priority: "High",
+      notes: "Currently active for Sarah Chen ($500/month). James Nguyen has been advised but not yet opted in. Review concessional cap annually.",
+    },
+  })
+
+  await prisma.taxMinimisationStrategy.create({
+    data: {
+      organizationId: org.id,
+      category: "NovatedLease",
+      title: "Novated Lease - Electric Vehicle FBT Exemption",
+      description: "Under the Electric Car Discount legislation, electric vehicles under the luxury car tax threshold for fuel-efficient vehicles ($91,387 for 2025-26) are exempt from FBT. A novated lease on an eligible EV allows employees to pay for the vehicle and running costs from pre-tax income with zero FBT, providing significant savings compared to purchasing outright or leasing a non-exempt vehicle.",
+      estimatedSaving: 12000,
+      implemented: false,
+      applicableTo: "Individual",
+      priority: "High",
+      notes: "James Nguyen has expressed interest in a Tesla Model 3 (~$65,000). Estimated annual benefit: $12,000+ in combined tax and GST savings. Need to set up novated lease agreement with fleet provider.",
+    },
+  })
+
   console.log("Seed completed successfully!")
   console.log("Demo data created: 6 contacts, 6 invoices, 4 bills, 2 R&D projects, 3 experiments, 8 time entries, 6 cloud costs, 8 bank transactions")
+  console.log("Payroll data created: 4 employees, 1 pay run (completed), 4 payslips, 2 tax minimisation strategies, 10 payroll accounts")
   console.log("Login: admin@powerplantenergy.com.au / admin123")
 }
 
