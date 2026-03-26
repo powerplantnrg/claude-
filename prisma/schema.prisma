@@ -333,6 +333,7 @@ model BankTransaction {
 
   matchedJournal  JournalEntry? @relation("MatchedJournal", fields: [matchedJournalId], references: [id])
   organization    Organization  @relation(fields: [organizationId], references: [id])
+  bankFeedMatch   BankFeedTransaction?
 }
 
 model TaxRate {
@@ -1529,4 +1530,318 @@ model FxGainLoss {
 
   @@index([organizationId])
   @@index([transactionType, transactionId])
+}
+
+// ============================================
+// INVENTORY MANAGEMENT
+// ============================================
+
+model InventoryItem {
+  id                String   @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  sku               String
+  name              String
+  description       String?
+  category          String?
+  unitOfMeasure     String   @default("each")
+  costPrice         Float    @default(0)
+  sellingPrice      Float    @default(0)
+  taxRateId         String?
+  taxRate           TaxRate? @relation(fields: [taxRateId], references: [id])
+  accountId         String?
+  account           Account? @relation("InventoryAssetAccount", fields: [accountId], references: [id])
+  cogsAccountId     String?
+  cogsAccount       Account? @relation("InventoryCOGSAccount", fields: [cogsAccountId], references: [id])
+  revenueAccountId  String?
+  revenueAccount    Account? @relation("InventoryRevenueAccount", fields: [revenueAccountId], references: [id])
+  quantityOnHand    Float    @default(0)
+  reorderLevel      Float    @default(0)
+  reorderQuantity   Float    @default(0)
+  isTracked         Boolean  @default(true)
+  isActive          Boolean  @default(true)
+  supplierId        String?
+  supplier          Contact? @relation("InventorySupplier", fields: [supplierId], references: [id])
+  location          String?
+  barcode           String?
+  weight            Float?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  movements         InventoryMovement[]
+  stockTakeItems    StockTakeItem[]
+
+  @@unique([organizationId, sku])
+  @@index([organizationId])
+  @@index([organizationId, category])
+  @@index([organizationId, isActive])
+}
+
+model InventoryMovement {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  type            String   // Purchase, Sale, Adjustment, Transfer, WriteOff, Return
+  quantity        Float    // positive for in, negative for out
+  unitCost        Float    @default(0)
+  totalCost       Float    @default(0)
+  reference       String?
+  referenceType   String?  // Invoice, Bill, Manual
+  referenceId     String?
+  date            DateTime
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([inventoryItemId])
+  @@index([organizationId, date])
+  @@index([referenceType, referenceId])
+}
+
+model StockTake {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  date           DateTime
+  status         String   @default("Draft") // Draft, InProgress, Completed, Cancelled
+  notes          String?
+  completedById  String?
+  completedBy    User?    @relation("StockTakeCompletedBy", fields: [completedById], references: [id])
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items          StockTakeItem[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+model StockTakeItem {
+  id               String        @id @default(cuid())
+  stockTakeId      String
+  stockTake        StockTake     @relation(fields: [stockTakeId], references: [id], onDelete: Cascade)
+  inventoryItemId  String
+  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  expectedQuantity Float         @default(0)
+  countedQuantity  Float         @default(0)
+  variance         Float         @default(0)
+  varianceCost     Float         @default(0)
+  adjusted         Boolean       @default(false)
+
+  @@index([stockTakeId])
+  @@index([inventoryItemId])
+}
+
+// ============================================
+// PROJECT MANAGEMENT & COSTING
+// ============================================
+
+model Project {
+  id               String    @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  name             String
+  code             String
+  description      String?
+  clientId         String?
+  client           Contact?  @relation("ProjectClient", fields: [clientId], references: [id])
+  status           String    @default("Planning") // Planning, Active, OnHold, Completed, Cancelled
+  startDate        DateTime?
+  endDate          DateTime?
+  budgetAmount     Float?
+  budgetHours      Float?
+  estimatedRevenue Float?
+  projectType      String    @default("FixedPrice") // FixedPrice, TimeAndMaterials, Internal, RD
+  billingMethod    String    @default("Fixed") // Hourly, Fixed, Milestone, NonBillable
+  hourlyRate       Float?
+  managerId        String?
+  manager          User?     @relation("ProjectManager", fields: [managerId], references: [id])
+  isRdProject      Boolean   @default(false)
+  rdProjectId      String?
+  rdProject        RdProject? @relation("ProjectRdProject", fields: [rdProjectId], references: [id])
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  tasks            ProjectTask[]
+  timeEntries      TimeEntry[]
+  expenses         ProjectExpense[]
+  milestones       ProjectMilestone[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, projectType])
+}
+
+model ProjectTask {
+  id             String    @id @default(cuid())
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  assigneeId     String?
+  assignee       User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  status         String    @default("Todo") // Todo, InProgress, Review, Done
+  estimatedHours Float?
+  budgetAmount   Float?
+  startDate      DateTime?
+  dueDate        DateTime?
+  completedDate  DateTime?
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  timeEntries    TimeEntry[]
+
+  @@index([projectId])
+  @@index([projectId, status])
+}
+
+model TimeEntry {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id])
+  taskId          String?
+  task            ProjectTask? @relation(fields: [taskId], references: [id])
+  userId          String
+  user            User      @relation("TimeEntryUser", fields: [userId], references: [id])
+  date            DateTime
+  hours           Float
+  description     String?
+  billable        Boolean   @default(true)
+  billed          Boolean   @default(false)
+  invoiceId       String?
+  invoice         Invoice?  @relation(fields: [invoiceId], references: [id])
+  hourlyRate      Float?
+  amount          Float?
+  approvalStatus  String    @default("Pending") // Pending, Approved, Rejected
+  approvedById    String?
+  approvedBy      User?     @relation("TimeEntryApprover", fields: [approvedById], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([projectId, billable, billed])
+}
+
+model ProjectExpense {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id])
+  description     String
+  amount          Float
+  date            DateTime
+  category        String?
+  billable        Boolean   @default(true)
+  billed          Boolean   @default(false)
+  invoiceId       String?
+  invoice         Invoice?  @relation(fields: [invoiceId], references: [id])
+  receiptUrl      String?
+  approvalStatus  String    @default("Pending") // Pending, Approved, Rejected
+  approvedById    String?
+  approvedBy      User?     @relation("ProjectExpenseApprover", fields: [approvedById], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([projectId, billable, billed])
+}
+
+model ProjectMilestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  amount      Float     @default(0)
+  dueDate     DateTime?
+  status      String    @default("Pending") // Pending, Invoiced, Paid
+  invoiceId   String?
+  invoice     Invoice?  @relation(fields: [invoiceId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId])
+}
+
+// ============================================
+// DOCUMENT MANAGEMENT
+// ============================================
+
+model Document {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  fileName       String
+  fileSize       Int      @default(0)
+  mimeType       String?
+  storageKey     String?
+  entityType     String?  // Invoice, Bill, Expense, Contact, Project, Asset, Employee, General
+  entityId       String?
+  uploadedById   String?
+  uploadedBy     User?    @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  description    String?
+  tags           String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([organizationId, entityType])
+}
+
+// ============================================
+// BANK FEEDS
+// ============================================
+
+model BankFeed {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  bankName       String
+  accountNumber  String
+  accountName    String
+  status         String   @default("Active") // Active, Paused, Disconnected
+  lastSyncAt     DateTime?
+  connectionRef  String?
+  feedType       String   @default("Direct") // Direct, FileImport
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  transactions   BankFeedTransaction[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+model BankFeedTransaction {
+  id                    String           @id @default(cuid())
+  bankFeedId            String
+  bankFeed              BankFeed         @relation(fields: [bankFeedId], references: [id])
+  externalId            String
+  date                  DateTime
+  amount                Float
+  description           String
+  reference             String?
+  category              String?
+  status                String           @default("Pending") // Pending, Matched, Created, Ignored
+  matchedTransactionId  String?          @unique
+  matchedTransaction    BankTransaction? @relation(fields: [matchedTransactionId], references: [id])
+  createdAt             DateTime         @default(now())
+
+  @@index([bankFeedId])
+  @@index([bankFeedId, status])
+  @@index([externalId])
 }

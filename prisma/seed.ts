@@ -1568,12 +1568,439 @@ async function main() {
     }
   }
 
+  // ============================================
+  // INVENTORY: Items & Movements
+  // ============================================
+
+  const inventoryAcct = await accountByCode("1200") // Inventory asset account
+  const cogsAcct = await accountByCode("5000") // Cost of Goods Sold
+
+  const gstTaxRate = await prisma.taxRate.findFirst({
+    where: { organizationId: org.id, taxType: "GST", isDefault: true },
+  })
+
+  const inventoryItems = [
+    { sku: "OFF-001", name: "A4 Copy Paper (Ream)", category: "Office Supplies", unitOfMeasure: "ream", costPrice: 5.50, sellingPrice: 8.00, quantityOnHand: 200, reorderLevel: 50, reorderQuantity: 100, location: "Storeroom A" },
+    { sku: "OFF-002", name: "Ballpoint Pens (Box of 12)", category: "Office Supplies", unitOfMeasure: "box", costPrice: 3.20, sellingPrice: 6.00, quantityOnHand: 80, reorderLevel: 20, reorderQuantity: 50, location: "Storeroom A" },
+    { sku: "TECH-001", name: "USB-C Hub Docking Station", category: "Tech Equipment", unitOfMeasure: "each", costPrice: 89.00, sellingPrice: 149.00, quantityOnHand: 15, reorderLevel: 5, reorderQuantity: 10, location: "IT Cupboard" },
+    { sku: "TECH-002", name: "Wireless Mouse", category: "Tech Equipment", unitOfMeasure: "each", costPrice: 25.00, sellingPrice: 45.00, quantityOnHand: 30, reorderLevel: 10, reorderQuantity: 20, location: "IT Cupboard" },
+    { sku: "TECH-003", name: "27\" Monitor", category: "Tech Equipment", unitOfMeasure: "each", costPrice: 380.00, sellingPrice: 599.00, quantityOnHand: 8, reorderLevel: 3, reorderQuantity: 5, location: "Warehouse B" },
+    { sku: "LAB-001", name: "Thermal Paste Compound (Tube)", category: "Lab Materials", unitOfMeasure: "tube", costPrice: 12.50, sellingPrice: 22.00, quantityOnHand: 45, reorderLevel: 15, reorderQuantity: 30, location: "Lab Storage" },
+    { sku: "LAB-002", name: "Circuit Board Prototype Kit", category: "Lab Materials", unitOfMeasure: "kit", costPrice: 65.00, sellingPrice: 120.00, quantityOnHand: 12, reorderLevel: 5, reorderQuantity: 10, location: "Lab Storage" },
+    { sku: "LAB-003", name: "Anti-static Wrist Strap", category: "Lab Materials", unitOfMeasure: "each", costPrice: 8.00, sellingPrice: 15.00, quantityOnHand: 3, reorderLevel: 10, reorderQuantity: 20, location: "Lab Storage" },
+  ]
+
+  const createdItems: Record<string, string> = {}
+  for (const item of inventoryItems) {
+    const created = await prisma.inventoryItem.create({
+      data: {
+        organizationId: org.id,
+        sku: item.sku,
+        name: item.name,
+        category: item.category,
+        unitOfMeasure: item.unitOfMeasure,
+        costPrice: item.costPrice,
+        sellingPrice: item.sellingPrice,
+        quantityOnHand: item.quantityOnHand,
+        reorderLevel: item.reorderLevel,
+        reorderQuantity: item.reorderQuantity,
+        isTracked: true,
+        isActive: true,
+        location: item.location,
+        accountId: inventoryAcct.id,
+        cogsAccountId: cogsAcct.id,
+        revenueAccountId: salesRevenueAcct.id,
+        taxRateId: gstTaxRate?.id,
+        supplierId: nvidia.id,
+      },
+    })
+    createdItems[item.sku] = created.id
+  }
+
+  // Inventory movements
+  const movements = [
+    { sku: "OFF-001", type: "Purchase", quantity: 200, unitCost: 5.50, ref: "PO-001", refType: "Bill" },
+    { sku: "OFF-001", type: "Sale", quantity: -25, unitCost: 5.50, ref: "INV-0003", refType: "Invoice" },
+    { sku: "TECH-001", type: "Purchase", quantity: 20, unitCost: 89.00, ref: "PO-002", refType: "Bill" },
+    { sku: "TECH-001", type: "Sale", quantity: -5, unitCost: 89.00, ref: "INV-0004", refType: "Invoice" },
+    { sku: "TECH-003", type: "Purchase", quantity: 10, unitCost: 380.00, ref: "PO-003", refType: "Bill" },
+    { sku: "TECH-003", type: "Sale", quantity: -2, unitCost: 380.00, ref: "INV-0005", refType: "Invoice" },
+    { sku: "LAB-001", type: "Purchase", quantity: 50, unitCost: 12.50, ref: "PO-004", refType: "Bill" },
+    { sku: "LAB-001", type: "Adjustment", quantity: -5, unitCost: 12.50, ref: "ADJ-001", refType: "Manual", notes: "Expired stock write-off" },
+    { sku: "LAB-002", type: "Purchase", quantity: 15, unitCost: 65.00, ref: "PO-005", refType: "Bill" },
+    { sku: "LAB-002", type: "Sale", quantity: -3, unitCost: 65.00, ref: "INV-0006", refType: "Invoice" },
+    { sku: "LAB-003", type: "Purchase", quantity: 25, unitCost: 8.00, ref: "PO-006", refType: "Bill" },
+    { sku: "LAB-003", type: "WriteOff", quantity: -2, unitCost: 8.00, ref: "WO-001", refType: "Manual", notes: "Damaged units" },
+  ]
+
+  for (const m of movements) {
+    await prisma.inventoryMovement.create({
+      data: {
+        organizationId: org.id,
+        inventoryItemId: createdItems[m.sku],
+        type: m.type,
+        quantity: m.quantity,
+        unitCost: m.unitCost,
+        totalCost: m.quantity * m.unitCost,
+        reference: m.ref,
+        referenceType: m.refType,
+        date: daysAgo(Math.floor(Math.random() * 60) + 10),
+        notes: (m as { notes?: string }).notes,
+      },
+    })
+  }
+
+  // ============================================
+  // PROJECTS: 3 projects with tasks and time entries
+  // ============================================
+
+  // Project 1: Client fixed-price project
+  const project1 = await prisma.project.create({
+    data: {
+      organizationId: org.id,
+      name: "TechCorp AI Platform",
+      code: "PRJ-001",
+      description: "Fixed-price AI platform development for TechCorp Solutions",
+      clientId: techCorp.id,
+      status: "Active",
+      startDate: daysAgo(120),
+      endDate: daysAgo(-60),
+      budgetAmount: 95000,
+      budgetHours: 400,
+      estimatedRevenue: 120000,
+      projectType: "FixedPrice",
+      billingMethod: "Milestone",
+      managerId: adminUser.id,
+      notes: "Phase 2 of the AI consulting engagement",
+    },
+  })
+
+  // Project 2: T&M project
+  const project2 = await prisma.project.create({
+    data: {
+      organizationId: org.id,
+      name: "Green Energy Dashboard",
+      code: "PRJ-002",
+      description: "Time and materials dashboard development for Green Energy Co",
+      clientId: greenEnergy.id,
+      status: "Active",
+      startDate: daysAgo(90),
+      budgetAmount: 60000,
+      budgetHours: 250,
+      estimatedRevenue: 75000,
+      projectType: "TimeAndMaterials",
+      billingMethod: "Hourly",
+      hourlyRate: 280,
+      managerId: adminUser.id,
+    },
+  })
+
+  // Project 3: Internal R&D project linked to existing RdProject
+  const project3 = await prisma.project.create({
+    data: {
+      organizationId: org.id,
+      name: "Neural Architecture Search - Internal",
+      code: "PRJ-RD01",
+      description: "Internal R&D project tracking for NAS research aligned with R&D tax incentive claim",
+      status: "Active",
+      startDate: daysAgo(150),
+      budgetAmount: 150000,
+      budgetHours: 800,
+      projectType: "RD",
+      billingMethod: "NonBillable",
+      managerId: adminUser.id,
+      isRdProject: true,
+      rdProjectId: nasProject.id,
+      notes: "Linked to R&D Tax Incentive project for NAS research",
+    },
+  })
+
+  // Tasks for project 1
+  const task1_1 = await prisma.projectTask.create({
+    data: {
+      projectId: project1.id,
+      name: "Requirements Analysis",
+      description: "Gather and document detailed requirements",
+      assigneeId: adminUser.id,
+      status: "Done",
+      estimatedHours: 40,
+      budgetAmount: 12000,
+      startDate: daysAgo(120),
+      dueDate: daysAgo(100),
+      completedDate: daysAgo(102),
+      sortOrder: 1,
+    },
+  })
+
+  const task1_2 = await prisma.projectTask.create({
+    data: {
+      projectId: project1.id,
+      name: "Architecture Design",
+      description: "Design system architecture and data models",
+      assigneeId: adminUser.id,
+      status: "Done",
+      estimatedHours: 60,
+      budgetAmount: 18000,
+      startDate: daysAgo(100),
+      dueDate: daysAgo(75),
+      completedDate: daysAgo(78),
+      sortOrder: 2,
+    },
+  })
+
+  const task1_3 = await prisma.projectTask.create({
+    data: {
+      projectId: project1.id,
+      name: "Core Development",
+      description: "Build core AI processing pipeline",
+      assigneeId: adminUser.id,
+      status: "InProgress",
+      estimatedHours: 200,
+      budgetAmount: 45000,
+      startDate: daysAgo(75),
+      dueDate: daysAgo(-10),
+      sortOrder: 3,
+    },
+  })
+
+  const task1_4 = await prisma.projectTask.create({
+    data: {
+      projectId: project1.id,
+      name: "Testing & QA",
+      description: "End-to-end testing and quality assurance",
+      assigneeId: adminUser.id,
+      status: "Todo",
+      estimatedHours: 80,
+      budgetAmount: 16000,
+      startDate: daysAgo(-10),
+      dueDate: daysAgo(-40),
+      sortOrder: 4,
+    },
+  })
+
+  // Tasks for project 2
+  const task2_1 = await prisma.projectTask.create({
+    data: {
+      projectId: project2.id,
+      name: "Dashboard UI Design",
+      assigneeId: adminUser.id,
+      status: "Done",
+      estimatedHours: 30,
+      startDate: daysAgo(90),
+      dueDate: daysAgo(75),
+      completedDate: daysAgo(76),
+      sortOrder: 1,
+    },
+  })
+
+  const task2_2 = await prisma.projectTask.create({
+    data: {
+      projectId: project2.id,
+      name: "API Integration",
+      assigneeId: adminUser.id,
+      status: "InProgress",
+      estimatedHours: 60,
+      startDate: daysAgo(75),
+      dueDate: daysAgo(-5),
+      sortOrder: 2,
+    },
+  })
+
+  // Tasks for project 3 (R&D)
+  const task3_1 = await prisma.projectTask.create({
+    data: {
+      projectId: project3.id,
+      name: "Literature Review & Hypothesis Formation",
+      assigneeId: adminUser.id,
+      status: "Done",
+      estimatedHours: 80,
+      startDate: daysAgo(150),
+      dueDate: daysAgo(120),
+      completedDate: daysAgo(122),
+      sortOrder: 1,
+    },
+  })
+
+  const task3_2 = await prisma.projectTask.create({
+    data: {
+      projectId: project3.id,
+      name: "Experimental Architecture Prototyping",
+      assigneeId: adminUser.id,
+      status: "InProgress",
+      estimatedHours: 200,
+      startDate: daysAgo(120),
+      dueDate: daysAgo(-30),
+      sortOrder: 2,
+    },
+  })
+
+  // Time entries for project 1
+  const timeEntryData = [
+    { projectId: project1.id, taskId: task1_1.id, hours: 38, date: daysAgo(105), desc: "Requirements workshops and documentation", billable: true, billed: true, rate: 350, invoiceId: inv1.id },
+    { projectId: project1.id, taskId: task1_2.id, hours: 55, date: daysAgo(85), desc: "System architecture and technical design", billable: true, billed: true, rate: 350, invoiceId: inv1.id },
+    { projectId: project1.id, taskId: task1_3.id, hours: 120, date: daysAgo(40), desc: "Core pipeline development - sprint 1-3", billable: true, billed: false, rate: 350 },
+    { projectId: project1.id, taskId: task1_3.id, hours: 45, date: daysAgo(15), desc: "Core pipeline development - sprint 4", billable: true, billed: false, rate: 350 },
+    // Project 2 entries
+    { projectId: project2.id, taskId: task2_1.id, hours: 28, date: daysAgo(80), desc: "Dashboard mockups and Figma designs", billable: true, billed: true, rate: 280, invoiceId: inv2.id },
+    { projectId: project2.id, taskId: task2_2.id, hours: 42, date: daysAgo(50), desc: "REST API integration for energy feeds", billable: true, billed: false, rate: 280 },
+    { projectId: project2.id, taskId: task2_2.id, hours: 18, date: daysAgo(20), desc: "WebSocket real-time data streaming", billable: true, billed: false, rate: 280 },
+    // Project 3 (R&D, non-billable)
+    { projectId: project3.id, taskId: task3_1.id, hours: 75, date: daysAgo(130), desc: "Literature review of NAS techniques", billable: false, billed: false, rate: 0 },
+    { projectId: project3.id, taskId: task3_2.id, hours: 160, date: daysAgo(60), desc: "Evolutionary architecture search experiments", billable: false, billed: false, rate: 0 },
+    { projectId: project3.id, taskId: task3_2.id, hours: 85, date: daysAgo(20), desc: "Differentiable NAS prototyping", billable: false, billed: false, rate: 0 },
+  ]
+
+  for (const te of timeEntryData) {
+    await prisma.timeEntry.create({
+      data: {
+        organizationId: org.id,
+        projectId: te.projectId,
+        taskId: te.taskId,
+        userId: adminUser.id,
+        date: te.date,
+        hours: te.hours,
+        description: te.desc,
+        billable: te.billable,
+        billed: te.billed,
+        invoiceId: (te as { invoiceId?: string }).invoiceId,
+        hourlyRate: te.rate,
+        amount: te.hours * te.rate,
+        approvalStatus: "Approved",
+        approvedById: adminUser.id,
+      },
+    })
+  }
+
+  // Project expenses
+  const projectExpenses = [
+    { projectId: project1.id, desc: "Cloud hosting for dev environment", amount: 450, date: daysAgo(60), category: "Infrastructure", billable: true, billed: false },
+    { projectId: project1.id, desc: "AI model training compute (GPU)", amount: 2200, date: daysAgo(35), category: "Compute", billable: true, billed: false },
+    { projectId: project2.id, desc: "Third-party energy data API subscription", amount: 180, date: daysAgo(70), category: "Software", billable: true, billed: false },
+    { projectId: project3.id, desc: "NAS experiment GPU compute (A100 cluster)", amount: 8500, date: daysAgo(45), category: "Compute", billable: false, billed: false },
+    { projectId: project3.id, desc: "Research paper access and datasets", amount: 320, date: daysAgo(100), category: "Research", billable: false, billed: false },
+  ]
+
+  for (const pe of projectExpenses) {
+    await prisma.projectExpense.create({
+      data: {
+        organizationId: org.id,
+        projectId: pe.projectId,
+        description: pe.desc,
+        amount: pe.amount,
+        date: pe.date,
+        category: pe.category,
+        billable: pe.billable,
+        billed: pe.billed,
+        approvalStatus: "Approved",
+        approvedById: adminUser.id,
+      },
+    })
+  }
+
+  // Project milestones (2 for the fixed-price project)
+  await prisma.projectMilestone.create({
+    data: {
+      projectId: project1.id,
+      name: "Phase 1 - Requirements & Design Complete",
+      description: "Delivery of requirements document and architectural design",
+      amount: 45000,
+      dueDate: daysAgo(75),
+      status: "Paid",
+      invoiceId: inv1.id,
+    },
+  })
+
+  await prisma.projectMilestone.create({
+    data: {
+      projectId: project1.id,
+      name: "Phase 2 - Core Platform Delivery",
+      description: "Working AI pipeline with testing and documentation",
+      amount: 75000,
+      dueDate: daysAgo(-60),
+      status: "Pending",
+    },
+  })
+
+  // ============================================
+  // DOCUMENTS: 5 sample documents (metadata only)
+  // ============================================
+
+  const documents = [
+    { name: "TechCorp SOW", fileName: "techcorp-sow-v2.pdf", fileSize: 245760, mimeType: "application/pdf", entityType: "Project", entityId: project1.id, description: "Statement of Work for AI Platform project", tags: "contract,sow,techcorp" },
+    { name: "Invoice INV-0001 PDF", fileName: "INV-0001.pdf", fileSize: 102400, mimeType: "application/pdf", entityType: "Invoice", entityId: inv1.id, description: "Generated invoice PDF for TechCorp Phase 1", tags: "invoice,techcorp" },
+    { name: "NAS Research Summary", fileName: "nas-research-summary-q4.docx", fileSize: 512000, mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", entityType: "Project", entityId: project3.id, description: "Quarterly research summary for NAS project", tags: "research,rd,nas" },
+    { name: "GPU Receipt - A100 Cluster", fileName: "gpu-receipt-dec2025.pdf", fileSize: 87040, mimeType: "application/pdf", entityType: "Expense", entityId: null, description: "Receipt for A100 GPU cluster usage", tags: "receipt,compute,gpu" },
+    { name: "Employee Handbook 2026", fileName: "employee-handbook-2026.pdf", fileSize: 1048576, mimeType: "application/pdf", entityType: "General", entityId: null, description: "Updated employee handbook for FY 2025-26", tags: "hr,handbook,policy" },
+  ]
+
+  for (const doc of documents) {
+    await prisma.document.create({
+      data: {
+        organizationId: org.id,
+        name: doc.name,
+        fileName: doc.fileName,
+        fileSize: doc.fileSize,
+        mimeType: doc.mimeType,
+        storageKey: `docs/${org.id}/${doc.fileName}`,
+        entityType: doc.entityType,
+        entityId: doc.entityId,
+        uploadedById: adminUser.id,
+        description: doc.description,
+        tags: doc.tags,
+      },
+    })
+  }
+
+  // ============================================
+  // BANK FEEDS: 1 feed with sample transactions
+  // ============================================
+
+  const bankFeed = await prisma.bankFeed.create({
+    data: {
+      organizationId: org.id,
+      bankName: "Commonwealth Bank",
+      accountNumber: "0623-1234-5678",
+      accountName: "Business Cheque Account",
+      status: "Active",
+      lastSyncAt: daysAgo(1),
+      connectionRef: "CBA-FEED-001",
+      feedType: "Direct",
+    },
+  })
+
+  const feedTransactions = [
+    { externalId: "CBA-TXN-001", date: daysAgo(5), amount: -1250.00, description: "NVIDIA Computing - Invoice Payment", reference: "BPAY-88166", category: "Supplier Payment", status: "Matched" },
+    { externalId: "CBA-TXN-002", date: daysAgo(4), amount: 45000.00, description: "TechCorp Solutions - Payment Received", reference: "DIRECT-TC01", category: "Customer Payment", status: "Matched" },
+    { externalId: "CBA-TXN-003", date: daysAgo(3), amount: -89.00, description: "AWS SERVICES - Monthly Charge", reference: "AWS-2026-03", category: "Cloud Services", status: "Pending" },
+    { externalId: "CBA-TXN-004", date: daysAgo(2), amount: -320.00, description: "OFFICE WORKS SUPPLIES", reference: "OW-98712", category: "Office Supplies", status: "Pending" },
+    { externalId: "CBA-TXN-005", date: daysAgo(1), amount: 12500.00, description: "Green Energy Co - Milestone Payment", reference: "DIRECT-GE02", category: "Customer Payment", status: "Pending" },
+  ]
+
+  for (const ft of feedTransactions) {
+    await prisma.bankFeedTransaction.create({
+      data: {
+        bankFeedId: bankFeed.id,
+        externalId: ft.externalId,
+        date: ft.date,
+        amount: ft.amount,
+        description: ft.description,
+        reference: ft.reference,
+        category: ft.category,
+        status: ft.status,
+      },
+    })
+  }
+
   console.log("Seed completed successfully!")
   console.log("Demo data created: 6 contacts, 6 invoices, 4 bills, 2 R&D projects, 3 experiments, 8 time entries, 6 cloud costs, 8 bank transactions")
   console.log("Payroll data created: 4 employees, 1 pay run (completed), 4 payslips, 2 tax minimisation strategies, 10 payroll accounts")
   console.log("Fixed assets created: 5 assets (2 computers, 1 vehicle, 1 software, 1 lab equipment), depreciation schedules for FY 2025-26")
   console.log("Approval workflows: 2 (bills >$5K, expenses >$1K)")
   console.log("Exchange rates: USD, GBP, EUR, NZD against AUD (4 dates)")
+  console.log("Inventory: 8 items, 12 movements")
+  console.log("Projects: 3 (1 fixed-price, 1 T&M, 1 R&D), 8 tasks, 10 time entries, 5 expenses, 2 milestones")
+  console.log("Documents: 5 metadata records")
+  console.log("Bank feeds: 1 feed, 5 transactions")
   console.log("Login: admin@powerplantenergy.com.au / admin123")
 }
 
