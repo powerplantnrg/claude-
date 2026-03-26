@@ -47,6 +47,9 @@ import {
   Webhook,
   Wallet,
   LineChart,
+  ShoppingCart,
+  BookMarked,
+  LayoutTemplate,
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -68,6 +71,7 @@ const navSections: NavSection[] = [
     items: [
       { label: "Command Center", href: "/command-center", icon: Gauge },
       { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Analytics", href: "/analytics", icon: BarChart3 },
     ],
   },
   {
@@ -80,6 +84,7 @@ const navSections: NavSection[] = [
       { label: "Banking", href: "/banking", icon: Landmark },
       { label: "Bank Rules", href: "/banking/rules", icon: ListChecks },
       { label: "Chart of Accounts", href: "/accounts", icon: BookOpen },
+      { label: "Purchase Orders", href: "/purchase-orders", icon: ShoppingCart },
       { label: "Budgets", href: "/budgets", icon: Wallet },
       { label: "Contacts", href: "/contacts", icon: Users },
     ],
@@ -113,6 +118,8 @@ const navSections: NavSection[] = [
       { label: "Claims", href: "/rd/claims", icon: FileCheck },
       { label: "Recommendations", href: "/rd/recommendations", icon: Sparkles },
       { label: "Eligibility Wizard", href: "/rd/eligibility", icon: ClipboardCheck },
+      { label: "Knowledge Base", href: "/rd/knowledge", icon: BookMarked },
+      { label: "Templates", href: "/rd/templates", icon: LayoutTemplate },
     ],
   },
   {

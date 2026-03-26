@@ -53,6 +53,9 @@ model Organization {
   budgets             Budget[]
   webhooks            Webhook[]
   integrations        Integration[]
+  purchaseOrders      PurchaseOrder[]
+  knowledgeBase       KnowledgeBase[]
+  contactTags         ContactTag[]
 }
 
 model User {
@@ -70,6 +73,7 @@ model User {
   auditLogs      AuditLog[]
   expenseClaims  ExpenseClaim[]
   favorites      UserFavorite[]
+  knowledgeBase  KnowledgeBase[]
 }
 
 // ============================================
@@ -181,6 +185,8 @@ model Contact {
   bills           Bill[]
   recurringInvoices RecurringInvoice[]
   creditNotes     CreditNote[]
+  purchaseOrders  PurchaseOrder[]
+  tagAssignments  ContactTagAssignment[]
 }
 
 // ============================================
@@ -324,6 +330,7 @@ model RdProject {
   auditPacks              AuditPack[]
   carbonEntries           CarbonEntry[]
   expenseClaimItems       ExpenseClaimItem[]
+  knowledgeBase           KnowledgeBase[]
 }
 
 model RdActivity {
@@ -936,4 +943,85 @@ model Integration {
   isActive        Boolean      @default(true)
   lastSyncAt      DateTime?
   createdAt       DateTime     @default(now())
+}
+
+// ============================================
+// CONTACTS: Tags & Groups
+// ============================================
+
+model ContactTag {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  color          String       @default("#6366f1")
+  contacts       ContactTagAssignment[]
+
+  @@unique([organizationId, name])
+}
+
+model ContactTagAssignment {
+  id        String     @id @default(cuid())
+  contactId String
+  contact   Contact    @relation(fields: [contactId], references: [id])
+  tagId     String
+  tag       ContactTag @relation(fields: [tagId], references: [id])
+
+  @@unique([contactId, tagId])
+}
+
+// ============================================
+// PURCHASE ORDERS
+// ============================================
+
+model PurchaseOrder {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  poNumber       String
+  contactId      String
+  contact        Contact      @relation(fields: [contactId], references: [id])
+  date           DateTime
+  deliveryDate   DateTime?
+  status         String       @default("Draft")
+  subtotal       Float        @default(0)
+  taxTotal       Float        @default(0)
+  total          Float        @default(0)
+  notes          String?
+  lines          PurchaseOrderLine[]
+  createdAt      DateTime     @default(now())
+}
+
+model PurchaseOrderLine {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  description     String
+  quantity        Float         @default(1)
+  unitPrice       Float
+  accountId       String
+  taxType         String        @default("GST")
+  amount          Float
+  taxAmount       Float         @default(0)
+}
+
+// ============================================
+// R&D KNOWLEDGE BASE
+// ============================================
+
+model KnowledgeBase {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  title          String
+  content        String
+  category       String
+  tags           String
+  projectId      String?
+  project        RdProject?   @relation(fields: [projectId], references: [id])
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id])
+  isPublished    Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }

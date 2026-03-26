@@ -18,7 +18,7 @@ const CONTACT_TYPE_COLORS: Record<string, string> = {
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; type?: string }>
+  searchParams: Promise<{ search?: string; type?: string; tag?: string }>
 }) {
   const session = await auth()
   if (!session) redirect("/login")
@@ -27,11 +27,18 @@ export default async function ContactsPage({
   const params = await searchParams
   const search = params.search ?? ""
   const typeFilter = params.type ?? ""
+  const tagFilter = params.tag ?? ""
 
   const where: Record<string, unknown> = { organizationId: orgId }
 
   if (typeFilter && ["Customer", "Supplier", "Both"].includes(typeFilter)) {
     where.contactType = typeFilter
+  }
+
+  if (tagFilter) {
+    where.tagAssignments = {
+      some: { tag: { name: tagFilter, organizationId: orgId } },
+    }
   }
 
   if (search) {
@@ -44,6 +51,17 @@ export default async function ContactsPage({
 
   const contacts = await prisma.contact.findMany({
     where,
+    include: {
+      tagAssignments: {
+        include: { tag: true },
+      },
+    },
+    orderBy: { name: "asc" },
+  })
+
+  // Fetch all tags for the filter dropdown
+  const allTags = await prisma.contactTag.findMany({
+    where: { organizationId: orgId },
     orderBy: { name: "asc" },
   })
 
@@ -70,6 +88,11 @@ export default async function ContactsPage({
     phone: contact.phone,
     isRdContractor: contact.isRdContractor,
     createdAt: contact.createdAt.toISOString(),
+    tags: contact.tagAssignments.map((ta) => ({
+      id: ta.tag.id,
+      name: ta.tag.name,
+      color: ta.tag.color,
+    })),
   }))
 
   return (
@@ -162,13 +185,27 @@ export default async function ContactsPage({
             <option value="Supplier">Suppliers</option>
             <option value="Both">Both</option>
           </select>
+          {allTags.length > 0 && (
+            <select
+              name="tag"
+              defaultValue={tagFilter}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="">All Tags</option>
+              {allTags.map((tag) => (
+                <option key={tag.id} value={tag.name}>
+                  {tag.name}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             type="submit"
             className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200"
           >
             Filter
           </button>
-          {(search || typeFilter) && (
+          {(search || typeFilter || tagFilter) && (
             <Link
               href="/contacts"
               className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-50"
@@ -181,7 +218,7 @@ export default async function ContactsPage({
 
       {/* Contacts Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <ContactsTable contacts={tableData} hasFilters={!!(search || typeFilter)} />
+        <ContactsTable contacts={tableData} hasFilters={!!(search || typeFilter || tagFilter)} />
       </div>
     </div>
   )

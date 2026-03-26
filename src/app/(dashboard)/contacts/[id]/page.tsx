@@ -146,6 +146,18 @@ export default async function ContactDetailPage({
           >
             New Bill
           </Link>
+          <Link
+            href={`/contacts/${contact.id}/statement`}
+            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            Statement
+          </Link>
+          <Link
+            href={`/contacts/${contact.id}/analytics`}
+            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            Analytics
+          </Link>
           <DeleteContactButton contactId={contact.id} contactName={contact.name} />
         </div>
       </div>
