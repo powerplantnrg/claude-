@@ -108,7 +108,7 @@ export async function PATCH(
         action: "Update",
         entityType: "Employee",
         entityId: id,
-        details: `Updated employee ${existing.employeeNumber}`,
+        details: `Updated employee ${existing.firstName} ${existing.lastName}`,
         organizationId: orgId,
       },
     })
@@ -159,7 +159,7 @@ export async function DELETE(
         action: "Deactivate",
         entityType: "Employee",
         entityId: id,
-        details: `Deactivated employee ${existing.employeeNumber} - ${existing.firstName} ${existing.lastName}`,
+        details: `Deactivated employee ${existing.firstName} ${existing.lastName}`,
         organizationId: orgId,
       },
     })

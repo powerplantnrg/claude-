@@ -26,12 +26,11 @@ export async function GET(request: NextRequest) {
           select: {
             firstName: true,
             lastName: true,
-            employeeNumber: true,
             annualSalary: true,
           },
         },
       },
-      orderBy: { startDate: "desc" },
+      orderBy: { leaseStartDate: "desc" },
     })
 
     // Enrich with savings calculations
@@ -105,17 +104,14 @@ export async function POST(request: NextRequest) {
       data: {
         employeeId,
         vehicleDescription,
-        leaseProvider: leaseProvider || null,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        totalLeaseValue: totalLeaseValue || null,
-        annualLeaseCost,
+        leaseStartDate: new Date(startDate),
+        leaseEndDate: new Date(endDate),
+        annualLeaseAmount: annualLeaseCost,
         preTaxDeduction: preTaxDeduction || 0,
         postTaxDeduction: postTaxDeduction || 0,
         fbtValue: fbt.fbtPayable,
-        fbtExemptAmount: fbtExemptAmount || 0,
-        estimatedAnnualSavings: savings.annualSavings,
-        includesRunningCosts: includesRunningCosts || false,
+        fbtExemptEV: false,
+        runningCostsAnnual: 0,
         status: "Active",
         organizationId: orgId,
       },
@@ -124,7 +120,6 @@ export async function POST(request: NextRequest) {
           select: {
             firstName: true,
             lastName: true,
-            employeeNumber: true,
             annualSalary: true,
           },
         },

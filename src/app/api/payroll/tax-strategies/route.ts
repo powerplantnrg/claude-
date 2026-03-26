@@ -16,27 +16,16 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status")
 
     const where: any = { organizationId: orgId }
-    if (employeeId) where.employeeId = employeeId
-    if (status) where.status = status
+    if (status) where.implemented = status === "implemented"
 
     const strategies = await prisma.taxMinimisationStrategy.findMany({
       where,
-      include: {
-        employee: {
-          select: {
-            firstName: true,
-            lastName: true,
-            employeeNumber: true,
-            annualSalary: true,
-          },
-        },
-      },
-      orderBy: { estimatedSavings: "desc" },
+      orderBy: { estimatedSaving: "desc" },
     })
 
     // Calculate total estimated savings
     const totalEstimatedSavings = strategies.reduce(
-      (sum: number, s: any) => sum + (s.estimatedSavings || 0),
+      (sum: number, s: any) => sum + (s.estimatedSaving || 0),
       0
     )
 
@@ -98,19 +87,13 @@ export async function POST(request: NextRequest) {
         suggestions.map((s) =>
           prisma.taxMinimisationStrategy.create({
             data: {
-              employeeId,
-              strategyType: s.category,
-              name: s.strategy,
+              category: s.category,
+              title: s.strategy,
               description: s.description,
-              estimatedSavings: s.estimatedAnnualSavings,
-              applicability: s.applicability,
-              status: "Suggested",
+              estimatedSaving: s.estimatedAnnualSavings,
+              applicableTo: s.applicability || "Both",
+              implemented: false,
               organizationId: orgId,
-            },
-            include: {
-              employee: {
-                select: { firstName: true, lastName: true, employeeNumber: true },
-              },
             },
           })
         )
@@ -120,36 +103,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Manual strategy creation
-    if (!employeeId || !strategyType || !description) {
+    if (!strategyType || !description) {
       return NextResponse.json(
-        { error: "Employee, strategy type, and description are required" },
+        { error: "Strategy type and description are required" },
         { status: 400 }
       )
     }
 
-    const employee = await prisma.employee.findFirst({
-      where: { id: employeeId, organizationId: orgId },
-    })
-
-    if (!employee) {
-      return NextResponse.json({ error: "Employee not found" }, { status: 404 })
-    }
-
     const strategy = await prisma.taxMinimisationStrategy.create({
       data: {
-        employeeId,
-        strategyType,
-        name: strategyType,
+        category: strategyType,
+        title: strategyType,
         description,
-        estimatedSavings: estimatedSavings || 0,
-        details: details || null,
-        status: "Proposed",
+        estimatedSaving: estimatedSavings || 0,
+        notes: details || null,
+        implemented: false,
         organizationId: orgId,
-      },
-      include: {
-        employee: {
-          select: { firstName: true, lastName: true, employeeNumber: true },
-        },
       },
     })
 
@@ -159,7 +128,7 @@ export async function POST(request: NextRequest) {
         action: "Create",
         entityType: "TaxMinimisationStrategy",
         entityId: strategy.id,
-        details: `Created tax strategy "${strategyType}" for ${employee.firstName} ${employee.lastName}`,
+        details: `Created tax strategy "${strategyType}"`,
         organizationId: orgId,
       },
     })

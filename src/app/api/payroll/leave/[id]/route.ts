@@ -22,7 +22,7 @@ export async function PATCH(
       },
       include: {
         employee: {
-          select: { firstName: true, lastName: true, employeeNumber: true },
+          select: { firstName: true, lastName: true },
         },
       },
     })
@@ -54,13 +54,12 @@ export async function PATCH(
       where: { id },
       data: {
         status: newStatus,
-        approvedBy: userId,
-        approvedAt: new Date(),
-        rejectionReason: action === "reject" ? (rejectionReason || null) : null,
+        approvedBy: { connect: { id: userId } },
+        notes: action === "reject" ? (rejectionReason || null) : undefined,
       },
       include: {
         employee: {
-          select: { firstName: true, lastName: true, employeeNumber: true },
+          select: { firstName: true, lastName: true },
         },
       },
     })
@@ -71,7 +70,7 @@ export async function PATCH(
         action: action === "approve" ? "Approve" : "Reject",
         entityType: "LeaveRequest",
         entityId: id,
-        details: `${action === "approve" ? "Approved" : "Rejected"} ${leaveRequest.leaveType} leave for ${leaveRequest.employee.firstName} ${leaveRequest.employee.lastName}`,
+        details: `${action === "approve" ? "Approved" : "Rejected"} ${(leaveRequest as any).employee.firstName} ${(leaveRequest as any).employee.lastName} leave request`,
         organizationId: orgId,
       },
     })

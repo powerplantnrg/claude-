@@ -56,12 +56,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate pay run number
-    const count = await prisma.payRun.count({
-      where: { organizationId: orgId },
-    })
-    const payRunNumber = `PR-${String(count + 1).padStart(4, "0")}`
-
     // Fetch all active employees matching the pay frequency
     const employeeWhere: any = {
       organizationId: orgId,
@@ -143,28 +137,37 @@ export async function POST(request: NextRequest) {
 
     const payRun = await prisma.payRun.create({
       data: {
-        payRunNumber,
         payPeriodStart: new Date(payPeriodStart),
         payPeriodEnd: new Date(payPeriodEnd),
         payDate: new Date(payDate),
-        payFrequency: payFrequency || "Fortnightly",
         status: "Draft",
         totalGross: Math.round(totalGross * 100) / 100,
         totalTax: Math.round(totalTax * 100) / 100,
         totalSuper: Math.round(totalSuper * 100) / 100,
         totalNet: Math.round(totalNet * 100) / 100,
-        employeeCount: employees.length,
         notes: notes || null,
         organizationId: orgId,
         payslips: {
-          create: payslipData,
+          create: payslipData.map((p: any) => ({
+            employeeId: p.employeeId,
+            grossPay: p.grossEarnings,
+            taxWithheld: p.taxWithheld,
+            superContribution: p.superContribution,
+            netPay: p.netPay,
+            hoursWorked: p.hoursWorked || 0,
+            status: p.status,
+            payPeriodStart: new Date(payPeriodStart),
+            payPeriodEnd: new Date(payPeriodEnd),
+            payDate: new Date(payDate),
+            organizationId: orgId,
+          })),
         },
       },
       include: {
         payslips: {
           include: {
             employee: {
-              select: { firstName: true, lastName: true, employeeNumber: true },
+              select: { firstName: true, lastName: true },
             },
           },
         },
@@ -177,7 +180,7 @@ export async function POST(request: NextRequest) {
         action: "Create",
         entityType: "PayRun",
         entityId: payRun.id,
-        details: `Created pay run ${payRunNumber} for ${employees.length} employees, total gross $${totalGross.toFixed(2)}`,
+        details: `Created pay run for ${employees.length} employees, total gross $${totalGross.toFixed(2)}`,
         organizationId: orgId,
       },
     })

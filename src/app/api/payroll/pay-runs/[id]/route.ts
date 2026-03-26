@@ -24,7 +24,6 @@ export async function GET(
               select: {
                 firstName: true,
                 lastName: true,
-                employeeNumber: true,
                 email: true,
               },
             },
@@ -97,7 +96,10 @@ export async function PATCH(
         Fortnightly: 26,
         Monthly: 12,
       }
-      const factor = frequencyFactors[payRun.payFrequency] || 26
+      // Determine pay frequency from first employee or default
+      const firstEmp = payRun.payslips[0]?.employee
+      const payFreq = firstEmp?.payFrequency || "Fortnightly"
+      const factor = frequencyFactors[payFreq] || 26
 
       let totalGross = 0
       let totalTax = 0
@@ -119,16 +121,17 @@ export async function PATCH(
           0
         )
 
-        const gross = payslip.grossEarnings + additionalEarnings
+        const gross = payslip.grossPay + additionalEarnings
         const annualised = gross * factor
 
+        const residency = (emp.residencyStatus || "resident") as "resident" | "foreign" | "working-holiday"
         const annualTax = calculatePAYG(
           annualised,
-          emp.residencyStatus || "resident",
+          residency,
           emp.taxFreeThreshold !== false,
           emp.helpDebt || false,
           emp.sfssDebt || false,
-          emp.medicareLevyExemption || false
+          emp.medicareLevyExemption !== "None"
         )
 
         const periodTax = Math.round((annualTax.totalTax / factor) * 100) / 100
@@ -138,7 +141,7 @@ export async function PATCH(
         await prisma.payslip.update({
           where: { id: payslip.id },
           data: {
-            grossEarnings: Math.round(gross * 100) / 100,
+            grossPay: Math.round(gross * 100) / 100,
             taxWithheld: periodTax,
             superContribution: superAmount,
             netPay,
@@ -166,7 +169,7 @@ export async function PATCH(
           payslips: {
             include: {
               employee: {
-                select: { firstName: true, lastName: true, employeeNumber: true },
+                select: { firstName: true, lastName: true },
               },
             },
           },
@@ -179,7 +182,7 @@ export async function PATCH(
           action: "Process",
           entityType: "PayRun",
           entityId: id,
-          details: `Processed pay run ${payRun.payRunNumber} - ${payRun.payslips.length} payslips, total gross $${totalGross.toFixed(2)}`,
+          details: `Processed pay run ${payRun.id} - ${payRun.payslips.length} payslips, total gross $${totalGross.toFixed(2)}`,
           organizationId: orgId,
         },
       })
@@ -208,7 +211,7 @@ export async function PATCH(
           payslips: {
             include: {
               employee: {
-                select: { firstName: true, lastName: true, employeeNumber: true },
+                select: { firstName: true, lastName: true },
               },
             },
           },
@@ -221,7 +224,7 @@ export async function PATCH(
           action: "Void",
           entityType: "PayRun",
           entityId: id,
-          details: `Voided pay run ${payRun.payRunNumber}`,
+          details: `Voided pay run ${payRun.id}`,
           organizationId: orgId,
         },
       })

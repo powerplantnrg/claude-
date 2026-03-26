@@ -33,7 +33,6 @@ export async function GET(request: NextRequest) {
           select: {
             firstName: true,
             lastName: true,
-            employeeNumber: true,
           },
         },
       },
@@ -60,9 +59,9 @@ export async function POST(request: NextRequest) {
     const userId = (session.user as any).id as string
 
     const body = await request.json()
-    const { employeeId, leaveType, startDate, endDate, days, reason } = body
+    const { employeeId, leaveType, startDate, endDate, hoursRequested, reason } = body
 
-    if (!employeeId || !leaveType || !startDate || !endDate || !days) {
+    if (!employeeId || !leaveType || !startDate || !endDate || !hoursRequested) {
       return NextResponse.json(
         { error: "Employee, leave type, start date, end date, and days are required" },
         { status: 400 }
@@ -81,19 +80,19 @@ export async function POST(request: NextRequest) {
     const leaveRequest = await prisma.leaveRequest.create({
       data: {
         employeeId,
-        leaveType,
+        type: leaveType,
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        days,
-        reason: reason || null,
+        hoursRequested,
+        notes: reason || null,
         status: "Pending",
+        organizationId: orgId,
       },
       include: {
         employee: {
           select: {
             firstName: true,
             lastName: true,
-            employeeNumber: true,
           },
         },
       },
@@ -105,7 +104,7 @@ export async function POST(request: NextRequest) {
         action: "Create",
         entityType: "LeaveRequest",
         entityId: leaveRequest.id,
-        details: `Created ${leaveType} leave request for ${employee.firstName} ${employee.lastName} (${days} days)`,
+        details: `Created ${leaveType} leave request for ${employee.firstName} ${employee.lastName} (${hoursRequested} hours)`,
         organizationId: orgId,
       },
     })

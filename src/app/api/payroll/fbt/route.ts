@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const where: any = { organizationId: orgId }
     if (employeeId) where.employeeId = employeeId
-    if (fbtYear) where.fbtYear = fbtYear
+    if (fbtYear) where.fyYear = fbtYear
 
     const records = await prisma.fBTRecord.findMany({
       where,
@@ -26,7 +26,6 @@ export async function GET(request: NextRequest) {
           select: {
             firstName: true,
             lastName: true,
-            employeeNumber: true,
           },
         },
       },
@@ -99,15 +98,11 @@ export async function POST(request: NextRequest) {
       data: {
         employeeId,
         benefitType,
-        description: description || null,
         grossValue,
         exemptAmount: exemptAmount || 0,
         taxableValue: fbtCalc.taxableValue,
-        grossedUpValue: fbtCalc.grossedUpValue,
         fbtPayable: fbtCalc.fbtPayable,
-        fbtYear,
-        gstCredits: gstCredits || 0,
-        benefitCategory: benefitCategory || "Other",
+        fyYear: fbtYear,
         organizationId: orgId,
       },
       include: {
@@ -115,7 +110,6 @@ export async function POST(request: NextRequest) {
           select: {
             firstName: true,
             lastName: true,
-            employeeNumber: true,
           },
         },
       },

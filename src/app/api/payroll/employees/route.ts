@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         { firstName: { contains: search, mode: "insensitive" } },
         { lastName: { contains: search, mode: "insensitive" } },
         { email: { contains: search, mode: "insensitive" } },
-        { employeeNumber: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
       ]
     }
 
@@ -91,21 +91,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate employee number
-    const count = await prisma.employee.count({
-      where: { organizationId: orgId },
-    })
-    const employeeNumber = `EMP-${String(count + 1).padStart(4, "0")}`
-
     const employee = await prisma.employee.create({
       data: {
-        employeeNumber,
         firstName,
         lastName,
         email,
         employmentType,
-        jobTitle: jobTitle || null,
-        department: department || null,
         startDate: new Date(startDate),
         annualSalary: annualSalary || null,
         hourlyRate: hourlyRate || null,
@@ -114,14 +105,14 @@ export async function POST(request: NextRequest) {
         superFundName: superFundName || null,
         superMemberNumber: superMemberNumber || null,
         superRate: superRate || 11.5,
-        bankBsb: bankBsb || null,
+        bankBSB: bankBsb || null,
         bankAccountNumber: bankAccountNumber || null,
         bankAccountName: bankAccountName || null,
         residencyStatus: residencyStatus || "resident",
         taxFreeThreshold: taxFreeThreshold !== false,
         helpDebt: helpDebt || false,
         sfssDebt: sfssDebt || false,
-        medicareLevyExemption: medicareLevyExemption || false,
+        medicareLevyExemption: medicareLevyExemption || "None",
         active: true,
         organizationId: orgId,
       },
@@ -134,7 +125,7 @@ export async function POST(request: NextRequest) {
         action: "Create",
         entityType: "Employee",
         entityId: employee.id,
-        details: `Created employee ${employeeNumber} - ${firstName} ${lastName}`,
+        details: `Created employee ${firstName} ${lastName}`,
         organizationId: orgId,
       },
     })
