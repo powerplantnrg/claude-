@@ -50,6 +50,11 @@ import {
   ShoppingCart,
   BookMarked,
   LayoutTemplate,
+  Banknote,
+  CalendarDays,
+  Shield,
+  FileSpreadsheet,
+  Briefcase,
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -87,6 +92,18 @@ const navSections: NavSection[] = [
       { label: "Purchase Orders", href: "/purchase-orders", icon: ShoppingCart },
       { label: "Budgets", href: "/budgets", icon: Wallet },
       { label: "Contacts", href: "/contacts", icon: Users },
+    ],
+  },
+  {
+    title: "Payroll",
+    items: [
+      { label: "Payroll", href: "/payroll", icon: Banknote },
+      { label: "Employees", href: "/payroll/employees", icon: Users },
+      { label: "Pay Runs", href: "/payroll/pay-runs", icon: DollarSign },
+      { label: "Leave", href: "/payroll/leave", icon: CalendarDays },
+      { label: "Tax Strategies", href: "/payroll/tax-strategies", icon: Shield },
+      { label: "FBT", href: "/payroll/fbt", icon: Briefcase },
+      { label: "Reports", href: "/payroll/reports", icon: FileSpreadsheet },
     ],
   },
   {
