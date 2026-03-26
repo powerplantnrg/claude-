@@ -79,14 +79,17 @@ export function Notifications() {
       >
         <Bell className="h-5 w-5" />
         {count > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          <span
+            className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+            aria-live="polite"
+          >
             {count > 99 ? "99+" : count}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-96 rounded-xl border border-slate-200 bg-white shadow-lg z-50">
+        <div className="absolute right-0 top-full mt-2 w-96 rounded-xl border border-slate-200 bg-white shadow-lg z-50" role="menu" aria-label="Notifications list">
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
             <h3 className="text-sm font-semibold text-slate-900">
               Notifications

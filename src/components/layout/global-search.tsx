@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useId } from "react"
 import { useRouter } from "next/navigation"
 import { Search, X } from "lucide-react"
 
@@ -36,10 +36,12 @@ export function GlobalSearch() {
   const [results, setResults] = useState<SearchResults | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
   const router = useRouter()
+  const listboxId = useId()
 
   const fetchResults = useCallback(async (q: string) => {
     if (!q.trim()) {
@@ -64,6 +66,7 @@ export function GlobalSearch() {
 
   function handleInputChange(value: string) {
     setQuery(value)
+    setActiveIndex(-1)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       fetchResults(value)
@@ -117,7 +120,7 @@ export function GlobalSearch() {
 
   return (
     <div className="relative" ref={containerRef}>
-      <div className="relative">
+      <div className="relative" role="combobox" aria-expanded={isOpen} aria-haspopup="listbox" aria-owns={listboxId}>
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
           ref={inputRef}
@@ -126,6 +129,11 @@ export function GlobalSearch() {
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder="Search..."
           className="w-56 rounded-lg border border-slate-300 bg-white py-1.5 pl-9 pr-8 text-sm text-slate-700 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 lg:w-72"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={listboxId}
+          aria-expanded={isOpen}
+          aria-activedescendant={activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined}
         />
         {query && (
           <button
@@ -139,7 +147,7 @@ export function GlobalSearch() {
       </div>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-96 rounded-lg border border-slate-200 bg-white shadow-lg max-h-[28rem] overflow-y-auto">
+        <div className="absolute left-0 top-full z-50 mt-1 w-96 rounded-lg border border-slate-200 bg-white shadow-lg max-h-[28rem] overflow-y-auto" role="listbox" id={listboxId} aria-label="Search results">
           {isLoading && (
             <div className="px-4 py-3 text-sm text-slate-400">Searching...</div>
           )}

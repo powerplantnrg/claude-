@@ -64,6 +64,24 @@ model User {
   rdTimeEntries  RdTimeEntry[]
   auditLogs      AuditLog[]
   expenseClaims  ExpenseClaim[]
+  favorites      UserFavorite[]
+}
+
+// ============================================
+// USER: Favorites / Bookmarks
+// ============================================
+
+model UserFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  label     String
+  path      String
+  icon      String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, path])
 }
 
 // ============================================

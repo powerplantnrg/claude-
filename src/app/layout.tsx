@@ -7,7 +7,16 @@ export const metadata: Metadata = {
     default: "R&D Financial OS",
     template: "%s | R&D Financial OS",
   },
-  description: "R&D and AI Financial Operating System",
+  description:
+    "The financial operating system for R&D-intensive and AI companies",
+  openGraph: {
+    title: "R&D Financial OS",
+    description:
+      "The financial operating system for R&D-intensive and AI companies",
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

@@ -1,74 +1,27 @@
 "use client"
 
-import { Fragment, useState, useRef, useEffect } from "react"
-import { usePathname } from "next/navigation"
+import { useState, useRef, useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
 import {
-  ChevronRight,
   LogOut,
   Building2,
   Menu,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { GlobalSearch } from "./global-search"
 import { Notifications } from "./notifications"
-
-const routeLabels: Record<string, string> = {
-  dashboard: "Dashboard",
-  invoices: "Invoices",
-  bills: "Bills",
-  banking: "Banking",
-  accounts: "Chart of Accounts",
-  contacts: "Contacts",
-  reports: "Reports",
-  "profit-loss": "Profit & Loss",
-  "balance-sheet": "Balance Sheet",
-  "trial-balance": "Trial Balance",
-  "cash-flow": "Cash Flow",
-  "gst-bas": "GST/BAS",
-  "rd-expenditure": "R&D Expenditure",
-  rd: "R&D Intelligence",
-  projects: "Projects",
-  experiments: "Experiments",
-  pipeline: "Pipeline",
-  portfolio: "Portfolio",
-  advice: "Advice",
-  compliance: "Compliance",
-  claims: "Claims",
-  cloud: "AI Costs",
-  providers: "Providers",
-  usage: "Usage",
-  grants: "Grants",
-  scenarios: "Scenarios",
-  settings: "Settings",
-}
-
-function buildBreadcrumbs(pathname: string) {
-  const segments = pathname.split("/").filter(Boolean)
-  const crumbs: { label: string; href: string }[] = []
-
-  let currentPath = ""
-  for (const segment of segments) {
-    currentPath += `/${segment}`
-    const label = routeLabels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1)
-    crumbs.push({ label, href: currentPath })
-  }
-
-  return crumbs
-}
+import { FavoriteToggle } from "./favorites-bar"
+import { Breadcrumbs } from "./breadcrumbs"
 
 interface HeaderProps {
   onToggleMobileSidebar?: () => void
 }
 
 export function Header({ onToggleMobileSidebar }: HeaderProps) {
-  const pathname = usePathname()
   const { data: session } = useSession()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const breadcrumbs = buildBreadcrumbs(pathname)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const u = session?.user as any
   const organizationName = u?.organizationName || "Organization"
@@ -104,29 +57,14 @@ export function Header({ onToggleMobileSidebar }: HeaderProps) {
         </button>
 
         {/* Breadcrumb */}
-        <nav className="flex items-center text-sm">
-          {breadcrumbs.map((crumb, index) => (
-            <Fragment key={crumb.href}>
-              {index > 0 && (
-                <ChevronRight className="mx-2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-              )}
-              <span
-                className={cn(
-                  "font-medium",
-                  index === breadcrumbs.length - 1
-                    ? "text-slate-900 dark:text-slate-100"
-                    : "text-slate-500 dark:text-slate-400"
-                )}
-              >
-                {crumb.label}
-              </span>
-            </Fragment>
-          ))}
-        </nav>
+        <Breadcrumbs />
       </div>
 
       {/* Right side */}
       <div className="flex items-center gap-2 sm:gap-4">
+        {/* Favorite Toggle */}
+        <FavoriteToggle />
+
         {/* Global Search */}
         <GlobalSearch />
 

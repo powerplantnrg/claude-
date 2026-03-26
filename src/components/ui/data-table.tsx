@@ -79,7 +79,20 @@ export function DataTable<T extends Record<string, unknown>>({
           <thead>
             <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
               {columns.map((col) => (
-                <th key={col.key} className="px-6 py-3">
+                <th
+                  key={col.key}
+                  className="px-6 py-3"
+                  scope="col"
+                  aria-sort={
+                    col.sortable && sortKey === col.key
+                      ? sortDir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : col.sortable
+                        ? "none"
+                        : undefined
+                  }
+                >
                   {col.sortable ? (
                     <button
                       type="button"

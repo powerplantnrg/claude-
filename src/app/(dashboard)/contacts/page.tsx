@@ -3,6 +3,11 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { ContactsTable } from "@/components/tables/contacts-table"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Contacts",
+}
 
 const CONTACT_TYPE_COLORS: Record<string, string> = {
   Customer: "bg-emerald-50 text-emerald-700 border-emerald-200",

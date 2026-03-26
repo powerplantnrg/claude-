@@ -3,13 +3,24 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
-import {
-  RevenueExpensesChart,
-  CashFlowChart,
-  RdSpendByCategoryChart,
-} from "@/components/charts/dashboard-charts"
+import dynamic from "next/dynamic"
+
+const RevenueExpensesChart = dynamic(
+  () => import("@/components/charts/dashboard-charts").then((m) => ({ default: m.RevenueExpensesChart })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+)
+const CashFlowChart = dynamic(
+  () => import("@/components/charts/dashboard-charts").then((m) => ({ default: m.CashFlowChart })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+)
+const RdSpendByCategoryChart = dynamic(
+  () => import("@/components/charts/dashboard-charts").then((m) => ({ default: m.RdSpendByCategoryChart })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+)
 import { SparklineCard } from "@/components/dashboard/sparkline-cards"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
+import { QuickStats } from "@/components/dashboard/quick-stats"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -284,6 +295,12 @@ export default async function DashboardPage() {
           Financial overview and R&D insights
         </p>
       </div>
+
+      {/* Onboarding Checklist */}
+      <OnboardingChecklist />
+
+      {/* Quick Stats */}
+      <QuickStats />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

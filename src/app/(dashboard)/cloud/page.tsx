@@ -3,10 +3,16 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
-import {
-  CostTrendChart,
-  CostByProviderChart,
-} from "@/components/charts/cloud-charts"
+import dynamic from "next/dynamic"
+
+const CostTrendChart = dynamic(
+  () => import("@/components/charts/cloud-charts").then((m) => ({ default: m.CostTrendChart })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+)
+const CostByProviderChart = dynamic(
+  () => import("@/components/charts/cloud-charts").then((m) => ({ default: m.CostByProviderChart })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+)
 
 export default async function CloudDashboardPage() {
   const session = await auth()

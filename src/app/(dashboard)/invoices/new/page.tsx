@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "@/lib/toast-store"
 
 interface Contact {
   id: string
@@ -43,6 +44,7 @@ export default function NewInvoicePage() {
   const [lines, setLines] = useState<LineItem[]>([{ ...emptyLine }])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetch("/api/contacts")
@@ -86,19 +88,31 @@ export default function NewInvoicePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    const errors: Record<string, string> = {}
 
     if (!contactId) {
-      setError("Please select a contact.")
-      return
+      errors.contactId = "Please select a contact."
     }
-    if (!date || !dueDate) {
-      setError("Please fill in both date fields.")
-      return
+    if (!date) {
+      errors.date = "Invoice date is required."
     }
-    if (lines.some((l) => !l.description || !l.accountId || l.unitPrice <= 0)) {
-      setError(
-        "Each line item needs a description, account, and a unit price greater than zero."
-      )
+    if (!dueDate) {
+      errors.dueDate = "Due date is required."
+    }
+    if (lines.length === 0) {
+      errors.lines = "At least one line item is required."
+    }
+    lines.forEach((l, i) => {
+      if (!l.description) errors[`line_${i}_desc`] = "Description required"
+      if (!l.accountId) errors[`line_${i}_account`] = "Account required"
+      if (l.unitPrice <= 0) errors[`line_${i}_price`] = "Must be > 0"
+    })
+
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) {
+      const msg = errors.contactId || errors.lines || "Please fix the highlighted fields."
+      setError(msg)
+      toast.error("Validation Error", msg)
       return
     }
 
@@ -112,13 +126,17 @@ export default function NewInvoicePage() {
 
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error || "Failed to create invoice.")
+        const errMsg = data.error || "Failed to create invoice."
+        setError(errMsg)
+        toast.error("Failed to Create Invoice", errMsg)
         return
       }
 
+      toast.success("Invoice Created", "Your invoice has been created successfully.")
       router.push("/invoices")
     } catch {
       setError("An unexpected error occurred.")
+      toast.error("Error", "An unexpected error occurred.")
     } finally {
       setSubmitting(false)
     }

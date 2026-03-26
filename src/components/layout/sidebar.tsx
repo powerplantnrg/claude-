@@ -42,6 +42,7 @@ import {
   ClipboardCheck,
   Repeat,
 } from "lucide-react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 interface NavItem {
@@ -192,17 +193,13 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       <div className="flex items-center justify-between h-16 px-4 border-b border-slate-700/50">
         {!effectiveCollapsed && (
           <Link href="/dashboard" className="flex items-center gap-2" onClick={onMobileClose}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
-              <FlaskConical className="h-4 w-4 text-white" />
-            </div>
+            <Image src="/logo.svg" alt="R&D Financial OS" width={32} height={32} className="h-8 w-8" />
             <span className="text-base font-semibold tracking-tight">R&D Ledger</span>
           </Link>
         )}
         {effectiveCollapsed && (
           <Link href="/dashboard" className="mx-auto" onClick={onMobileClose}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
-              <FlaskConical className="h-4 w-4 text-white" />
-            </div>
+            <Image src="/logo.svg" alt="R&D Financial OS" width={32} height={32} className="h-8 w-8" />
           </Link>
         )}
       </div>
@@ -221,7 +218,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       </button>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-1">
+      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-1" role="navigation" aria-label="Main navigation">
         {navSections.map((section) => (
           <div key={section.title}>
             {/* Section header */}
@@ -229,6 +226,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               <button
                 onClick={() => toggleSection(section.title)}
                 className="flex w-full items-center justify-between px-2 py-2 mt-2 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-200 transition-colors"
+                aria-expanded={expandedSections[section.title]}
               >
                 <span>{section.title}</span>
                 <ChevronDown
@@ -261,6 +259,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
                           effectiveCollapsed && "justify-center px-0"
                         )}
                         title={effectiveCollapsed ? item.label : undefined}
+                        aria-current={active ? "page" : undefined}
                       >
                         <Icon className={cn("h-4 w-4 shrink-0", active && "text-indigo-400")} />
                         {!effectiveCollapsed && <span>{item.label}</span>}
