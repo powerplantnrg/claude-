@@ -68,6 +68,13 @@ const DEFAULT_ACCOUNTS = [
   { code: "8150", name: "Payroll Tax", type: "Expense", subType: "Payroll", taxType: "BAS-Excluded" },
 ]
 
+const DEFAULT_CURRENCIES = [
+  { code: "AUD", name: "Australian Dollar", symbol: "$", isBase: true, exchangeRate: 1.0 },
+  { code: "USD", name: "US Dollar", symbol: "$", isBase: false, exchangeRate: 0.65 },
+  { code: "EUR", name: "Euro", symbol: "\u20AC", isBase: false, exchangeRate: 0.60 },
+  { code: "GBP", name: "British Pound", symbol: "\u00A3", isBase: false, exchangeRate: 0.52 },
+]
+
 const DEFAULT_PIPELINE_STAGES = [
   { name: "Ideation", stageOrder: 1, description: "Initial concept and hypothesis formation" },
   { name: "Planning", stageOrder: 2, description: "Experiment design and resource planning" },
@@ -167,6 +174,14 @@ export async function POST(request: Request) {
       await tx.rdPipelineStage.createMany({
         data: DEFAULT_PIPELINE_STAGES.map((stage) => ({
           ...stage,
+          organizationId: organization.id,
+        })),
+      })
+
+      // Seed default currencies
+      await tx.currency.createMany({
+        data: DEFAULT_CURRENCIES.map((currency) => ({
+          ...currency,
           organizationId: organization.id,
         })),
       })
