@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { toast } from "@/lib/toast-store"
 
 interface Props {
   invoiceId: string
@@ -12,6 +14,7 @@ export function InvoiceStatusActions({ invoiceId, status }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showVoidConfirm, setShowVoidConfirm] = useState(false)
 
   const updateStatus = async (newStatus: string) => {
     setLoading(true)
@@ -25,102 +28,127 @@ export function InvoiceStatusActions({ invoiceId, status }: Props) {
 
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error || "Failed to update status.")
+        const errMsg = data.error || "Failed to update status."
+        setError(errMsg)
+        toast.error("Status Update Failed", errMsg)
         return
       }
 
+      toast.success("Invoice Updated", `Invoice has been marked as ${newStatus}.`)
       router.refresh()
     } catch {
       setError("An unexpected error occurred.")
+      toast.error("Error", "An unexpected error occurred.")
     } finally {
       setLoading(false)
     }
   }
 
+  const handleVoidClick = () => {
+    setShowVoidConfirm(true)
+  }
+
+  const handleVoidConfirm = () => {
+    setShowVoidConfirm(false)
+    updateStatus("Void")
+  }
+
   if (status === "Paid" || status === "Void") return null
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="text-sm font-semibold text-slate-900 mb-4">Actions</h3>
+    <>
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 mb-4">Actions</h3>
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-3">
-        {status === "Draft" && (
-          <>
-            <button
-              onClick={() => updateStatus("Sent")}
-              disabled={loading}
-              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              <svg
-                className="mr-2 h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                />
-              </svg>
-              Mark as Sent
-            </button>
-            <button
-              onClick={() => updateStatus("Void")}
-              disabled={loading}
-              className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
-            >
-              Void Invoice
-            </button>
-          </>
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
         )}
 
-        {(status === "Sent" || status === "Overdue") && (
-          <>
-            <button
-              onClick={() => updateStatus("Paid")}
-              disabled={loading}
-              className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
-            >
-              <svg
-                className="mr-2 h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+        <div className="flex flex-wrap gap-3">
+          {status === "Draft" && (
+            <>
+              <button
+                onClick={() => updateStatus("Sent")}
+                disabled={loading}
+                className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              Record Payment
-            </button>
-            <button
-              onClick={() => updateStatus("Void")}
-              disabled={loading}
-              className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
-            >
-              Void Invoice
-            </button>
-          </>
+                <svg
+                  className="mr-2 h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  />
+                </svg>
+                Mark as Sent
+              </button>
+              <button
+                onClick={handleVoidClick}
+                disabled={loading}
+                className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Void Invoice
+              </button>
+            </>
+          )}
+
+          {(status === "Sent" || status === "Overdue") && (
+            <>
+              <button
+                onClick={() => updateStatus("Paid")}
+                disabled={loading}
+                className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                <svg
+                  className="mr-2 h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Record Payment
+              </button>
+              <button
+                onClick={handleVoidClick}
+                disabled={loading}
+                className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Void Invoice
+              </button>
+            </>
+          )}
+        </div>
+
+        {status === "Draft" && (
+          <p className="mt-3 text-xs text-slate-500">
+            Marking as Sent will automatically create journal entries (debit
+            Accounts Receivable, credit Revenue, credit GST Collected).
+          </p>
         )}
       </div>
 
-      {status === "Draft" && (
-        <p className="mt-3 text-xs text-slate-500">
-          Marking as Sent will automatically create journal entries (debit
-          Accounts Receivable, credit Revenue, credit GST Collected).
-        </p>
-      )}
-    </div>
+      <ConfirmDialog
+        isOpen={showVoidConfirm}
+        onConfirm={handleVoidConfirm}
+        onCancel={() => setShowVoidConfirm(false)}
+        title="Void Invoice"
+        message="Are you sure you want to void this invoice? This action cannot be undone and will reverse any associated journal entries."
+        confirmLabel="Void Invoice"
+        variant="destructive"
+      />
+    </>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "@/lib/toast-store"
 
 interface RdProject {
   id: string
@@ -99,8 +100,27 @@ export default function NewExpenseClaimPage() {
     e.preventDefault()
     setError("")
 
-    if (items.some((item) => !item.description || !item.amount)) {
-      setError("Each item needs a description and amount.")
+    if (items.length === 0) {
+      const msg = "At least one expense item is required."
+      setError(msg)
+      toast.error("Validation Error", msg)
+      return
+    }
+
+    const invalidItems = items.some((item) => !item.description || !item.amount)
+    const zeroAmounts = items.some((item) => (parseFloat(item.amount) || 0) <= 0)
+
+    if (invalidItems) {
+      const msg = "Each item needs a description and amount."
+      setError(msg)
+      toast.error("Validation Error", msg)
+      return
+    }
+
+    if (zeroAmounts) {
+      const msg = "All item amounts must be greater than zero."
+      setError(msg)
+      toast.error("Validation Error", msg)
       return
     }
 
@@ -127,13 +147,17 @@ export default function NewExpenseClaimPage() {
 
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error || "Failed to create expense claim.")
+        const errMsg = data.error || "Failed to create expense claim."
+        setError(errMsg)
+        toast.error("Failed to Create Expense Claim", errMsg)
         return
       }
 
+      toast.success("Expense Claim Created", status === "Submitted" ? "Claim submitted for approval." : "Claim saved as draft.")
       router.push("/expenses")
     } catch {
       setError("An unexpected error occurred.")
+      toast.error("Error", "An unexpected error occurred.")
     } finally {
       setSubmitting(false)
     }
@@ -392,6 +416,7 @@ export default function NewExpenseClaimPage() {
             onClick={(e) => handleSubmit(e, "Draft")}
             className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-6 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
+            {submitting && <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
             {submitting ? "Saving..." : "Save as Draft"}
           </button>
           <button
@@ -400,6 +425,7 @@ export default function NewExpenseClaimPage() {
             onClick={(e) => handleSubmit(e, "Submitted")}
             className="inline-flex items-center rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
+            {submitting && <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
             {submitting ? "Submitting..." : "Submit"}
           </button>
         </div>

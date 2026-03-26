@@ -3,11 +3,13 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "@/lib/toast-store"
 
 export default function NewRdProjectPage() {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const [form, setForm] = useState({
     name: "",
@@ -25,12 +27,37 @@ export default function NewRdProjectPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) {
     setForm({ ...form, [e.target.name]: e.target.value })
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      delete next[e.target.name]
+      return next
+    })
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSubmitting(true)
     setError("")
+    const errors: Record<string, string> = {}
+
+    if (!form.name.trim()) {
+      errors.name = "Project name is required."
+    }
+    if (!form.startDate) {
+      errors.startDate = "Start date is required."
+    }
+    if (form.endDate && form.startDate && form.endDate < form.startDate) {
+      errors.endDate = "End date must be after start date."
+    }
+
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) {
+      const msg = Object.values(errors)[0]
+      setError(msg)
+      toast.error("Validation Error", msg)
+      return
+    }
+
+    setSubmitting(true)
 
     try {
       const res = await fetch("/api/rd/projects", {
@@ -45,12 +72,22 @@ export default function NewRdProjectPage() {
       }
 
       const project = await res.json()
+      toast.success("R&D Project Created", `${form.name} has been created successfully.`)
       router.push(`/rd/projects/${project.id}`)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred"
+      setError(message)
+      toast.error("Failed to Create Project", message)
       setSubmitting(false)
     }
   }
+
+  const inputClass = (field: string) =>
+    `w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+      fieldErrors[field]
+        ? "border-red-400 focus:border-red-500 focus:ring-red-500"
+        : "border-slate-300 focus:border-indigo-500 focus:ring-indigo-500"
+    }`
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -96,10 +133,10 @@ export default function NewRdProjectPage() {
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                required
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className={inputClass("name")}
                 placeholder="e.g., AI-Powered Document Analysis Engine"
               />
+              {fieldErrors.name && <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p>}
             </div>
 
             <div>
@@ -126,9 +163,9 @@ export default function NewRdProjectPage() {
                   name="startDate"
                   value={form.startDate}
                   onChange={handleChange}
-                  required
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className={inputClass("startDate")}
                 />
+                {fieldErrors.startDate && <p className="mt-1 text-xs text-red-600">{fieldErrors.startDate}</p>}
               </div>
 
               <div>
@@ -140,8 +177,9 @@ export default function NewRdProjectPage() {
                   name="endDate"
                   value={form.endDate}
                   onChange={handleChange}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className={inputClass("endDate")}
                 />
+                {fieldErrors.endDate && <p className="mt-1 text-xs text-red-600">{fieldErrors.endDate}</p>}
               </div>
 
               <div>
@@ -242,8 +280,9 @@ export default function NewRdProjectPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
+            {submitting && <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>}
             {submitting ? "Creating..." : "Create Project"}
           </button>
         </div>
