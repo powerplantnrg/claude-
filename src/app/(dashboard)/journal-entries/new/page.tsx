@@ -142,29 +142,32 @@ export default function NewJournalEntryPage() {
 
   const handleSubmit = async (status: "Draft" | "Posted") => {
     setError("")
+    const errors: Record<string, string> = {}
 
     if (!date) {
-      setError("Please select a date.")
-      return
+      errors.date = "Date is required."
     }
     if (!narration.trim()) {
-      setError("Please enter a narration/description.")
-      return
+      errors.narration = "Narration/description is required."
     }
     if (lines.some((l) => !l.accountId)) {
-      setError("Each line must have an account selected.")
-      return
+      errors.lines = "Each line must have an account selected."
     }
     if (lines.some((l) => l.debit === 0 && l.credit === 0)) {
-      setError("Each line must have either a debit or credit amount.")
-      return
+      errors.amounts = "Each line must have either a debit or credit amount."
     }
     if (lines.some((l) => l.debit > 0 && l.credit > 0)) {
-      setError("A line cannot have both a debit and credit amount.")
-      return
+      errors.dualEntry = "A line cannot have both a debit and credit amount."
     }
     if (status === "Posted" && !isBalanced) {
-      setError("Total debits must equal total credits before posting.")
+      errors.balance = "Total debits must equal total credits before posting."
+    }
+
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) {
+      const msg = Object.values(errors)[0]
+      setError(msg)
+      toast.error("Validation Error", msg)
       return
     }
 
@@ -193,13 +196,17 @@ export default function NewJournalEntryPage() {
 
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error || "Failed to create journal entry.")
+        const errMsg = data.error || "Failed to create journal entry."
+        setError(errMsg)
+        toast.error("Failed to Create Journal Entry", errMsg)
         return
       }
 
+      toast.success("Journal Entry Created", status === "Posted" ? "Journal entry has been posted." : "Journal entry saved as draft.")
       router.push("/journal-entries")
     } catch {
       setError("An unexpected error occurred.")
+      toast.error("Error", "An unexpected error occurred.")
     } finally {
       setSubmitting(false)
     }
@@ -242,9 +249,10 @@ export default function NewJournalEntryPage() {
             <input
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              onChange={(e) => { setDate(e.target.value); setFieldErrors((p) => { const n = { ...p }; delete n.date; return n }) }}
+              className={`w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 ${fieldErrors.date ? "border-red-400 focus:border-red-500 focus:ring-red-500" : "border-slate-300 focus:border-blue-500 focus:ring-blue-500"}`}
             />
+            {fieldErrors.date && <p className="mt-1 text-xs text-red-600">{fieldErrors.date}</p>}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
