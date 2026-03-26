@@ -47,6 +47,7 @@ model Organization {
   recurringInvoices   RecurringInvoice[]
   payments            Payment[]
   expenseClaims       ExpenseClaim[]
+  basReturns          BASReturn[]
 }
 
 model User {
@@ -758,4 +759,30 @@ model ExpenseClaimItem {
   receiptPath String?       // uploaded receipt file
   rdProjectId String?       // optional R&D allocation
   rdProject   RdProject?    @relation(fields: [rdProjectId], references: [id])
+}
+
+// ============================================
+// TAX: BAS Returns
+// ============================================
+
+model BASReturn {
+  id                     String       @id @default(cuid())
+  organizationId         String
+  organization           Organization @relation(fields: [organizationId], references: [id])
+  period                 String       // e.g., "Q1 2025-26", "Jan 2026"
+  startDate              DateTime
+  endDate                DateTime
+  status                 String       @default("Draft") // Draft, Lodged
+  g1TotalSales           Float        @default(0)
+  g2ExportSales          Float        @default(0)
+  g3GstFreeSales         Float        @default(0)
+  g10CapitalPurchases    Float        @default(0)
+  g11NonCapitalPurchases Float        @default(0)
+  gstOnSales             Float        @default(0) // 1A
+  gstOnPurchases         Float        @default(0) // 1B
+  netGst                 Float        @default(0)
+  w1TotalWages           Float        @default(0)
+  w2Withheld             Float        @default(0)
+  lodgedAt               DateTime?
+  createdAt              DateTime     @default(now())
 }
