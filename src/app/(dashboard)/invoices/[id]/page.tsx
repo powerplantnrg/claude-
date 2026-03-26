@@ -69,6 +69,12 @@ export default async function InvoiceDetailPage({
             </Link>
           )}
           <Link
+            href={`/invoices/${invoice.id}/email-preview`}
+            className="inline-flex items-center rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 shadow-sm hover:bg-indigo-100 transition-colors"
+          >
+            Email Preview
+          </Link>
+          <Link
             href={`/invoices/${invoice.id}/print`}
             className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
           >

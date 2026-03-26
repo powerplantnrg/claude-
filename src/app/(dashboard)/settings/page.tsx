@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { formatCurrency } from "@/lib/utils"
 import Link from "next/link"
-import { ScrollText, Users, Activity } from "lucide-react"
+import { ScrollText, Users, Activity, Plug, Webhook } from "lucide-react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -204,6 +204,34 @@ export default async function SettingsPage() {
               <p className="text-sm font-semibold text-slate-900">Activity Feed</p>
               <p className="mt-0.5 text-xs text-slate-500">
                 Timeline view of recent organizational activity
+              </p>
+            </div>
+          </Link>
+          <Link
+            href="/settings/integrations"
+            className="flex items-start gap-3 rounded-lg border border-slate-200 p-4 transition-colors hover:border-indigo-200 hover:bg-indigo-50/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-100">
+              <Plug className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Integrations</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Connect external services like Xero, Stripe, and Slack
+              </p>
+            </div>
+          </Link>
+          <Link
+            href="/settings/webhooks"
+            className="flex items-start gap-3 rounded-lg border border-slate-200 p-4 transition-colors hover:border-indigo-200 hover:bg-indigo-50/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-100">
+              <Webhook className="h-5 w-5 text-cyan-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Webhooks</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Send real-time event notifications to external endpoints
               </p>
             </div>
           </Link>

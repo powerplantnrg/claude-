@@ -1,6 +1,32 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from "react"
+import Link from "next/link"
+
+interface RuleSuggestion {
+  transactionId: string
+  ruleId: string
+  ruleName: string
+  accountId: string
+  contactId: string | null
+  taxType: string | null
+  rdProjectId: string | null
+}
+
+interface BankRule {
+  id: string
+  name: string
+  matchField: string
+  matchType: string
+  matchValue: string
+  accountId: string
+  contactId: string | null
+  taxType: string | null
+  rdProjectId: string | null
+  isActive: boolean
+  priority: number
+  account: { id: string; code: string; name: string }
+}
 
 interface BankTransaction {
   id: string
@@ -92,6 +118,8 @@ export default function ReconciliationView() {
   const [error, setError] = useState("")
   const [showQuickForm, setShowQuickForm] = useState(false)
   const [quickFormTxId, setQuickFormTxId] = useState<string | null>(null)
+  const [bankRules, setBankRules] = useState<BankRule[]>([])
+  const [ruleSuggestions, setRuleSuggestions] = useState<Record<string, RuleSuggestion>>({})
 
   // Quick JE form state
   const [qfNarration, setQfNarration] = useState("")
@@ -102,17 +130,62 @@ export default function ReconciliationView() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [txRes, jeRes, accRes] = await Promise.all([
+      const [txRes, jeRes, accRes, rulesRes] = await Promise.all([
         fetch("/api/banking"),
         fetch("/api/journal-entries?status=Posted"),
         fetch("/api/accounts"),
+        fetch("/api/banking/rules"),
       ])
       const txData = await txRes.json()
       const jeData = await jeRes.json()
       const accData = await accRes.json()
+      const rulesData = await rulesRes.json()
 
       if (Array.isArray(txData)) setBankTransactions(txData)
       if (Array.isArray(accData)) setAccounts(accData)
+      if (Array.isArray(rulesData)) {
+        setBankRules(rulesData)
+        // Compute rule-based categorization suggestions for unreconciled transactions
+        const unreconciled = (Array.isArray(txData) ? txData : []).filter(
+          (t: BankTransaction) => !t.reconciled
+        )
+        const activeRules = rulesData.filter((r: BankRule) => r.isActive).sort(
+          (a: BankRule, b: BankRule) => b.priority - a.priority
+        )
+        const suggestionsMap: Record<string, RuleSuggestion> = {}
+        for (const tx of unreconciled) {
+          for (const rule of activeRules) {
+            const fieldValue =
+              rule.matchField === "description"
+                ? tx.description || ""
+                : rule.matchField === "amount"
+                ? String(tx.amount)
+                : tx.reference || ""
+            const lv = fieldValue.toLowerCase()
+            const mv = rule.matchValue.toLowerCase()
+            let matched = false
+            if (rule.matchType === "contains") matched = lv.includes(mv)
+            else if (rule.matchType === "exact") matched = lv === mv
+            else if (rule.matchType === "startsWith") matched = lv.startsWith(mv)
+            else if (rule.matchType === "regex") {
+              try { matched = new RegExp(rule.matchValue, "i").test(fieldValue) } catch { matched = false }
+            }
+            if (matched) {
+              suggestionsMap[tx.id] = {
+                transactionId: tx.id,
+                ruleId: rule.id,
+                ruleName: rule.name,
+                accountId: rule.accountId,
+                contactId: rule.contactId,
+                taxType: rule.taxType,
+                rdProjectId: rule.rdProjectId,
+              }
+              break
+            }
+          }
+        }
+        setRuleSuggestions(suggestionsMap)
+      }
 
       // Filter unmatched journals: those not already matched to a bank tx
       if (Array.isArray(jeData)) {
@@ -346,12 +419,43 @@ export default function ReconciliationView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Bank Reconciliation</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Match bank transactions with journal entries
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Bank Reconciliation</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Match bank transactions with journal entries
+          </p>
+        </div>
+        <Link
+          href="/banking/rules"
+          className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+        >
+          Manage Rules
+        </Link>
       </div>
+
+      {/* Auto-categorization suggestions */}
+      {Object.keys(ruleSuggestions).length > 0 && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-indigo-800">
+                Auto-Categorization Suggestions
+              </h3>
+              <p className="text-sm text-indigo-600">
+                {Object.keys(ruleSuggestions).length} unreconciled transaction(s) match bank rules.
+                Look for the rule badge on transactions below.
+              </p>
+            </div>
+            <Link
+              href="/banking/rules"
+              className="text-sm font-medium text-indigo-700 hover:text-indigo-900"
+            >
+              Edit Rules
+            </Link>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -475,6 +579,19 @@ export default function ReconciliationView() {
                       {formatCurrency(tx.amount)}
                     </span>
                   </div>
+                  {ruleSuggestions[tx.id] && (
+                    <div className="mt-1.5">
+                      <span className="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                        Rule: {ruleSuggestions[tx.id].ruleName}
+                        {bankRules.find((r) => r.id === ruleSuggestions[tx.id].ruleId)?.account && (
+                          <span className="ml-1 text-indigo-500">
+                            → {bankRules.find((r) => r.id === ruleSuggestions[tx.id].ruleId)?.account.code}{" "}
+                            {bankRules.find((r) => r.id === ruleSuggestions[tx.id].ruleId)?.account.name}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
                   {selectedTxId === tx.id && (
                     <div className="mt-2">
                       <button

@@ -50,6 +50,9 @@ model Organization {
   basReturns          BASReturn[]
   bankRules           BankRule[]
   creditNotes         CreditNote[]
+  budgets             Budget[]
+  webhooks            Webhook[]
+  integrations        Integration[]
 }
 
 model User {
@@ -110,6 +113,7 @@ model Account {
   invoiceLines    InvoiceLine[]
   billLines       BillLine[]
   bankRules       BankRule[]
+  budgetItems     BudgetItem[]
 
   @@unique([code, organizationId])
 }
@@ -865,4 +869,71 @@ model CreditNoteLine {
   taxType      String     @default("GST")
   amount       Float
   taxAmount    Float      @default(0)
+}
+
+// ============================================
+// BUDGETING & FORECASTING
+// ============================================
+
+model Budget {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String       // e.g., "FY 2025-26 Operating Budget"
+  financialYear  String       // e.g., "2025-26"
+  status         String       @default("Draft") // Draft, Active, Closed
+  items          BudgetItem[]
+  createdAt      DateTime     @default(now())
+}
+
+model BudgetItem {
+  id        String  @id @default(cuid())
+  budgetId  String
+  budget    Budget  @relation(fields: [budgetId], references: [id])
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id])
+  jan       Float   @default(0)
+  feb       Float   @default(0)
+  mar       Float   @default(0)
+  apr       Float   @default(0)
+  may       Float   @default(0)
+  jun       Float   @default(0)
+  jul       Float   @default(0)
+  aug       Float   @default(0)
+  sep       Float   @default(0)
+  oct       Float   @default(0)
+  nov       Float   @default(0)
+  dec       Float   @default(0)
+  total     Float   @default(0)
+  notes     String?
+}
+
+// ============================================
+// WEBHOOKS & INTEGRATIONS
+// ============================================
+
+model Webhook {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  name            String
+  url             String
+  events          String       // comma-separated: invoice.created, bill.created, payment.received, etc.
+  secret          String?      // for HMAC-SHA256 signature verification
+  isActive        Boolean      @default(true)
+  lastTriggeredAt DateTime?
+  failCount       Int          @default(0)
+  createdAt       DateTime     @default(now())
+}
+
+model Integration {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  type            String       // xero, myob, stripe, slack, github
+  name            String
+  config          String       // JSON config
+  isActive        Boolean      @default(true)
+  lastSyncAt      DateTime?
+  createdAt       DateTime     @default(now())
 }

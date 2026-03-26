@@ -41,6 +41,12 @@ import {
   Sparkles,
   ClipboardCheck,
   Repeat,
+  FileMinus,
+  ListChecks,
+  Plug,
+  Webhook,
+  Wallet,
+  LineChart,
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -69,9 +75,12 @@ const navSections: NavSection[] = [
     items: [
       { label: "Invoices", href: "/invoices", icon: FileText },
       { label: "Recurring", href: "/invoices/recurring", icon: Repeat },
+      { label: "Credit Notes", href: "/invoices/credit-notes", icon: FileMinus },
       { label: "Bills", href: "/bills", icon: Receipt },
       { label: "Banking", href: "/banking", icon: Landmark },
+      { label: "Bank Rules", href: "/banking/rules", icon: ListChecks },
       { label: "Chart of Accounts", href: "/accounts", icon: BookOpen },
+      { label: "Budgets", href: "/budgets", icon: Wallet },
       { label: "Contacts", href: "/contacts", icon: Users },
     ],
   },
@@ -88,6 +97,7 @@ const navSections: NavSection[] = [
       { label: "R&D Expenditure", href: "/reports/rd-expenditure", icon: FlaskConical },
       { label: "Aged Receivables", href: "/reports/aged-receivables", icon: ClipboardList },
       { label: "Aged Payables", href: "/reports/aged-payables", icon: Receipt },
+      { label: "Forecast", href: "/reports/forecast", icon: LineChart },
     ],
   },
   {
@@ -134,6 +144,8 @@ const navSections: NavSection[] = [
       { label: "Audit Log", href: "/settings/audit-log", icon: ScrollText },
       { label: "Users", href: "/settings/users", icon: Users },
       { label: "Activity", href: "/settings/activity", icon: Activity },
+      { label: "Integrations", href: "/settings/integrations", icon: Plug },
+      { label: "Webhooks", href: "/settings/webhooks", icon: Webhook },
     ],
   },
 ]
