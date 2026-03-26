@@ -58,6 +58,7 @@ import {
   CheckSquare,
   Coins,
   Package,
+  Boxes,
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -100,6 +101,14 @@ const navSections: NavSection[] = [
       { label: "Budgets", href: "/budgets", icon: Wallet },
       { label: "Fixed Assets", href: "/assets", icon: Package },
       { label: "Contacts", href: "/contacts", icon: Users },
+    ],
+  },
+  {
+    title: "Inventory",
+    items: [
+      { label: "Inventory", href: "/inventory", icon: Boxes },
+      { label: "Stock Takes", href: "/inventory/stock-takes", icon: ClipboardCheck },
+      { label: "Reports", href: "/inventory/reports", icon: FileBarChart },
     ],
   },
   {
@@ -155,6 +164,21 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: "Documents",
+    items: [
+      { label: "Documents", href: "/documents", icon: FileText },
+    ],
+  },
+  {
+    title: "Integrations",
+    items: [
+      { label: "Integration Hub", href: "/integrations", icon: Plug },
+      { label: "Bank Feeds", href: "/integrations/bank-feeds", icon: Landmark },
+      { label: "STP Filing", href: "/integrations/stp", icon: FileSpreadsheet },
+      { label: "Data Export", href: "/integrations/export", icon: FileBarChart },
+    ],
+  },
+  {
     title: "AI Costs",
     items: [
       { label: "Cloud Dashboard", href: "/cloud", icon: Cloud },
@@ -167,6 +191,14 @@ const navSections: NavSection[] = [
     items: [
       { label: "Grants", href: "/grants", icon: Award },
       { label: "Scenarios", href: "/scenarios", icon: Calculator },
+    ],
+  },
+  {
+    title: "Projects",
+    items: [
+      { label: "Projects", href: "/projects", icon: FolderKanban },
+      { label: "Time Tracking", href: "/time-tracking", icon: Activity },
+      { label: "Reports", href: "/projects/reports", icon: FileBarChart },
     ],
   },
   {

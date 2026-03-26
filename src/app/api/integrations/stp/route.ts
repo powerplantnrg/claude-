@@ -39,7 +39,7 @@ export async function POST() {
         0
       )
       const ytdSuper = emp.payslips.reduce(
-        (sum, p) => sum + (p.superAmount ?? 0),
+        (sum, p) => sum + (p.superContribution ?? 0),
         0
       )
 

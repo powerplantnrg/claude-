@@ -138,12 +138,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === "reorder") {
-      const items = await prisma.inventoryItem.findMany({
+      const allItems = await prisma.inventoryItem.findMany({
         where: {
           organizationId: orgId,
           isActive: true,
           isTracked: true,
-          reorderLevel: { not: null },
         },
         select: {
           id: true,
@@ -160,6 +159,8 @@ export async function GET(request: NextRequest) {
         orderBy: { name: "asc" },
       })
 
+      // Filter to items with reorder levels set and below that level
+      const items = allItems.filter((item: any) => item.reorderLevel !== null)
       const belowReorder = items.filter(
         (item: any) => item.quantityOnHand <= item.reorderLevel
       )

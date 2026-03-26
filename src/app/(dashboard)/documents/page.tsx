@@ -89,7 +89,7 @@ export default async function DocumentsPage({
 
   const countMap: Record<string, number> = {}
   entityCounts.forEach((c) => {
-    countMap[c.entityType] = c._count
+    if (c.entityType) countMap[c.entityType] = c._count
   })
 
   return (
@@ -255,7 +255,7 @@ export default async function DocumentsPage({
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
                   <span className="text-xs font-bold text-slate-600">
-                    {getFileIcon(doc.mimeType)}
+                    {getFileIcon(doc.mimeType ?? "")}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
@@ -267,7 +267,7 @@ export default async function DocumentsPage({
               </div>
               <div className="mt-3 flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${ENTITY_TYPE_COLORS[doc.entityType] ?? ENTITY_TYPE_COLORS.General}`}
+                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${ENTITY_TYPE_COLORS[doc.entityType ?? "General"] ?? ENTITY_TYPE_COLORS.General}`}
                 >
                   {doc.entityType}
                 </span>
@@ -334,7 +334,7 @@ export default async function DocumentsPage({
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-slate-100">
                         <span className="text-xs font-bold text-slate-600">
-                          {getFileIcon(doc.mimeType)}
+                          {getFileIcon(doc.mimeType ?? "")}
                         </span>
                       </div>
                       <div className="min-w-0">
@@ -347,7 +347,7 @@ export default async function DocumentsPage({
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${ENTITY_TYPE_COLORS[doc.entityType] ?? ENTITY_TYPE_COLORS.General}`}
+                      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${ENTITY_TYPE_COLORS[doc.entityType ?? "General"] ?? ENTITY_TYPE_COLORS.General}`}
                     >
                       {doc.entityType}
                     </span>

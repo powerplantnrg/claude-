@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const orgId = (session.user as any).organizationId
-  const userId = session.user.id
+  const userId = session.user!.id
 
   let body: Record<string, unknown>
   try {
