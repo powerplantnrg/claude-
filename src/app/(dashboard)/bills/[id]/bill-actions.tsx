@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { toast } from "@/lib/toast-store"
 
 interface Props {
   billId: string
@@ -12,6 +14,7 @@ export function BillActions({ billId, status }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showVoidConfirm, setShowVoidConfirm] = useState(false)
 
   const updateStatus = async (newStatus: string) => {
     setLoading(true)
@@ -25,101 +28,126 @@ export function BillActions({ billId, status }: Props) {
 
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error || "Failed to update status.")
+        const errMsg = data.error || "Failed to update status."
+        setError(errMsg)
+        toast.error("Status Update Failed", errMsg)
         return
       }
 
+      toast.success("Bill Updated", `Bill has been marked as ${newStatus}.`)
       router.refresh()
     } catch {
       setError("An unexpected error occurred.")
+      toast.error("Error", "An unexpected error occurred.")
     } finally {
       setLoading(false)
     }
   }
 
+  const handleVoidClick = () => {
+    setShowVoidConfirm(true)
+  }
+
+  const handleVoidConfirm = () => {
+    setShowVoidConfirm(false)
+    updateStatus("Void")
+  }
+
   if (status === "Paid" || status === "Void") return null
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h3 className="text-sm font-semibold text-slate-900 mb-4">Actions</h3>
+    <>
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 mb-4">Actions</h3>
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-3">
-        {status === "Draft" && (
-          <>
-            <button
-              onClick={() => updateStatus("Received")}
-              disabled={loading}
-              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            >
-              <svg
-                className="mr-2 h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Mark as Received
-            </button>
-            <button
-              onClick={() => updateStatus("Void")}
-              disabled={loading}
-              className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
-            >
-              Void Bill
-            </button>
-          </>
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
         )}
 
-        {(status === "Received" || status === "Overdue") && (
-          <>
-            <button
-              onClick={() => updateStatus("Paid")}
-              disabled={loading}
-              className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
-            >
-              <svg
-                className="mr-2 h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+        <div className="flex flex-wrap gap-3">
+          {status === "Draft" && (
+            <>
+              <button
+                onClick={() => updateStatus("Received")}
+                disabled={loading}
+                className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              Record Payment
-            </button>
-            <button
-              onClick={() => updateStatus("Void")}
-              disabled={loading}
-              className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
-            >
-              Void Bill
-            </button>
-          </>
+                <svg
+                  className="mr-2 h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Mark as Received
+              </button>
+              <button
+                onClick={handleVoidClick}
+                disabled={loading}
+                className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Void Bill
+              </button>
+            </>
+          )}
+
+          {(status === "Received" || status === "Overdue") && (
+            <>
+              <button
+                onClick={() => updateStatus("Paid")}
+                disabled={loading}
+                className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                <svg
+                  className="mr-2 h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Record Payment
+              </button>
+              <button
+                onClick={handleVoidClick}
+                disabled={loading}
+                className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
+              >
+                Void Bill
+              </button>
+            </>
+          )}
+        </div>
+
+        {status === "Draft" && (
+          <p className="mt-3 text-xs text-slate-500">
+            Marking as Received will confirm receipt. You can then record payment when the bill is paid.
+          </p>
         )}
       </div>
 
-      {status === "Draft" && (
-        <p className="mt-3 text-xs text-slate-500">
-          Marking as Received will confirm receipt. You can then record payment when the bill is paid.
-        </p>
-      )}
-    </div>
+      <ConfirmDialog
+        isOpen={showVoidConfirm}
+        onConfirm={handleVoidConfirm}
+        onCancel={() => setShowVoidConfirm(false)}
+        title="Void Bill"
+        message="Are you sure you want to void this bill? This action cannot be undone and will reverse any associated journal entries."
+        confirmLabel="Void Bill"
+        variant="destructive"
+      />
+    </>
   )
 }
