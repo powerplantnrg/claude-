@@ -65,7 +65,11 @@ export default async function PurchaseOrdersPage() {
             <tbody>
               {purchaseOrders.map((po) => (
                 <tr key={po.id} className="border-b border-slate-50 hover:bg-slate-50">
-                  <td className="px-6 py-3 font-medium text-blue-600">{po.poNumber}</td>
+                  <td className="px-6 py-3 font-medium text-blue-600">
+                    <Link href={`/purchase-orders/${po.id}`} className="hover:underline">
+                      {po.poNumber}
+                    </Link>
+                  </td>
                   <td className="px-6 py-3 text-slate-800">{po.contact.name}</td>
                   <td className="px-6 py-3 text-slate-600">{formatDate(po.date)}</td>
                   <td className="px-6 py-3 text-slate-600">

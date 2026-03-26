@@ -118,9 +118,10 @@ export default async function KnowledgeBasePage({
       {/* Articles Grid */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {articles.map((article) => (
-          <div
+          <Link
             key={article.id}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
+            href={`/rd/knowledge/${article.id}`}
+            className="block rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex items-start justify-between gap-2">
               <h3 className="text-base font-semibold text-slate-900 line-clamp-2">
@@ -156,7 +157,7 @@ export default async function KnowledgeBasePage({
                 Project: {article.project.name}
               </div>
             )}
-          </div>
+          </Link>
         ))}
       </div>
 
