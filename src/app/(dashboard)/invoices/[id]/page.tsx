@@ -60,6 +60,14 @@ export default async function InvoiceDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {invoice.status === "Draft" && (
+            <Link
+              href={`/invoices/${invoice.id}/edit`}
+              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+            >
+              Edit Invoice
+            </Link>
+          )}
           <Link
             href={`/invoices/${invoice.id}/print`}
             className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"

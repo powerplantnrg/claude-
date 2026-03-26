@@ -78,12 +78,22 @@ export default async function BillDetailPage({
             </Link>
           </p>
         </div>
-        <Link
-          href="/bills"
-          className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
-        >
-          Back to Bills
-        </Link>
+        <div className="flex items-center gap-3">
+          {bill.status === "Draft" && (
+            <Link
+              href={`/bills/${bill.id}/edit`}
+              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+            >
+              Edit Bill
+            </Link>
+          )}
+          <Link
+            href="/bills"
+            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            Back to Bills
+          </Link>
+        </div>
       </div>
 
       {/* Bill details card */}

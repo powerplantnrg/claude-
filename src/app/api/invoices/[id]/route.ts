@@ -58,8 +58,63 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { status } = body
+    const { status, contactId, date, dueDate, notes, lines: newLines } = body
 
+    // If editing fields (not a status transition), only allow for Draft invoices
+    if (newLines !== undefined) {
+      if (invoice.status !== "Draft") {
+        return NextResponse.json(
+          { error: "Only Draft invoices can be edited." },
+          { status: 400 }
+        )
+      }
+
+      // Calculate totals from line items
+      const lineData = (newLines as any[]).map((l) => {
+        const amount = l.quantity * l.unitPrice
+        const tax = l.taxType === "GST" ? amount * 0.1 : 0
+        return { ...l, amount, tax }
+      })
+
+      const subtotal = lineData.reduce((sum: number, l: any) => sum + l.amount, 0)
+      const taxTotal = lineData.reduce((sum: number, l: any) => sum + l.tax, 0)
+      const total = subtotal + taxTotal
+
+      // Delete existing lines and recreate
+      await prisma.invoiceLine.deleteMany({ where: { invoiceId: id } })
+
+      const updated = await prisma.invoice.update({
+        where: { id },
+        data: {
+          contactId,
+          date: new Date(date),
+          dueDate: new Date(dueDate),
+          notes: notes || null,
+          subtotal,
+          taxTotal,
+          total,
+          amountDue: total,
+          lines: {
+            create: lineData.map((l: any) => ({
+              description: l.description,
+              quantity: l.quantity,
+              unitPrice: l.unitPrice,
+              accountId: l.accountId,
+              taxType: l.taxType,
+              amount: l.amount,
+            })),
+          },
+        },
+        include: {
+          contact: true,
+          lines: { include: { account: true } },
+        },
+      })
+
+      return NextResponse.json(updated)
+    }
+
+    // Status transition logic
     const validTransitions: Record<string, string[]> = {
       Draft: ["Sent", "Void"],
       Sent: ["Paid", "Void"],
