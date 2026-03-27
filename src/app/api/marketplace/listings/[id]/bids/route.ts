@@ -64,7 +64,7 @@ export async function GET(
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { submittedAt: "desc" },
     })
 
     return NextResponse.json(bids)
@@ -92,7 +92,7 @@ export async function POST(
 
     // Check user has a provider profile
     const provider = await prisma.marketplaceProvider.findFirst({
-      where: { userId, status: "ACTIVE" },
+      where: { email: (session.user as any).email, status: "Active" },
     })
 
     if (!provider) {

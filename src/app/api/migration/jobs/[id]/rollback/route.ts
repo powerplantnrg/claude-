@@ -50,12 +50,12 @@ export async function POST(
     }
 
     // Check rollback deadline
-    const rollbackCheck = canRollback(job.rollbackDeadline)
-    if (!rollbackCheck) {
+    const rollbackCheck = await canRollback(id)
+    if (!rollbackCheck.canRollback) {
       return NextResponse.json(
         {
-          error: "Rollback deadline has passed",
-          rollbackDeadline: job.rollbackDeadline?.toISOString(),
+          error: rollbackCheck.reason ?? "Rollback not available",
+          rollbackDeadline: rollbackCheck.deadline?.toISOString(),
         },
         { status: 400 }
       )
@@ -147,7 +147,7 @@ export async function POST(
     })
 
     // Create rollback journal entries for audit trail
-    rollbackMigration(job.id)
+    await rollbackMigration(job.id, userId)
 
     // Reset mapping statuses
     await prisma.migrationMapping.updateMany({
@@ -166,7 +166,7 @@ export async function POST(
     })
 
     // Generate rollback report
-    const report = generateRollbackReport(job.id)
+    const report = await generateRollbackReport(job.id)
 
     await prisma.migrationAuditLog.create({
       data: {

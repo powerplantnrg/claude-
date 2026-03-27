@@ -148,7 +148,7 @@ export async function POST(
     )
 
     // Store source data snapshot
-    const existingSnapshot = (job.sourceDataSnapshot as Record<string, unknown>) || {}
+    const existingSnapshot = job.sourceDataSnapshot ? JSON.parse(job.sourceDataSnapshot) as Record<string, unknown> : {}
     await prisma.migrationJob.update({
       where: { id },
       data: {

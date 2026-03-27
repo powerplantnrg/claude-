@@ -7,6 +7,9 @@ import {
   transformTaxCode,
   recategorizeTransaction,
   detectDuplicates,
+  type MigrationRuleInput,
+  type SourceAccount,
+  type TargetAccount,
 } from "@/lib/migration/transform-engine"
 
 export async function POST(
@@ -55,6 +58,31 @@ export async function POST(
       orderBy: { priority: "asc" },
     })
 
+    // Convert rules to MigrationRuleInput format
+    const ruleInputs: MigrationRuleInput[] = rules.map((r) => ({
+      entityType: r.entityType,
+      sourceField: r.sourceField,
+      sourceValue: r.sourceValue,
+      targetField: r.targetField,
+      targetValue: r.targetValue,
+      ruleType: r.ruleType,
+      priority: r.priority,
+    }))
+
+    // Fetch target chart of accounts for mapping
+    const targetAccounts = await prisma.account.findMany({
+      where: { organizationId: orgId },
+      select: { id: true, code: true, name: true, type: true, subType: true },
+    })
+
+    const targetAccountsMapped: TargetAccount[] = targetAccounts.map((a) => ({
+      id: a.id,
+      code: a.code,
+      name: a.name,
+      type: a.type,
+      subType: a.subType ?? undefined,
+    }))
+
     let transformed = 0
     let flaggedForReview = 0
     let duplicatesDetected = 0
@@ -70,34 +98,41 @@ export async function POST(
     }
 
     for (const [entityType, mappings] of Object.entries(mappingsByType)) {
-      const entityRules = rules.filter((r) => r.entityType === entityType)
+      const entityRules = ruleInputs.filter((r) => r.entityType === entityType)
 
       // Detect duplicates within this entity type
-      const duplicates = detectDuplicates(
-        mappings.map((m) => ({
+      const sourceRecords = mappings.map((m) => {
+        const sourceData = m.sourceData ? JSON.parse(m.sourceData) : {} as Record<string, unknown>
+        return {
           id: m.id,
-          sourceData: m.sourceData as Record<string, unknown>,
-        }))
-      )
+          name: (sourceData as Record<string, unknown>).name as string || m.sourceName || "",
+          amount: parseFloat(String((sourceData as Record<string, unknown>).amount ?? "0")) || undefined,
+          date: (sourceData as Record<string, unknown>).date as string | undefined,
+        }
+      })
+
+      // Use empty array for existing records since we are comparing within source
+      const duplicates = detectDuplicates(sourceRecords, sourceRecords, entityType)
+      const duplicateSourceIds = new Set(duplicates.map((d) => d.sourceId))
       duplicatesDetected += duplicates.length
 
       for (const mapping of mappings) {
         try {
-          const sourceData = mapping.sourceData as Record<string, unknown>
+          const sourceData = mapping.sourceData ? JSON.parse(mapping.sourceData) : {} as Record<string, unknown>
           let targetId: string | null = null
           let targetEntityType: string | null = null
           let requiresReview = false
           const transformLog: string[] = []
 
           // Check if this mapping is a duplicate
-          if (duplicates.includes(mapping.id)) {
+          if (duplicateSourceIds.has(mapping.id)) {
             requiresReview = true
             transformLog.push("Flagged as potential duplicate")
           }
 
           // Apply rules
           for (const rule of entityRules) {
-            const sourceValue = sourceData[rule.sourceField]
+            const sourceValue = (sourceData as Record<string, unknown>)[rule.sourceField]
 
             if (rule.ruleType === "Mapping" && rule.sourceValue === String(sourceValue)) {
               targetId = rule.targetValue
@@ -116,36 +151,49 @@ export async function POST(
 
           // Auto-mapping based on entity type
           if (!targetId && entityType === "accounts") {
-            const accountMapping = createAccountMapping(sourceData)
-            if (accountMapping) {
-              targetId = accountMapping.targetId
+            const sourceAccount: SourceAccount = {
+              code: (sourceData as Record<string, unknown>).code as string || "",
+              name: (sourceData as Record<string, unknown>).name as string || "",
+              type: (sourceData as Record<string, unknown>).type as string || "",
+              taxType: (sourceData as Record<string, unknown>).taxCode as string | undefined,
+              balance: parseFloat(String((sourceData as Record<string, unknown>).balance ?? "0")) || undefined,
+            }
+            const accountMappings = createAccountMapping([sourceAccount], targetAccountsMapped, entityRules)
+            if (accountMappings.length > 0 && accountMappings[0].targetId) {
+              targetId = accountMappings[0].targetId
               targetEntityType = "Account"
-              transformLog.push(`Auto-mapped account: ${accountMapping.description}`)
+              transformLog.push(`Auto-mapped account: ${accountMappings[0].matchMethod}`)
             }
 
             // Transform account code
             const transformedCode = transformAccountCode(
-              sourceData.code as string,
-              job.sourceSystem
+              (sourceData as Record<string, unknown>).code as string || "",
+              job.sourceSystem,
+              entityRules
             )
             if (transformedCode) {
-              transformLog.push(`Account code transformed: ${sourceData.code} -> ${transformedCode}`)
+              transformLog.push(`Account code transformed: ${(sourceData as Record<string, unknown>).code} -> ${transformedCode}`)
             }
 
             // Transform tax code
             const transformedTax = transformTaxCode(
-              sourceData.taxCode as string,
+              (sourceData as Record<string, unknown>).taxCode as string || "",
               job.sourceSystem
             )
             if (transformedTax) {
-              transformLog.push(`Tax code transformed: ${sourceData.taxCode} -> ${transformedTax}`)
+              transformLog.push(`Tax code transformed: ${(sourceData as Record<string, unknown>).taxCode} -> ${transformedTax}`)
             }
           }
 
           if (!targetId && entityType === "invoices") {
-            const recategorized = recategorizeTransaction(sourceData, job.sourceSystem)
+            const transaction = {
+              description: (sourceData as Record<string, unknown>).description as string || "",
+              amount: parseFloat(String((sourceData as Record<string, unknown>).amount ?? "0")) || 0,
+              accountCode: (sourceData as Record<string, unknown>).accountCode as string | undefined,
+            }
+            const recategorized = recategorizeTransaction(transaction, entityRules, targetAccountsMapped)
             if (recategorized) {
-              transformLog.push(`Transaction recategorized: ${recategorized.description}`)
+              transformLog.push(`Transaction recategorized: ${recategorized.ruleName}`)
             }
           }
 
@@ -164,7 +212,7 @@ export async function POST(
               targetEntityType,
               status: newStatus,
               requiresReview,
-              transformLog: transformLog as any,
+              transformLog: JSON.stringify(transformLog),
             },
           })
 
@@ -174,8 +222,8 @@ export async function POST(
               action: "Transform",
               entityType,
               entityId: mapping.id,
-              sourceData: mapping.sourceData as any,
-              targetData: { targetId, targetEntityType } as any,
+              sourceData: mapping.sourceData ?? undefined,
+              targetData: JSON.stringify({ targetId, targetEntityType }),
               details: transformLog.join("; "),
               userId,
               timestamp: new Date(),
@@ -195,7 +243,7 @@ export async function POST(
             where: { id: mapping.id },
             data: {
               status: "Error",
-              transformLog: [`Error during transformation: ${(err as Error).message}`] as any,
+              transformLog: JSON.stringify([`Error during transformation: ${(err as Error).message}`]),
             },
           })
         }

@@ -138,8 +138,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const userEmail = (session.user as any).email as string
     const existingProvider = await prisma.marketplaceProvider.findFirst({
-      where: { userId },
+      where: { email: userEmail },
     })
 
     if (existingProvider) {
@@ -151,7 +152,6 @@ export async function POST(request: NextRequest) {
 
     const provider = await prisma.marketplaceProvider.create({
       data: {
-        userId,
         name,
         businessName: businessName || null,
         abn: abn || null,

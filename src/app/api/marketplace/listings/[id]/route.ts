@@ -20,7 +20,7 @@ export async function GET(
             status: true,
             proposedStartDate: true,
             proposedEndDate: true,
-            createdAt: true,
+            submittedAt: true,
             provider: {
               select: {
                 id: true,
@@ -32,7 +32,7 @@ export async function GET(
               },
             },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: { submittedAt: "desc" },
         },
         _count: { select: { bids: true } },
       },
@@ -52,23 +52,24 @@ export async function GET(
     })
 
     // Compute bid summary
+    const bids = listing.bids
     const bidSummary = {
       totalBids: listing._count.bids,
       averageBid:
-        listing.bids.length > 0
-          ? listing.bids.reduce((sum, b) => sum + (b.amount || 0), 0) /
-            listing.bids.length
+        bids.length > 0
+          ? bids.reduce((sum: number, b: { amount: number }) => sum + (b.amount || 0), 0) /
+            bids.length
           : null,
       lowestBid:
-        listing.bids.length > 0
-          ? Math.min(...listing.bids.map((b) => b.amount || Infinity))
+        bids.length > 0
+          ? Math.min(...bids.map((b: { amount: number }) => b.amount || Infinity))
           : null,
       highestBid:
-        listing.bids.length > 0
-          ? Math.max(...listing.bids.map((b) => b.amount || 0))
+        bids.length > 0
+          ? Math.max(...bids.map((b: { amount: number }) => b.amount || 0))
           : null,
-      statusBreakdown: listing.bids.reduce(
-        (acc: Record<string, number>, b) => {
+      statusBreakdown: bids.reduce(
+        (acc: Record<string, number>, b: { status: string }) => {
           acc[b.status] = (acc[b.status] || 0) + 1
           return acc
         },

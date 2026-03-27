@@ -22,7 +22,7 @@ export async function GET(
           orderBy: { sortOrder: "asc" },
         },
         suggestions: {
-          orderBy: { createdAt: "desc" },
+          orderBy: { id: "desc" },
         },
         listings: {
           include: {

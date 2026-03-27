@@ -85,7 +85,7 @@ export async function POST(
 
       for (const mapping of entityMappings) {
         try {
-          const sourceData = mapping.sourceData as Record<string, unknown>
+          const sourceData = mapping.sourceData ? JSON.parse(mapping.sourceData) as Record<string, unknown> : {} as Record<string, unknown>
           let targetId: string | null = mapping.targetId
 
           // If already mapped to an existing entity, skip creation
@@ -102,8 +102,8 @@ export async function POST(
           if (entityType === "accounts") {
             const account = await prisma.account.create({
               data: {
-                code: (sourceData.code as string) || `MIG-${mapping.sourceCode}`,
-                name: (sourceData.name as string) || mapping.sourceName,
+                code: (sourceData.code as string) || `MIG-${mapping.sourceCode ?? ""}`,
+                name: (sourceData.name as string) || mapping.sourceName || "Unnamed",
                 type: (sourceData.type as string) || "Expense",
                 subType: (sourceData.subType as string) || null,
                 description: (sourceData.description as string) || `Migrated from ${job.sourceSystem}`,
@@ -115,10 +115,10 @@ export async function POST(
           } else if (entityType === "contacts") {
             const contact = await prisma.contact.create({
               data: {
-                name: (sourceData.name as string) || mapping.sourceName,
+                name: (sourceData.name as string) || mapping.sourceName || "Unnamed",
                 email: (sourceData.email as string) || null,
                 phone: (sourceData.phone as string) || null,
-                type: (sourceData.type as string) || "Customer",
+                contactType: (sourceData.type as string) || "Customer",
                 organizationId: orgId,
               },
             })
@@ -126,13 +126,13 @@ export async function POST(
           } else if (entityType === "invoices") {
             const invoice = await prisma.invoice.create({
               data: {
-                invoiceNumber: (sourceData.invoiceNumber as string) || `MIG-${mapping.sourceCode}`,
+                invoiceNumber: (sourceData.invoiceNumber as string) || `MIG-${mapping.sourceCode ?? ""}`,
                 contactId: sourceData.contactId as string,
                 date: new Date((sourceData.date as string) || new Date().toISOString()),
                 dueDate: new Date((sourceData.dueDate as string) || new Date().toISOString()),
                 status: "Draft",
-                subTotal: Number(sourceData.subTotal) || 0,
-                taxAmount: Number(sourceData.taxAmount) || 0,
+                subtotal: Number(sourceData.subTotal) || 0,
+                taxTotal: Number(sourceData.taxAmount) || 0,
                 total: Number(sourceData.total) || 0,
                 organizationId: orgId,
               },
@@ -166,8 +166,8 @@ export async function POST(
               action: "EntityImported",
               entityType,
               entityId: targetId,
-              sourceData: mapping.sourceData as any,
-              targetData: { targetId } as any,
+              sourceData: mapping.sourceData ?? undefined,
+              targetData: JSON.stringify({ targetId }),
               details: `Imported ${entityType} record: ${mapping.sourceName || mapping.sourceCode}`,
               userId,
               timestamp: new Date(),
@@ -203,17 +203,28 @@ export async function POST(
     }
 
     // Generate opening balance journal entries
-    const openingBalances = generateOpeningBalances(
-      mappings
-        .filter((m) => m.entityType === "accounts")
-        .map((m) => m.sourceData as Record<string, unknown>)
-    )
+    const accountMappings = mappings
+      .filter((m) => m.entityType === "accounts" && m.targetId)
+      .map((m) => {
+        const sourceData = m.sourceData ? JSON.parse(m.sourceData) as Record<string, unknown> : {} as Record<string, unknown>
+        return {
+          accountId: m.targetId as string,
+          accountCode: (sourceData.code as string) || m.sourceCode || "",
+          balance: parseFloat(String(sourceData.balance ?? sourceData.openingBalance ?? "0")) || 0,
+        }
+      })
 
-    const migrationJournalEntries = generateMigrationJournalEntries(
+    const openingBalances = generateOpeningBalances(accountMappings, new Date())
+
+    // Generate migration journal entries via the library
+    const migrationJournalResult = await generateMigrationJournalEntries(
+      id,
       mappings.map((m) => ({
         entityType: m.entityType,
-        sourceData: m.sourceData as Record<string, unknown>,
+        sourceId: m.sourceId,
         targetId: m.targetId,
+        sourceName: m.sourceName || "",
+        amount: m.sourceData ? (parseFloat(String((JSON.parse(m.sourceData) as Record<string, unknown>).total ?? "0")) || 0) : 0,
       }))
     )
 
@@ -229,18 +240,18 @@ export async function POST(
       const journalEntry = await prisma.journalEntry.create({
         data: {
           entryNumber: nextEntryNumber++,
-          date: new Date(),
+          date: ob.date,
           reference: `MIG-${job.id.slice(0, 8)}-OB`,
           narration: ob.description || `Migration opening balance from ${job.sourceSystem}`,
           status: "Posted",
           organizationId: orgId,
           lines: {
-            create: ob.lines.map((line: { accountId: string; debit: number; credit: number; description?: string }) => ({
-              accountId: line.accountId,
-              debit: line.debit || 0,
-              credit: line.credit || 0,
-              description: line.description || "Migration opening balance",
-            })),
+            create: [{
+              accountId: ob.accountId,
+              debit: ob.debit,
+              credit: ob.credit,
+              description: ob.description || "Migration opening balance",
+            }],
           },
         },
       })
@@ -252,40 +263,7 @@ export async function POST(
           description: ob.description || "Opening balance",
           entryType: "OpeningBalance",
           sourceReference: `${job.sourceSystem}-OB`,
-          amount: ob.amount || 0,
-        },
-      })
-    }
-
-    // Create migration audit trail journal entries
-    for (const mje of migrationJournalEntries) {
-      const journalEntry = await prisma.journalEntry.create({
-        data: {
-          entryNumber: nextEntryNumber++,
-          date: new Date(),
-          reference: `MIG-${job.id.slice(0, 8)}-AUDIT`,
-          narration: mje.description || `Migration data transfer from ${job.sourceSystem}`,
-          status: "Posted",
-          organizationId: orgId,
-          lines: {
-            create: mje.lines.map((line: { accountId: string; debit: number; credit: number; description?: string }) => ({
-              accountId: line.accountId,
-              debit: line.debit || 0,
-              credit: line.credit || 0,
-              description: line.description || "Migration audit trail",
-            })),
-          },
-        },
-      })
-
-      await prisma.migrationJournalEntry.create({
-        data: {
-          migrationJobId: id,
-          journalEntryId: journalEntry.id,
-          description: mje.description || "Data transfer audit",
-          entryType: "DataTransfer",
-          sourceReference: mje.sourceReference || `${job.sourceSystem}-TRANSFER`,
-          amount: mje.amount || 0,
+          amount: ob.debit || ob.credit || 0,
         },
       })
     }
@@ -306,7 +284,7 @@ export async function POST(
         action: "ImportComplete",
         entityType: "MigrationJob",
         entityId: id,
-        details: `Import complete: ${imported} imported, ${failed} failed, ${skipped} skipped. ${openingBalances.length} opening balance entries, ${migrationJournalEntries.length} audit trail entries created.`,
+        details: `Import complete: ${imported} imported, ${failed} failed, ${skipped} skipped. ${openingBalances.length} opening balance entries. Migration journal: ${migrationJournalResult.created} created, ${migrationJournalResult.skipped} skipped.`,
         userId,
         timestamp: new Date(),
       },
@@ -320,7 +298,7 @@ export async function POST(
         failed,
         skipped,
         openingBalanceEntries: openingBalances.length,
-        auditTrailEntries: migrationJournalEntries.length,
+        migrationJournalEntries: migrationJournalResult,
       },
     })
   } catch (error) {

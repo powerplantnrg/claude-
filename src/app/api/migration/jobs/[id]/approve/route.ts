@@ -62,7 +62,7 @@ export async function POST(
     rollbackDeadline.setDate(rollbackDeadline.getDate() + 30)
 
     // Archive source data
-    archiveSourceData(job.id, job.sourceDataSnapshot as Record<string, unknown>)
+    await archiveSourceData(job.id)
 
     // Update job status to Completed
     const updated = await prisma.migrationJob.update({

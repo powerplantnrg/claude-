@@ -49,132 +49,22 @@ export async function POST(
       where: { migrationJobId: id },
     })
 
-    // Fetch all mappings grouped by entity type
-    const mappings = await prisma.migrationMapping.findMany({
-      where: { migrationJobId: id },
-    })
+    // Run all reconciliation checks via the library
+    const accountResult = await reconcileAccounts(id)
+    const contactResult = await reconcileContactCounts(id)
+    const transactionResults = await reconcileTransactionTotals(id)
 
-    const mappingsByType: Record<string, typeof mappings> = {}
-    for (const mapping of mappings) {
-      if (!mappingsByType[mapping.entityType]) {
-        mappingsByType[mapping.entityType] = []
-      }
-      mappingsByType[mapping.entityType].push(mapping)
-    }
+    const reconciliationResults = [
+      accountResult,
+      contactResult,
+      ...transactionResults,
+    ]
 
-    const reconciliationResults: Array<{
-      entityType: string
-      sourceTotal: number
-      importedTotal: number
-      variance: number
-      variancePercentage: number
-      status: string
-    }> = []
-
-    // Reconcile accounts
-    if (mappingsByType.accounts) {
-      const accountMappings = mappingsByType.accounts
-      const sourceData = accountMappings.map((m) => m.sourceData as Record<string, unknown>)
-      const importedIds = accountMappings
-        .filter((m) => m.status === "Imported" && m.targetId)
-        .map((m) => m.targetId as string)
-
-      const accountRecon = reconcileAccounts(sourceData, importedIds)
-
-      const variance = accountRecon.sourceTotal - accountRecon.importedTotal
-      const variancePercentage =
-        accountRecon.sourceTotal > 0
-          ? (Math.abs(variance) / accountRecon.sourceTotal) * 100
-          : 0
-
-      const varianceFlags = flagVariances(variance, variancePercentage)
-      const status = varianceFlags.hasIssue ? "Variance" : "Matched"
-
-      reconciliationResults.push({
-        entityType: "accounts",
-        sourceTotal: accountRecon.sourceTotal,
-        importedTotal: accountRecon.importedTotal,
-        variance,
-        variancePercentage,
-        status,
-      })
-    }
-
-    // Reconcile contacts
-    if (mappingsByType.contacts) {
-      const contactMappings = mappingsByType.contacts
-      const sourceData = contactMappings.map((m) => m.sourceData as Record<string, unknown>)
-      const importedIds = contactMappings
-        .filter((m) => m.status === "Imported" && m.targetId)
-        .map((m) => m.targetId as string)
-
-      const contactRecon = reconcileContactCounts(sourceData, importedIds)
-
-      const variance = contactRecon.sourceTotal - contactRecon.importedTotal
-      const variancePercentage =
-        contactRecon.sourceTotal > 0
-          ? (Math.abs(variance) / contactRecon.sourceTotal) * 100
-          : 0
-
-      const varianceFlags = flagVariances(variance, variancePercentage)
-      const status = varianceFlags.hasIssue ? "Variance" : "Matched"
-
-      reconciliationResults.push({
-        entityType: "contacts",
-        sourceTotal: contactRecon.sourceTotal,
-        importedTotal: contactRecon.importedTotal,
-        variance,
-        variancePercentage,
-        status,
-      })
-    }
-
-    // Reconcile invoices/transactions
-    if (mappingsByType.invoices) {
-      const invoiceMappings = mappingsByType.invoices
-      const sourceData = invoiceMappings.map((m) => m.sourceData as Record<string, unknown>)
-      const importedIds = invoiceMappings
-        .filter((m) => m.status === "Imported" && m.targetId)
-        .map((m) => m.targetId as string)
-
-      const txnRecon = reconcileTransactionTotals(sourceData, importedIds)
-
-      const variance = txnRecon.sourceTotal - txnRecon.importedTotal
-      const variancePercentage =
-        txnRecon.sourceTotal > 0
-          ? (Math.abs(variance) / txnRecon.sourceTotal) * 100
-          : 0
-
-      const varianceFlags = flagVariances(variance, variancePercentage)
-      const status = varianceFlags.hasIssue ? "Variance" : "Matched"
-
-      reconciliationResults.push({
-        entityType: "invoices",
-        sourceTotal: txnRecon.sourceTotal,
-        importedTotal: txnRecon.importedTotal,
-        variance,
-        variancePercentage,
-        status,
-      })
-    }
-
-    // Create reconciliation records
-    for (const recon of reconciliationResults) {
-      await prisma.migrationReconciliation.create({
-        data: {
-          migrationJobId: id,
-          entityType: recon.entityType,
-          sourceTotal: recon.sourceTotal,
-          importedTotal: recon.importedTotal,
-          variance: recon.variance,
-          variancePercentage: recon.variancePercentage,
-          status: recon.status,
-        },
-      })
-    }
+    // Flag variances with 1% tolerance
+    const flaggedItems = await flagVariances(id, 1)
 
     // Generate report
-    const report = generateReconciliationReport(reconciliationResults)
+    const report = await generateReconciliationReport(id)
 
     await prisma.migrationAuditLog.create({
       data: {
@@ -182,7 +72,7 @@ export async function POST(
         action: "ReconciliationComplete",
         entityType: "MigrationJob",
         entityId: id,
-        details: `Reconciliation complete: ${reconciliationResults.length} entity types reconciled. Variances: ${reconciliationResults.filter((r) => r.status === "Variance").length}`,
+        details: `Reconciliation complete: ${reconciliationResults.length} entity types reconciled. Variances: ${reconciliationResults.filter((r) => r.status === "Variance").length}. Flagged: ${flaggedItems.length}`,
         userId,
         timestamp: new Date(),
       },

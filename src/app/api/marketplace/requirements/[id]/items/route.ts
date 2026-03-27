@@ -102,8 +102,8 @@ export async function POST(
             requirementId: id,
             title: suggestion.itemTitle,
             description: suggestion.itemDescription,
-            category: suggestion.category,
-            quantity: suggestion.quantity,
+            category: suggestion.category ?? "Other",
+            quantity: suggestion.quantity ?? undefined,
             unitType: suggestion.unitType,
             duration: suggestion.duration,
             estimatedBudget: suggestion.estimatedCost,
@@ -162,8 +162,8 @@ export async function POST(
         requirementId: id,
         title,
         description: description || null,
-        category: category || null,
-        quantity: quantity ? parseInt(quantity) : null,
+        category: category || "Other",
+        quantity: quantity ? parseInt(quantity) : undefined,
         unitType: unitType || null,
         duration: duration || null,
         frequencyDescription: frequencyDescription || null,
@@ -257,7 +257,7 @@ export async function PATCH(
         if (field === "estimatedBudget") {
           data[field] = updates[field] ? parseFloat(updates[field]) : null
         } else if (field === "quantity" || field === "sortOrder") {
-          data[field] = updates[field] !== null ? parseInt(updates[field]) : null
+          data[field] = updates[field] !== null ? parseInt(updates[field]) : undefined
         } else {
           data[field] = updates[field]
         }

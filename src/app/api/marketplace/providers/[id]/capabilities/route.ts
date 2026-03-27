@@ -22,7 +22,7 @@ export async function GET(
 
     const capabilities = await prisma.providerCapability.findMany({
       where: { providerId: id },
-      orderBy: { createdAt: "desc" },
+      orderBy: { capabilityType: "asc" },
     })
 
     return NextResponse.json(capabilities)
@@ -59,7 +59,7 @@ export async function POST(
       )
     }
 
-    if (provider.userId !== userId) {
+    if (provider.email !== (session.user as any).email) {
       return NextResponse.json(
         { error: "You can only add capabilities to your own profile" },
         { status: 403 }
@@ -121,7 +121,7 @@ export async function DELETE(
       )
     }
 
-    if (provider.userId !== userId) {
+    if (provider.email !== (session.user as any).email) {
       return NextResponse.json(
         { error: "You can only remove capabilities from your own profile" },
         { status: 403 }

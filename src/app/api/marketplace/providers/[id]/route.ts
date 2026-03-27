@@ -89,7 +89,7 @@ export async function PATCH(
       )
     }
 
-    if (provider.userId !== userId) {
+    if (provider.email !== (session.user as any).email) {
       return NextResponse.json(
         { error: "You can only update your own provider profile" },
         { status: 403 }
@@ -180,7 +180,7 @@ export async function DELETE(
       )
     }
 
-    if (provider.userId !== userId) {
+    if (provider.email !== (session.user as any).email) {
       return NextResponse.json(
         { error: "You can only deactivate your own provider profile" },
         { status: 403 }
