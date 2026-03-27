@@ -36,7 +36,6 @@ export async function GET(
             rating: true,
             reviewCount: true,
             verified: true,
-            userId: true,
           },
         },
       },
@@ -48,7 +47,8 @@ export async function GET(
 
     // Access: org that owns the listing OR the provider who bid
     const isListingOwner = bid.listing.organizationId === orgId
-    const isProvider = bid.provider.userId === userId
+    const userProvider = await prisma.marketplaceProvider.findFirst({ where: { email: (session.user as any).email } })
+    const isProvider = userProvider?.id === bid.providerId
 
     if (!isListingOwner && !isProvider) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 })
@@ -85,7 +85,7 @@ export async function PATCH(
           select: { id: true, organizationId: true },
         },
         provider: {
-          select: { id: true, userId: true },
+          select: { id: true },
         },
       },
     })
@@ -105,7 +105,8 @@ export async function PATCH(
     }
 
     const isListingOwner = bid.listing.organizationId === orgId
-    const isProvider = bid.provider.userId === userId
+    const userProvider = await prisma.marketplaceProvider.findFirst({ where: { email: (session.user as any).email } })
+    const isProvider = userProvider?.id === bid.provider.id
 
     // Validate allowed transitions based on role
     const orgAllowedStatuses = ["ACCEPTED", "REJECTED", "SHORTLISTED"]

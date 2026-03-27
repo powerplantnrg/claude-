@@ -36,8 +36,9 @@ export async function GET(
     // If org owns the listing, show all bids; otherwise only show own bids
     if (listing.organizationId !== orgId) {
       const userId = (session.user as any).id
+      const userEmail = (session.user as any).email
       const provider = await prisma.marketplaceProvider.findFirst({
-        where: { userId },
+        where: { email: userEmail },
       })
       if (provider) {
         where.providerId = provider.id
