@@ -61,6 +61,7 @@ import {
   Package,
   Boxes,
   Store,
+  FileEdit,
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -93,6 +94,7 @@ const navSections: NavSection[] = [
     title: "Accounting",
     items: [
       { label: "Invoices", href: "/invoices", icon: FileText },
+      { label: "Quotes", href: "/quotes", icon: FileEdit },
       { label: "Recurring", href: "/invoices/recurring", icon: Repeat },
       { label: "Credit Notes", href: "/invoices/credit-notes", icon: FileMinus },
       { label: "Bills", href: "/bills", icon: Receipt },
