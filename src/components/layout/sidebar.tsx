@@ -43,6 +43,7 @@ import {
   Repeat,
   FileMinus,
   ListChecks,
+  ArrowRightLeft,
   Plug,
   Webhook,
   Wallet,
@@ -59,6 +60,7 @@ import {
   Coins,
   Package,
   Boxes,
+  Store,
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -176,6 +178,18 @@ const navSections: NavSection[] = [
       { label: "Bank Feeds", href: "/integrations/bank-feeds", icon: Landmark },
       { label: "STP Filing", href: "/integrations/stp", icon: FileSpreadsheet },
       { label: "Data Export", href: "/integrations/export", icon: FileBarChart },
+      { label: "Data Migration", href: "/migration", icon: ArrowRightLeft },
+    ],
+  },
+  {
+    title: "Marketplace",
+    items: [
+      { label: "Marketplace", href: "/marketplace", icon: Store },
+      { label: "Specialists", href: "/marketplace/providers", icon: Users },
+      { label: "Requirements", href: "/marketplace/requirements", icon: ClipboardList },
+      { label: "Listings", href: "/marketplace/listings", icon: FileText },
+      { label: "Contracts", href: "/marketplace/contracts", icon: Briefcase },
+      { label: "Financing", href: "/marketplace/financing", icon: DollarSign },
     ],
   },
   {
