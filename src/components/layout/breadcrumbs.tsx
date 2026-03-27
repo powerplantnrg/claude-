@@ -64,6 +64,56 @@ const routeLabels: Record<string, string> = {
   "command-center": "Command Center",
   "data-room": "Investor Data Room",
 
+  // Payroll
+  payroll: "Payroll",
+  employees: "Employees",
+  "pay-runs": "Pay Runs",
+  leave: "Leave",
+  "tax-strategies": "Tax Strategies",
+  fbt: "FBT",
+
+  // Fixed Assets
+  assets: "Fixed Assets",
+
+  // Inventory
+  inventory: "Inventory",
+  movements: "Movements",
+  "stock-takes": "Stock Takes",
+
+  // Time Tracking
+  "time-tracking": "Time Tracking",
+
+  // Documents
+  documents: "Documents",
+  upload: "Upload",
+
+  // Integrations
+  integrations: "Integrations",
+  "bank-feeds": "Bank Feeds",
+  stp: "STP Filing",
+  export: "Data Export",
+
+  // Migration
+  migration: "Data Migration",
+
+  // Marketplace
+  marketplace: "Marketplace",
+  register: "Register",
+  requirements: "Requirements",
+  listings: "Listings",
+  contracts: "Contracts",
+  financing: "Financing",
+
+  // Approvals
+  approvals: "Approvals",
+  workflows: "Workflows",
+
+  // Analytics
+  analytics: "Analytics",
+  financial: "Financial Analytics",
+  "rd-roi": "R&D ROI",
+  "payroll-insights": "Payroll Insights",
+
   // Settings
   settings: "Settings",
   users: "Users",

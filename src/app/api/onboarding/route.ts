@@ -18,6 +18,10 @@ export async function GET() {
     rdProjectsCount,
     cloudProvidersCount,
     bankTransactionsCount,
+    employeesCount,
+    approvalWorkflowsCount,
+    marketplaceListingsCount,
+    migrationJobsCount,
   ] = await Promise.all([
     prisma.organization.findUnique({
       where: { id: orgId },
@@ -29,6 +33,10 @@ export async function GET() {
     prisma.rdProject.count({ where: { organizationId: orgId } }),
     prisma.cloudProvider.count({ where: { organizationId: orgId } }),
     prisma.bankTransaction.count({ where: { organizationId: orgId } }),
+    prisma.employee.count({ where: { organizationId: orgId } }),
+    prisma.approvalWorkflow.count({ where: { organizationId: orgId } }),
+    prisma.marketplaceListing.count({ where: { organizationId: orgId } }),
+    prisma.migrationJob.count({ where: { organizationId: orgId } }),
   ])
 
   const hasOrgDetails = !!(organization?.abn && organization?.address)
@@ -41,6 +49,10 @@ export async function GET() {
     { key: "rdProjects", label: "Set up an R&D project", completed: rdProjectsCount > 0, link: "/rd/projects/new" },
     { key: "cloudProviders", label: "Configure cloud providers", completed: cloudProvidersCount > 0, link: "/cloud/providers" },
     { key: "bankTransactions", label: "Import bank transactions", completed: bankTransactionsCount > 0, link: "/banking/import" },
+    { key: "payroll", label: "Set up payroll (add first employee)", completed: employeesCount > 0, link: "/payroll/employees/new" },
+    { key: "approvals", label: "Configure approval workflows", completed: approvalWorkflowsCount > 0, link: "/approvals/workflows/new" },
+    { key: "marketplace", label: "Register as marketplace provider (optional)", completed: marketplaceListingsCount > 0, link: "/marketplace/providers/register" },
+    { key: "migration", label: "Import data from legacy system (optional)", completed: migrationJobsCount > 0, link: "/migration/new" },
   ]
 
   const completedCount = items.filter((i) => i.completed).length

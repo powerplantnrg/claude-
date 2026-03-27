@@ -19,11 +19,37 @@ export async function GET(request: NextRequest) {
       projects: [],
       experiments: [],
       accounts: [],
+      rdActivities: [],
+      employees: [],
+      fixedAssets: [],
+      inventoryItems: [],
+      costingProjects: [],
+      documents: [],
+      marketplaceProviders: [],
+      marketplaceListings: [],
+      marketplaceContracts: [],
+      migrationJobs: [],
     })
   }
 
-  const [contacts, invoices, bills, projects, experiments, accounts] =
-    await Promise.all([
+  const [
+    contacts,
+    invoices,
+    bills,
+    projects,
+    experiments,
+    accounts,
+    rdActivities,
+    employees,
+    fixedAssets,
+    inventoryItems,
+    costingProjects,
+    documents,
+    marketplaceProviders,
+    marketplaceListings,
+    marketplaceContracts,
+    migrationJobs,
+  ] = await Promise.all([
       prisma.contact.findMany({
         where: {
           organizationId: orgId,
@@ -101,6 +127,120 @@ export async function GET(request: NextRequest) {
         select: { id: true, name: true, code: true, type: true },
         take: 5,
       }),
+
+      prisma.rdActivity.findMany({
+        where: {
+          name: { contains: q },
+          rdProject: { organizationId: orgId },
+        },
+        select: { id: true, name: true, status: true, rdProjectId: true },
+        take: 5,
+      }),
+
+      prisma.employee.findMany({
+        where: {
+          organizationId: orgId,
+          OR: [
+            { firstName: { contains: q } },
+            { lastName: { contains: q } },
+            { email: { contains: q } },
+          ],
+        },
+        select: { id: true, firstName: true, lastName: true, email: true, active: true },
+        take: 5,
+      }),
+
+      prisma.fixedAsset.findMany({
+        where: {
+          organizationId: orgId,
+          OR: [
+            { name: { contains: q } },
+            { assetNumber: { contains: q } },
+          ],
+        },
+        select: { id: true, name: true, assetNumber: true, status: true },
+        take: 5,
+      }),
+
+      prisma.inventoryItem.findMany({
+        where: {
+          organizationId: orgId,
+          OR: [
+            { name: { contains: q } },
+            { sku: { contains: q } },
+          ],
+        },
+        select: { id: true, name: true, sku: true, quantityOnHand: true },
+        take: 5,
+      }),
+
+      prisma.project.findMany({
+        where: {
+          organizationId: orgId,
+          OR: [
+            { name: { contains: q } },
+            { code: { contains: q } },
+          ],
+        },
+        select: { id: true, name: true, code: true, status: true },
+        take: 5,
+      }),
+
+      prisma.document.findMany({
+        where: {
+          organizationId: orgId,
+          OR: [
+            { name: { contains: q } },
+            { description: { contains: q } },
+          ],
+        },
+        select: { id: true, name: true, entityType: true },
+        take: 5,
+      }),
+
+      prisma.marketplaceProvider.findMany({
+        where: {
+          OR: [
+            { name: { contains: q } },
+            { businessName: { contains: q } },
+            { description: { contains: q } },
+          ],
+        },
+        select: { id: true, name: true, status: true },
+        take: 5,
+      }),
+
+      prisma.marketplaceListing.findMany({
+        where: {
+          title: { contains: q },
+          organizationId: orgId,
+        },
+        select: { id: true, title: true, status: true },
+        take: 5,
+      }),
+
+      prisma.marketplaceContract.findMany({
+        where: {
+          title: { contains: q },
+          listing: {
+            organizationId: orgId,
+          },
+        },
+        select: { id: true, title: true, status: true },
+        take: 5,
+      }),
+
+      prisma.migrationJob.findMany({
+        where: {
+          organizationId: orgId,
+          OR: [
+            { name: { contains: q } },
+            { sourceSystem: { contains: q } },
+          ],
+        },
+        select: { id: true, name: true, status: true, sourceSystem: true },
+        take: 5,
+      }),
     ])
 
   return NextResponse.json({
@@ -110,5 +250,15 @@ export async function GET(request: NextRequest) {
     projects,
     experiments,
     accounts,
+    rdActivities,
+    employees,
+    fixedAssets,
+    inventoryItems,
+    costingProjects,
+    documents,
+    marketplaceProviders,
+    marketplaceListings,
+    marketplaceContracts,
+    migrationJobs,
   })
 }

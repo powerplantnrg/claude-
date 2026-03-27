@@ -64,6 +64,9 @@ export function KeyboardShortcuts() {
           b: "/bills",
           r: "/reports",
           p: "/rd/projects",
+          y: "/payroll",
+          t: "/time-tracking",
+          m: "/marketplace",
         }
         const route = routes[e.key.toLowerCase()]
         if (route) {

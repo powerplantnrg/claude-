@@ -41,6 +41,21 @@ export default async function DashboardPage() {
     rdClaimEstimate,
     monthlyJournalLines,
     rdExpensesByCategory,
+    // New module queries
+    employeeCount,
+    latestPayRun,
+    taxSavings,
+    pendingLeave,
+    activeProjects,
+    inventoryValue,
+    pendingApprovals,
+    unbilledWip,
+    activeListings,
+    bidsReceived,
+    activeContracts,
+    contractValue,
+    activeMigrations,
+    activeExperiments,
   ] = await Promise.all([
     // Total revenue: sum of credit on Revenue accounts in posted journal entries
     prisma.journalLine.aggregate({
@@ -129,12 +144,51 @@ export default async function DashboardPage() {
         journalLine: true,
       },
     }),
+    // --- New module queries ---
+    // Employees
+    prisma.employee.count({ where: { organizationId: orgId, active: true } }),
+    // Latest pay run
+    prisma.payRun.findFirst({ where: { organizationId: orgId, status: "Completed" }, orderBy: { payDate: "desc" } }),
+    // Tax savings from implemented strategies
+    prisma.taxMinimisationStrategy.aggregate({
+      _sum: { estimatedSaving: true },
+      where: { organizationId: orgId, implemented: true },
+    }),
+    // Pending leave requests
+    prisma.leaveRequest.count({ where: { organizationId: orgId, status: "Pending" } }),
+    // Active projects (costing)
+    prisma.project.count({ where: { organizationId: orgId, status: "Active" } }),
+    // Inventory value
+    prisma.inventoryItem.findMany({ where: { organizationId: orgId, isTracked: true, isActive: true }, select: { quantityOnHand: true, costPrice: true } }),
+    // Pending approvals
+    prisma.approvalRequest.count({ where: { organizationId: orgId, status: { in: ["Pending", "InProgress"] } } }),
+    // Unbilled WIP
+    prisma.timeEntry.findMany({ where: { organizationId: orgId, billable: true, billed: false }, select: { hours: true, hourlyRate: true } }),
+    // Marketplace: active listings
+    prisma.marketplaceListing.count({ where: { organizationId: orgId, status: "Open" } }),
+    // Marketplace: bids received
+    prisma.marketplaceBid.count({ where: { listing: { organizationId: orgId } } }),
+    // Marketplace: active contracts
+    prisma.marketplaceContract.count({ where: { organizationId: orgId, status: "Active" } }),
+    // Marketplace: contract value
+    prisma.marketplaceContract.aggregate({ _sum: { agreedAmount: true }, where: { organizationId: orgId, status: "Active" } }),
+    // Active migrations
+    prisma.migrationJob.count({ where: { organizationId: orgId, status: { in: ["Pending", "Validating", "Importing", "Transforming", "Reconciling", "PendingReview"] } } }),
+    // Active experiments
+    prisma.experiment.count({ where: { rdActivity: { rdProject: { organizationId: orgId } }, status: "InProgress" } }),
   ])
 
   const totalRevenue = revenueResult._sum.credit ?? 0
   const totalExpenses = expenseResult._sum.debit ?? 0
   const netProfit = totalRevenue - totalExpenses
   const estimatedRdClaim = rdClaimEstimate._sum.debit ?? 0
+
+  // New module computed values
+  const monthlyPayroll = latestPayRun?.totalGross ?? 0
+  const totalTaxSavings = taxSavings._sum.estimatedSaving ?? 0
+  const totalInventoryValue = inventoryValue.reduce((sum: number, i: any) => sum + (i.quantityOnHand * i.costPrice), 0)
+  const totalUnbilledWip = unbilledWip.reduce((sum: number, t: any) => sum + (t.hours * t.hourlyRate), 0)
+  const totalContractValue = contractValue._sum.agreedAmount ?? 0
 
   // Build chart data: Revenue vs Expenses by month (last 6 months)
   const now = new Date()
@@ -317,6 +371,75 @@ export default async function DashboardPage() {
             sparklineColor={kpi.sparklineColor}
           />
         ))}
+      </div>
+
+      {/* People & Operations */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        {[
+          { label: "Employees", value: employeeCount.toString(), href: "/payroll/employees", color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20" },
+          { label: "Monthly Payroll", value: formatCurrency(monthlyPayroll), href: "/payroll", color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20" },
+          { label: "Tax Savings", value: formatCurrency(totalTaxSavings), href: "/payroll/tax-strategies", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+          { label: "Pending Leave", value: pendingLeave.toString(), href: "/payroll/leave", color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20" },
+          { label: "Active Projects", value: activeProjects.toString(), href: "/projects", color: "text-indigo-700 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-900/20" },
+          { label: "Experiments", value: activeExperiments.toString(), href: "/rd/experiments", color: "text-violet-700 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-900/20" },
+        ].map((item) => (
+          <Link key={item.label} href={item.href} className={`rounded-xl border border-slate-200 dark:border-slate-700 ${item.bg} p-4 transition-shadow hover:shadow-md`}>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{item.label}</p>
+            <p className={`mt-1 text-lg font-bold ${item.color}`}>{item.value}</p>
+          </Link>
+        ))}
+      </div>
+
+      {/* Operations & Marketplace */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        {[
+          { label: "Inventory Value", value: formatCurrency(totalInventoryValue), href: "/inventory", color: "text-teal-700 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-900/20" },
+          { label: "Pending Approvals", value: pendingApprovals.toString(), href: "/approvals", color: pendingApprovals > 0 ? "text-amber-700 dark:text-amber-400" : "text-slate-700 dark:text-slate-400", bg: pendingApprovals > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-slate-50 dark:bg-slate-800" },
+          { label: "Unbilled WIP", value: formatCurrency(totalUnbilledWip), href: "/time-tracking", color: "text-orange-700 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/20" },
+          { label: "Marketplace Listings", value: activeListings.toString(), href: "/marketplace/listings", color: "text-pink-700 dark:text-pink-400", bg: "bg-pink-50 dark:bg-pink-900/20" },
+          { label: "Bids Received", value: bidsReceived.toString(), href: "/marketplace", color: "text-pink-700 dark:text-pink-400", bg: "bg-pink-50 dark:bg-pink-900/20" },
+          { label: "Contract Value", value: formatCurrency(totalContractValue), href: "/marketplace/contracts", color: "text-pink-700 dark:text-pink-400", bg: "bg-pink-50 dark:bg-pink-900/20" },
+        ].map((item) => (
+          <Link key={item.label} href={item.href} className={`rounded-xl border border-slate-200 dark:border-slate-700 ${item.bg} p-4 transition-shadow hover:shadow-md`}>
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{item.label}</p>
+            <p className={`mt-1 text-lg font-bold ${item.color}`}>{item.value}</p>
+          </Link>
+        ))}
+      </div>
+
+      {activeMigrations > 0 && (
+        <Link href="/migration" className="block rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4 transition-shadow hover:shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-800">
+              <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{activeMigrations} Active Migration{activeMigrations > 1 ? "s" : ""}</p>
+              <p className="text-xs text-blue-600 dark:text-blue-400">Data migration in progress — click to view status</p>
+            </div>
+          </div>
+        </Link>
+      )}
+
+      {/* Quick Actions */}
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm p-4">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">Quick Actions</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+          {[
+            { label: "New Invoice", href: "/invoices/new" },
+            { label: "New Bill", href: "/bills/new" },
+            { label: "Run Payroll", href: "/payroll/pay-runs/new" },
+            { label: "New Project", href: "/projects/new" },
+            { label: "Log Time", href: "/time-tracking" },
+            { label: "Start Migration", href: "/migration/new" },
+            { label: "Post to Market", href: "/marketplace/requirements/new" },
+            { label: "View Reports", href: "/reports" },
+          ].map((a) => (
+            <Link key={a.label} href={a.href} className="rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-center text-xs font-medium text-slate-700 dark:text-slate-300 transition-colors hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-400">
+              {a.label}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Charts Section */}

@@ -11,6 +11,16 @@ interface SearchResults {
   projects: { id: string; name: string; status: string }[]
   experiments: { id: string; name: string; status: string }[]
   accounts: { id: string; name: string; code: string; type: string }[]
+  rdActivities: { id: string; name: string; status: string; rdProjectId: string }[]
+  employees: { id: string; firstName: string; lastName: string; email: string; active: boolean }[]
+  fixedAssets: { id: string; name: string; assetNumber: string; status: string }[]
+  inventoryItems: { id: string; name: string; sku: string | null; quantityOnHand: number }[]
+  costingProjects: { id: string; name: string; code: string | null; status: string }[]
+  documents: { id: string; name: string; entityType: string | null }[]
+  marketplaceProviders: { id: string; name: string; status: string }[]
+  marketplaceListings: { id: string; title: string; status: string }[]
+  marketplaceContracts: { id: string; title: string; status: string }[]
+  migrationJobs: { id: string; name: string; status: string; sourceSystem: string }[]
 }
 
 const CATEGORY_LABELS: Record<keyof SearchResults, string> = {
@@ -20,6 +30,16 @@ const CATEGORY_LABELS: Record<keyof SearchResults, string> = {
   projects: "R&D Projects",
   experiments: "Experiments",
   accounts: "Accounts",
+  rdActivities: "R&D Activities",
+  employees: "Employees",
+  fixedAssets: "Fixed Assets",
+  inventoryItems: "Inventory Items",
+  costingProjects: "Projects",
+  documents: "Documents",
+  marketplaceProviders: "Marketplace Providers",
+  marketplaceListings: "Marketplace Listings",
+  marketplaceContracts: "Marketplace Contracts",
+  migrationJobs: "Migration Jobs",
 }
 
 const CATEGORY_PATHS: Record<keyof SearchResults, string> = {
@@ -29,6 +49,16 @@ const CATEGORY_PATHS: Record<keyof SearchResults, string> = {
   projects: "/rd/projects",
   experiments: "/rd/experiments",
   accounts: "/accounts",
+  rdActivities: "/rd/activities",
+  employees: "/payroll/employees",
+  fixedAssets: "/assets",
+  inventoryItems: "/inventory/items",
+  costingProjects: "/projects",
+  documents: "/documents",
+  marketplaceProviders: "/marketplace/providers",
+  marketplaceListings: "/marketplace/listings",
+  marketplaceContracts: "/marketplace/contracts",
+  migrationJobs: "/migration/jobs",
 }
 
 export function GlobalSearch() {
@@ -111,12 +141,9 @@ export function GlobalSearch() {
 
   const hasResults =
     results &&
-    (results.contacts.length > 0 ||
-      results.invoices.length > 0 ||
-      results.bills.length > 0 ||
-      results.projects.length > 0 ||
-      results.experiments.length > 0 ||
-      results.accounts.length > 0)
+    (Object.keys(CATEGORY_LABELS) as (keyof SearchResults)[]).some(
+      (key) => results[key] && results[key].length > 0
+    )
 
   return (
     <div className="relative" ref={containerRef}>
@@ -179,6 +206,9 @@ export function GlobalSearch() {
                           onClick={() => handleNavigate(path)}
                           className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-slate-50 transition-colors"
                         >
+                          <span className="inline-flex shrink-0 items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+                            {CATEGORY_LABELS[category]}
+                          </span>
                           <div className="min-w-0 flex-1">
                             <p className="truncate font-medium text-slate-900">
                               {renderTitle(category, item)}
@@ -217,6 +247,26 @@ function renderTitle(
       return item.name as string
     case "accounts":
       return `${item.code} - ${item.name}`
+    case "rdActivities":
+      return item.name as string
+    case "employees":
+      return `${item.firstName} ${item.lastName}`
+    case "fixedAssets":
+      return `${item.assetNumber} - ${item.name}`
+    case "inventoryItems":
+      return item.name as string
+    case "costingProjects":
+      return item.code ? `${item.code} - ${item.name}` : (item.name as string)
+    case "documents":
+      return item.name as string
+    case "marketplaceProviders":
+      return item.name as string
+    case "marketplaceListings":
+      return item.title as string
+    case "marketplaceContracts":
+      return item.title as string
+    case "migrationJobs":
+      return item.name as string
     default:
       return ""
   }
@@ -239,6 +289,26 @@ function renderSubtitle(
       return item.status as string
     case "accounts":
       return item.type as string
+    case "rdActivities":
+      return item.status as string
+    case "employees":
+      return `${item.active ? "Active" : "Inactive"}${item.email ? ` | ${item.email}` : ""}`
+    case "fixedAssets":
+      return item.status as string
+    case "inventoryItems":
+      return `${item.sku ? `SKU: ${item.sku} | ` : ""}Qty: ${item.quantityOnHand}`
+    case "costingProjects":
+      return item.status as string
+    case "documents":
+      return (item.entityType as string) || "General"
+    case "marketplaceProviders":
+      return item.status as string
+    case "marketplaceListings":
+      return item.status as string
+    case "marketplaceContracts":
+      return item.status as string
+    case "migrationJobs":
+      return `${item.status} | ${item.sourceSystem}`
     default:
       return ""
   }
