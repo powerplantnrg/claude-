@@ -27,7 +27,7 @@ export async function GET(
             journalLine: {
               include: {
                 account: { select: { name: true, code: true } },
-                journalEntry: { select: { date: true, description: true } },
+                journalEntry: { select: { date: true, narration: true } },
               },
             },
           },
@@ -42,7 +42,7 @@ export async function GET(
 
     // Calculate summary
     const totalSpending = costCenter.allocations.reduce(
-      (sum, a) => sum + (a.amount ?? 0),
+      (sum: number, a: { amount: number }) => sum + (a.amount ?? 0),
       0
     )
 

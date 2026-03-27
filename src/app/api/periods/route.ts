@@ -80,13 +80,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const period = await lockPeriod({
-      organizationId: orgId,
-      periodStart: start,
-      periodEnd: end,
-      lockedById: userId,
-      reason: reason || "Manual period lock",
-    })
+    const period = await lockPeriod(orgId, start, end, userId, reason || "Manual period lock")
 
     // Audit log
     await prisma.auditLog.create({

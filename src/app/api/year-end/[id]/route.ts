@@ -33,8 +33,9 @@ export async function GET(
 
     // Fetch locked periods for this FY
     const fy = yearEndClose.financialYear
-    const fyStart = new Date(fy - 1, 6, 1)
-    const fyEnd = new Date(fy, 5, 30, 23, 59, 59)
+    const fyNum = parseInt(fy, 10)
+    const fyStart = new Date(fyNum - 1, 6, 1)
+    const fyEnd = new Date(fyNum, 5, 30, 23, 59, 59)
 
     const lockedPeriods = await prisma.lockedPeriod.findMany({
       where: {
@@ -97,18 +98,16 @@ export async function PATCH(
       )
     }
 
-    const reversed = await reverseYearEndClose({
-      id,
-      organizationId: orgId,
-    })
+    const reversed = await reverseYearEndClose(id, userId)
 
+    const existingFyNum = parseInt(existing.financialYear, 10)
     await prisma.auditLog.create({
       data: {
         userId,
         action: "Update",
         entityType: "YearEndClose",
         entityId: id,
-        details: `Reversed year-end close for FY ${existing.financialYear - 1}/${existing.financialYear}`,
+        details: `Reversed year-end close for FY ${existingFyNum - 1}/${existingFyNum}`,
         organizationId: orgId,
       },
     })

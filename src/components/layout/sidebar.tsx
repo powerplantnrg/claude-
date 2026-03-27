@@ -62,6 +62,8 @@ import {
   Boxes,
   Store,
   FileEdit,
+  CalendarCheck,
+  Lock,
 } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -98,12 +100,16 @@ const navSections: NavSection[] = [
       { label: "Recurring", href: "/invoices/recurring", icon: Repeat },
       { label: "Credit Notes", href: "/invoices/credit-notes", icon: FileMinus },
       { label: "Bills", href: "/bills", icon: Receipt },
+      { label: "Recurring Bills", href: "/bills/recurring", icon: Repeat },
       { label: "Banking", href: "/banking", icon: Landmark },
       { label: "Bank Rules", href: "/banking/rules", icon: ListChecks },
       { label: "Chart of Accounts", href: "/accounts", icon: BookOpen },
       { label: "Purchase Orders", href: "/purchase-orders", icon: ShoppingCart },
       { label: "Budgets", href: "/budgets", icon: Wallet },
       { label: "Fixed Assets", href: "/assets", icon: Package },
+      { label: "Loans", href: "/loans", icon: Landmark },
+      { label: "Cost Centers", href: "/cost-centers", icon: GitBranch },
+      { label: "Dividends", href: "/dividends", icon: Banknote },
       { label: "Contacts", href: "/contacts", icon: Users },
     ],
   },
@@ -148,6 +154,7 @@ const navSections: NavSection[] = [
       { label: "Aged Receivables", href: "/reports/aged-receivables", icon: ClipboardList },
       { label: "Aged Payables", href: "/reports/aged-payables", icon: Receipt },
       { label: "Forecast", href: "/reports/forecast", icon: LineChart },
+      { label: "Report Builder", href: "/reports/builder", icon: LayoutDashboard },
     ],
   },
   {
@@ -234,6 +241,15 @@ const navSections: NavSection[] = [
       { label: "Integrations", href: "/settings/integrations", icon: Plug },
       { label: "Currencies", href: "/settings/currencies", icon: Coins },
       { label: "Webhooks", href: "/settings/webhooks", icon: Webhook },
+      { label: "Period Locking", href: "/settings/periods", icon: Lock },
+      { label: "Year-End Close", href: "/settings/year-end", icon: CalendarCheck },
+      { label: "Reminders", href: "/settings/reminders", icon: CalendarDays },
+    ],
+  },
+  {
+    title: "Compliance",
+    items: [
+      { label: "Compliance", href: "/compliance", icon: ShieldCheck },
     ],
   },
 ]

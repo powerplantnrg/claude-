@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const fy = parseInt(financialYear, 10)
-    if (isNaN(fy)) {
+    const fyNum = parseInt(financialYear, 10)
+    if (isNaN(fyNum)) {
       return NextResponse.json(
         { error: "financialYear must be a number" },
         { status: 400 }
@@ -64,21 +64,21 @@ export async function POST(req: NextRequest) {
     const existing = await prisma.yearEndClose.findFirst({
       where: {
         organizationId: orgId,
-        financialYear: fy,
+        financialYear: financialYear,
         status: { in: ["InProgress", "Completed"] },
       },
     })
 
     if (existing) {
       return NextResponse.json(
-        { error: `Financial year ${fy} is already closed or in progress` },
+        { error: `Financial year ${financialYear} is already closed or in progress` },
         { status: 409 }
       )
     }
 
     // Calculate P&L for the financial year
-    const fyStart = new Date(fy - 1, 6, 1) // July 1
-    const fyEnd = new Date(fy, 5, 30, 23, 59, 59) // June 30
+    const fyStart = new Date(fyNum - 1, 6, 1) // July 1
+    const fyEnd = new Date(fyNum, 5, 30, 23, 59, 59) // June 30
 
     const journalLines = await prisma.journalLine.findMany({
       where: {
@@ -130,13 +130,7 @@ export async function POST(req: NextRequest) {
     const netProfitLoss = totalRevenue - totalExpenses
 
     // Close the financial year: create retained earnings JE and lock periods
-    const yearEndClose = await closeFinancialYear({
-      organizationId: orgId,
-      financialYear: fy,
-      closedById: userId,
-      notes: notes || `Year-end close for FY ${fy - 1}/${fy}`,
-      netProfitLoss,
-    })
+    const yearEndClose = await closeFinancialYear(orgId, financialYear, userId)
 
     // Audit log
     await prisma.auditLog.create({
@@ -145,7 +139,7 @@ export async function POST(req: NextRequest) {
         action: "Create",
         entityType: "YearEndClose",
         entityId: yearEndClose.id,
-        details: `Closed FY ${fy - 1}/${fy}. Net P&L: ${netProfitLoss.toFixed(2)}`,
+        details: `Closed FY ${fyNum - 1}/${fyNum}. Net P&L: ${netProfitLoss.toFixed(2)}`,
         organizationId: orgId,
       },
     })

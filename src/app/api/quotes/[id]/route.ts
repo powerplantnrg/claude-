@@ -148,7 +148,7 @@ export async function PATCH(
               description: line.description,
               quantity: line.quantity,
               unitPrice: line.unitPrice,
-              accountId: line.accountId,
+              accountId: line.accountId as string,
               taxType: line.taxRateId ? "GST" : null,
               amount: line.lineAmount,
             })),

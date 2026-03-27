@@ -76,9 +76,9 @@ export async function POST(request: Request) {
     const dividend = await prisma.dividend.create({
       data: {
         declarationDate: new Date(declarationDate),
-        recordDate: recordDate ? new Date(recordDate) : null,
-        paymentDate: paymentDate ? new Date(paymentDate) : null,
-        amountPerShare: amountPerShare ? parseFloat(amountPerShare) : null,
+        recordDate: recordDate ? new Date(recordDate) : new Date(declarationDate),
+        paymentDate: paymentDate ? new Date(paymentDate) : new Date(declarationDate),
+        amountPerShare: amountPerShare ? parseFloat(amountPerShare) : 0,
         totalAmount: parseFloat(totalAmount),
         frankingPercentage: frankingPercentage ? parseFloat(frankingPercentage) : 100,
         frankingCredits: Math.round(frankingCredits * 100) / 100,

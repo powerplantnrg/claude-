@@ -35,11 +35,7 @@ export async function PATCH(
     const body = await req.json()
     const { reason } = body
 
-    const period = await unlockPeriod({
-      id,
-      organizationId: orgId,
-      reason: reason || "Manual unlock",
-    })
+    const period = await unlockPeriod(id, userId)
 
     await prisma.auditLog.create({
       data: {

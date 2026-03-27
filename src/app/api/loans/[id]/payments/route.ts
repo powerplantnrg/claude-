@@ -50,13 +50,13 @@ export async function POST(
       const entryCount = await prisma.journalEntry.count({
         where: { organizationId: orgId },
       })
-      const entryNumber = `JE-${String(entryCount + 1).padStart(4, "0")}`
+      const entryNumber = entryCount + 1
 
       const journalEntry = await prisma.journalEntry.create({
         data: {
           entryNumber,
           date: new Date(date),
-          description: `Loan payment - ${loan.name}`,
+          narration: `Loan payment - ${loan.name}`,
           status: "Posted",
           organizationId: orgId,
           lines: {
