@@ -1991,6 +1991,402 @@ async function main() {
     })
   }
 
+  // ============================================
+  // MARKETPLACE: Providers, Requirements, Listings, Bids
+  // ============================================
+
+  // 6 MarketplaceProviders
+  const providerMitchell = await prisma.marketplaceProvider.create({
+    data: {
+      name: "Dr. Sarah Mitchell",
+      email: "s.mitchell@researchconsulting.com.au",
+      description: "Expert research consultant specialising in materials science with 15+ years of experience in sample analysis, characterisation, and research methodology design.",
+      category: "Consultant",
+      subcategories: "Research Consultant",
+      location: "Sydney, NSW",
+      serviceArea: "NSW,VIC,QLD",
+      hourlyRate: 250,
+      dailyRate: 1800,
+      rating: 4.8,
+      reviewCount: 12,
+      verified: true,
+      verifiedAt: new Date(),
+      status: "Active",
+      profileCompleteness: 90,
+      preferredPayment: "Standard",
+      termsAccepted: true,
+      termsAcceptedAt: new Date(),
+    },
+  })
+
+  const providerTechLab = await prisma.marketplaceProvider.create({
+    data: {
+      name: "TechLab Solutions Pty Ltd",
+      businessName: "TechLab Solutions Pty Ltd",
+      abn: "98 765 432 109",
+      email: "bookings@techlabsolutions.com.au",
+      website: "https://techlabsolutions.com.au",
+      description: "Full-service laboratory providing X-ray diffraction, NIR spectroscopy, and core scanning services for the mining, energy, and materials science sectors.",
+      category: "LabService",
+      subcategories: "X-ray,NIR,Core Scanning",
+      location: "Melbourne, VIC",
+      serviceArea: "VIC,NSW,QLD,SA",
+      hourlyRate: 350,
+      dailyRate: 2500,
+      rating: 4.9,
+      reviewCount: 24,
+      verified: true,
+      verifiedAt: new Date(),
+      status: "Active",
+      profileCompleteness: 95,
+      preferredPayment: "Milestone",
+      termsAccepted: true,
+      termsAcceptedAt: new Date(),
+    },
+  })
+
+  const providerGreenEquip = await prisma.marketplaceProvider.create({
+    data: {
+      name: "GreenEquip Leasing",
+      businessName: "GreenEquip Leasing Pty Ltd",
+      abn: "55 432 109 876",
+      email: "leasing@greenequip.com.au",
+      website: "https://greenequip.com.au",
+      description: "Specialising in laboratory and field equipment leasing for research organisations, universities, and corporate R&D teams.",
+      category: "EquipmentLeasing",
+      subcategories: "Lab Equipment,Field Equipment",
+      location: "Brisbane, QLD",
+      serviceArea: "QLD,NSW,VIC",
+      dailyRate: 800,
+      rating: 4.5,
+      reviewCount: 8,
+      verified: true,
+      verifiedAt: new Date(),
+      status: "Active",
+      profileCompleteness: 80,
+      preferredPayment: "Monthly",
+      termsAccepted: true,
+      termsAcceptedAt: new Date(),
+    },
+  })
+
+  const providerRdTax = await prisma.marketplaceProvider.create({
+    data: {
+      name: "R&D Tax Partners",
+      businessName: "R&D Tax Partners Pty Ltd",
+      abn: "33 210 987 654",
+      email: "info@rdtaxpartners.com.au",
+      website: "https://rdtaxpartners.com.au",
+      description: "Specialist R&D tax incentive advisory firm helping Australian companies maximise their R&D tax offset claims with full ATO compliance.",
+      category: "TaxAgent",
+      subcategories: "R&D Tax Incentive",
+      location: "Sydney, NSW",
+      serviceArea: "NSW,VIC,QLD,WA,SA,TAS,NT,ACT",
+      hourlyRate: 400,
+      rating: 4.7,
+      reviewCount: 18,
+      verified: true,
+      verifiedAt: new Date(),
+      status: "Active",
+      profileCompleteness: 85,
+      preferredPayment: "Standard",
+      termsAccepted: true,
+      termsAcceptedAt: new Date(),
+    },
+  })
+
+  const providerDataMinds = await prisma.marketplaceProvider.create({
+    data: {
+      name: "DataMinds Research",
+      businessName: "DataMinds Research Pty Ltd",
+      abn: "77 654 321 098",
+      email: "hello@datamindsresearch.com.au",
+      website: "https://datamindsresearch.com.au",
+      description: "Data science and AI research consultancy providing machine learning model development, statistical analysis, and data pipeline engineering for R&D projects.",
+      category: "Researcher",
+      subcategories: "Data Science,AI",
+      location: "Perth, WA",
+      serviceArea: "WA,NSW,VIC,QLD",
+      hourlyRate: 200,
+      dailyRate: 1500,
+      rating: 4.6,
+      reviewCount: 10,
+      verified: true,
+      verifiedAt: new Date(),
+      status: "Active",
+      profileCompleteness: 88,
+      preferredPayment: "QuarterlyFinancing",
+      termsAccepted: true,
+      termsAcceptedAt: new Date(),
+    },
+  })
+
+  const providerBuildRight = await prisma.marketplaceProvider.create({
+    data: {
+      name: "BuildRight Trades",
+      businessName: "BuildRight Trades Pty Ltd",
+      abn: "44 321 098 765",
+      email: "jobs@buildrighttrades.com.au",
+      description: "Licensed builders and tradespeople specialising in laboratory construction, cleanroom fitout, and electrical installations for research facilities.",
+      category: "Tradesperson",
+      subcategories: "Lab Construction,Fitout",
+      location: "Adelaide, SA",
+      serviceArea: "SA,VIC",
+      hourlyRate: 120,
+      dailyRate: 900,
+      rating: 4.4,
+      reviewCount: 6,
+      verified: false,
+      status: "Active",
+      profileCompleteness: 70,
+      preferredPayment: "Milestone",
+      termsAccepted: true,
+      termsAcceptedAt: new Date(),
+    },
+  })
+
+  // ProviderCapabilities (3-4 per provider)
+  // Dr. Mitchell
+  for (const cap of [
+    { capabilityType: "Skill", name: "Materials Characterisation", description: "Expert in advanced materials characterisation techniques including XRD, SEM, and TEM" },
+    { capabilityType: "Skill", name: "Sample Analysis", description: "Comprehensive sample analysis for minerals, metals, and composite materials" },
+    { capabilityType: "Skill", name: "Research Methodology Design", description: "Designing rigorous experimental methodologies for R&D projects" },
+  ]) {
+    await prisma.providerCapability.create({ data: { providerId: providerMitchell.id, ...cap, verificationStatus: "Verified" } })
+  }
+
+  // TechLab Solutions
+  for (const cap of [
+    { capabilityType: "Equipment", name: "X-Ray Diffraction", description: "Bruker D8 Advance XRD system for phase identification and crystal structure analysis" },
+    { capabilityType: "Equipment", name: "NIR Spectroscopy", description: "Thermo Fisher Antaris II NIR analyser for rapid material identification" },
+    { capabilityType: "Equipment", name: "Core Scanning", description: "Minalyze CS core scanner for high-resolution elemental analysis" },
+    { capabilityType: "Service", name: "Sample Preparation", description: "Full sample preparation services including crushing, grinding, and polishing" },
+  ]) {
+    await prisma.providerCapability.create({ data: { providerId: providerTechLab.id, ...cap, verificationStatus: "Verified" } })
+  }
+
+  // GreenEquip Leasing
+  for (const cap of [
+    { capabilityType: "Service", name: "Laboratory Equipment Lease", description: "Short and long-term lease of laboratory instruments and analytical equipment" },
+    { capabilityType: "Service", name: "Field Equipment Hire", description: "Portable field equipment hire for on-site sampling and analysis" },
+    { capabilityType: "Service", name: "Equipment Maintenance", description: "Preventive maintenance and calibration services for leased equipment" },
+  ]) {
+    await prisma.providerCapability.create({ data: { providerId: providerGreenEquip.id, ...cap, verificationStatus: "Verified" } })
+  }
+
+  // R&D Tax Partners
+  for (const cap of [
+    { capabilityType: "Service", name: "R&D Tax Incentive Claims", description: "End-to-end preparation and lodgement of R&D tax incentive applications" },
+    { capabilityType: "Certification", name: "ATO Compliance", description: "Ensuring full compliance with ATO requirements for R&D tax incentive claims" },
+    { capabilityType: "Service", name: "Technical Assessment Reports", description: "Preparation of technical assessment reports documenting eligible R&D activities" },
+  ]) {
+    await prisma.providerCapability.create({ data: { providerId: providerRdTax.id, ...cap, verificationStatus: "Verified" } })
+  }
+
+  // DataMinds Research
+  for (const cap of [
+    { capabilityType: "Skill", name: "Machine Learning Models", description: "Development and deployment of custom ML models for research applications" },
+    { capabilityType: "Skill", name: "Statistical Analysis", description: "Advanced statistical analysis including hypothesis testing, regression, and Bayesian methods" },
+    { capabilityType: "Skill", name: "Data Pipeline Engineering", description: "Building scalable data pipelines for research data ingestion, processing, and analysis" },
+  ]) {
+    await prisma.providerCapability.create({ data: { providerId: providerDataMinds.id, ...cap, verificationStatus: "Verified" } })
+  }
+
+  // BuildRight Trades
+  for (const cap of [
+    { capabilityType: "Service", name: "Lab Construction", description: "Complete laboratory construction from design to handover" },
+    { capabilityType: "Service", name: "Cleanroom Fitout", description: "ISO-certified cleanroom design and fitout for research facilities" },
+    { capabilityType: "Service", name: "Electrical Installation", description: "Specialised electrical installations for laboratory and research equipment" },
+  ]) {
+    await prisma.providerCapability.create({ data: { providerId: providerBuildRight.id, ...cap, verificationStatus: "Pending" } })
+  }
+
+  // 1 ProjectRequirement linked to the first R&D project (nasProject)
+  const projectRequirement = await prisma.projectRequirement.create({
+    data: {
+      organizationId: org.id,
+      rdProjectId: nasProject.id,
+      projectName: "Neural Architecture Search - Resource Requirements",
+      description: "Resources required for the NAS project including researchers, lab equipment, and lab assistants for sample analysis and experimentation.",
+      status: "Published",
+      extractedFrom: "ProjectPlan",
+      createdById: adminUser.id,
+      approvedById: adminUser.id,
+      approvedAt: new Date(),
+      totalBudget: 113880,
+      currency: "AUD",
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      notes: "Initial resource plan for Q1-Q2 2026",
+    },
+  })
+
+  // 3 RequirementItems
+  const reqItemResearchers = await prisma.requirementItem.create({
+    data: {
+      requirementId: projectRequirement.id,
+      title: "Sample Analysis Researchers",
+      description: "Experienced researchers with materials science background for ongoing sample analysis work supporting the NAS project.",
+      category: "Researcher",
+      quantity: 3,
+      unitType: "Weeks",
+      duration: "12 weeks",
+      frequencyDescription: "weekly analysis sessions",
+      requiredSkills: "Materials science,Sample analysis,XRD",
+      estimatedBudget: 21600,
+      status: "InMarket",
+      priority: "High",
+      sortOrder: 1,
+    },
+  })
+
+  await prisma.requirementItem.create({
+    data: {
+      requirementId: projectRequirement.id,
+      title: "X-ray, NIR and Core Scanning Equipment",
+      description: "Access to X-ray diffraction, NIR spectroscopy, and core scanning equipment for materials characterisation.",
+      category: "Equipment",
+      quantity: 1,
+      unitType: "Months",
+      duration: "3 months",
+      estimatedBudget: 75000,
+      requiredEquipment: "X-ray diffraction,NIR spectrometer,Core scanner",
+      alternativeOptions: JSON.stringify({ options: "Lease from TechLab at $2500/day or lease equipment at Location Y with lab assistants" }),
+      status: "Draft",
+      priority: "High",
+      sortOrder: 2,
+    },
+  })
+
+  await prisma.requirementItem.create({
+    data: {
+      requirementId: projectRequirement.id,
+      title: "Lab Assistants",
+      description: "Lab assistants to support researchers with sample preparation, equipment operation, and data recording.",
+      category: "Laborer",
+      quantity: 2,
+      unitType: "Hours",
+      duration: "12 weeks",
+      frequencyDescription: "24 hours per week per assistant",
+      estimatedBudget: 17280,
+      status: "Draft",
+      priority: "Medium",
+      sortOrder: 3,
+    },
+  })
+
+  // 3 RequirementSuggestions (AI-generated)
+  await prisma.requirementSuggestion.create({
+    data: {
+      requirementId: projectRequirement.id,
+      suggestedByAI: true,
+      itemTitle: "R&D Tax Claim Review",
+      itemDescription: "Engage a specialist tax agent to review and prepare R&D tax incentive claims for the NAS project to maximise eligible offset.",
+      category: "TaxAgent",
+      quantity: 1,
+      unitType: "Months",
+      duration: "1 month",
+      estimatedCost: 8000,
+      rationale: "R&D tax incentive claims can offset up to 43.5% of eligible expenditure. A specialist review ensures maximum claim value and ATO compliance.",
+      confidence: 0.85,
+    },
+  })
+
+  await prisma.requirementSuggestion.create({
+    data: {
+      requirementId: projectRequirement.id,
+      suggestedByAI: true,
+      itemTitle: "Equipment Maintenance Contract",
+      itemDescription: "Establish a preventive maintenance contract for leased laboratory equipment to minimise downtime during the 3-month analysis period.",
+      category: "Equipment",
+      quantity: 1,
+      unitType: "Months",
+      duration: "3 months",
+      estimatedCost: 4500,
+      rationale: "Equipment downtime can delay research timelines. A maintenance contract ensures 95%+ uptime and includes calibration services.",
+      confidence: 0.72,
+    },
+  })
+
+  await prisma.requirementSuggestion.create({
+    data: {
+      requirementId: projectRequirement.id,
+      suggestedByAI: true,
+      itemTitle: "Data Analyst for Results Compilation",
+      itemDescription: "A data analyst to compile, clean, and visualise experimental results from the sample analysis phase for reporting and further modelling.",
+      category: "Researcher",
+      quantity: 1,
+      unitType: "Weeks",
+      duration: "4 weeks",
+      estimatedCost: 6000,
+      rationale: "Structured data compilation accelerates the transition from experimentation to modelling, reducing overall project timeline.",
+      confidence: 0.68,
+    },
+  })
+
+  // 1 MarketplaceListing published from the first requirement item
+  const marketplaceListing = await prisma.marketplaceListing.create({
+    data: {
+      organizationId: org.id,
+      requirementId: projectRequirement.id,
+      requirementItemId: reqItemResearchers.id,
+      title: "Sample Analysis Researchers - Materials Science",
+      description: "Seeking 3 experienced researchers with materials science background for weekly sample analysis sessions over 12 weeks. Must have experience with XRD and materials characterisation techniques.",
+      category: "Researcher",
+      budget: 21600,
+      budgetType: "Fixed",
+      duration: "12 weeks",
+      location: "Sydney, NSW",
+      remoteOk: false,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      status: "Open",
+      visibility: "Public",
+      paymentTerms: "Milestone",
+      viewCount: 14,
+      responseCount: 2,
+    },
+  })
+
+  // 2 MarketplaceBids on that listing
+  await prisma.marketplaceBid.create({
+    data: {
+      listingId: marketplaceListing.id,
+      providerId: providerMitchell.id,
+      bidType: "Offer",
+      amount: 19800,
+      currency: "AUD",
+      rateType: "Fixed",
+      proposedStartDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      proposedEndDate: new Date(Date.now() + 91 * 24 * 60 * 60 * 1000),
+      proposalDescription: "I can provide weekly sample analysis sessions leveraging my 15+ years of materials science experience. My approach includes XRD phase identification, SEM imaging, and comprehensive reporting. Rate reflects a discount for the 12-week engagement.",
+      includedServices: "XRD analysis, SEM imaging, weekly reports, methodology design",
+      exclusions: "Sample preparation, equipment costs",
+      paymentPreference: "Standard",
+      status: "Submitted",
+    },
+  })
+
+  await prisma.marketplaceBid.create({
+    data: {
+      listingId: marketplaceListing.id,
+      providerId: providerTechLab.id,
+      bidType: "Offer",
+      amount: 24000,
+      currency: "AUD",
+      rateType: "Fixed",
+      proposedStartDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      proposedEndDate: new Date(Date.now() + 89 * 24 * 60 * 60 * 1000),
+      proposalDescription: "TechLab Solutions can assign a team of 3 researchers with full access to our XRD, NIR, and core scanning facilities. Price includes sample preparation and all analytical services.",
+      includedServices: "3 researchers, XRD/NIR/Core scanning access, sample preparation, weekly progress reports",
+      exclusions: "Travel costs outside Melbourne metro",
+      paymentPreference: "Milestone",
+      status: "Submitted",
+    },
+  })
+
+  console.log("Marketplace: 6 providers, 19 capabilities, 1 project requirement, 3 requirement items, 3 AI suggestions, 1 listing, 2 bids")
+
   console.log("Seed completed successfully!")
   console.log("Demo data created: 6 contacts, 6 invoices, 4 bills, 2 R&D projects, 3 experiments, 8 time entries, 6 cloud costs, 8 bank transactions")
   console.log("Payroll data created: 4 employees, 1 pay run (completed), 4 payslips, 2 tax minimisation strategies, 10 payroll accounts")
