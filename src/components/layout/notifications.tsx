@@ -1,12 +1,24 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Bell, AlertTriangle, FileWarning, DollarSign, Calendar } from "lucide-react"
+import { Bell, AlertTriangle, FileWarning, DollarSign, Calendar, CheckSquare, ShoppingCart, Milestone, PlaneTakeoff, Database, Package, Clock, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Notification {
   id: string
-  type: "overdue_invoice" | "compliance_warning" | "budget_alert" | "grant_deadline"
+  type:
+    | "overdue_invoice"
+    | "compliance_warning"
+    | "budget_alert"
+    | "grant_deadline"
+    | "pending_approval"
+    | "marketplace_bid"
+    | "contract_milestone"
+    | "leave_request"
+    | "migration_review"
+    | "inventory_reorder"
+    | "time_entry_approval"
+    | "payroll_due"
   title: string
   message: string
   severity: "info" | "warning" | "critical"
@@ -19,6 +31,14 @@ const typeIcons: Record<string, React.ElementType> = {
   compliance_warning: AlertTriangle,
   budget_alert: DollarSign,
   grant_deadline: Calendar,
+  pending_approval: CheckSquare,
+  marketplace_bid: ShoppingCart,
+  contract_milestone: Milestone,
+  leave_request: PlaneTakeoff,
+  migration_review: Database,
+  inventory_reorder: Package,
+  time_entry_approval: Clock,
+  payroll_due: Wallet,
 }
 
 const severityStyles: Record<string, { dot: string; bg: string }> = {
