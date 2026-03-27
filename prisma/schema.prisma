@@ -84,6 +84,18 @@ model Organization {
   contractInvoices       ContractInvoice[]
   providerReviews        ProviderReview[]
   quarterlyFinancing     QuarterlyFinancingRequest[]
+  quotes                 Quote[]
+  lockedPeriods          LockedPeriod[]
+  yearEndCloses          YearEndClose[]
+  recurringBills         RecurringBill[]
+  loans                  Loan[]
+  dividends              Dividend[]
+  costCenters            CostCenter[]
+  paymentReminders       PaymentReminder[]
+  complianceDeadlines    ComplianceDeadline[]
+  customerPortalTokens   CustomerPortalToken[]
+  onlinePayments         OnlinePayment[]
+  reportTemplates        ReportTemplate[]
 }
 
 model User {
@@ -127,6 +139,11 @@ model User {
   approvedContractInvoices ContractInvoice[]  @relation("ContractInvoiceApprovedBy")
   providerReviews        ProviderReview[]     @relation("ProviderReviewer")
   acceptedSuggestions    RequirementSuggestion[] @relation("SuggestionAcceptedBy")
+  lockedPeriods          LockedPeriod[]          @relation("LockedByUser")
+  yearEndCloses          YearEndClose[]          @relation("ClosedByUser")
+  managedCostCenters     CostCenter[]            @relation("CostCenterManager")
+  completedDeadlines     ComplianceDeadline[]    @relation("DeadlineCompletedBy")
+  createdReportTemplates ReportTemplate[]        @relation("ReportTemplateCreator")
 }
 
 // ============================================
@@ -177,6 +194,10 @@ model Account {
   inventoryAssetItems    InventoryItem[] @relation("InventoryAssetAccount")
   inventoryCogsItems     InventoryItem[] @relation("InventoryCOGSAccount")
   inventoryRevenueItems  InventoryItem[] @relation("InventoryRevenueAccount")
+  quoteLines             QuoteLine[]
+  recurringBills         RecurringBill[]
+  loanLiability          Loan[]          @relation("LoanLiabilityAccount")
+  loanInterestExpense    Loan[]          @relation("LoanInterestExpenseAccount")
 
   @@unique([code, organizationId])
 }
@@ -200,6 +221,9 @@ model JournalEntry {
   depreciationSchedules DepreciationSchedule[]
   fxGainLosses    FxGainLoss[]
   migrationJournalEntries MigrationJournalEntry[]
+  yearEndCloses           YearEndClose[]        @relation("RetainedEarningsEntry")
+  loanPayments            LoanPayment[]
+  dividends               Dividend[]
 }
 
 model JournalLine {
@@ -220,6 +244,7 @@ model JournalLine {
   rdActivity      RdActivity?  @relation(fields: [rdActivityId], references: [id])
   experiment      Experiment?  @relation(fields: [experimentId], references: [id])
   rdExpenses      RdExpense[]
+  costCenterAllocations CostCenterAllocation[]
 }
 
 // ============================================
@@ -251,6 +276,10 @@ model Contact {
   tagAssignments  ContactTagAssignment[]
   suppliedItems   InventoryItem[] @relation("InventorySupplier")
   clientProjects  Project[]       @relation("ProjectClient")
+  quotes              Quote[]
+  recurringBills      RecurringBill[]
+  lenderLoans         Loan[]              @relation("LoanLenderContact")
+  customerPortalTokens CustomerPortalToken[]
 }
 
 // ============================================
@@ -281,6 +310,9 @@ model Invoice {
   billedProjectExpenses ProjectExpense[]
   projectMilestones    ProjectMilestone[]
   contractMilestones   ContractMilestone[]
+  convertedFromQuotes  Quote[]             @relation("QuoteConvertedInvoice")
+  paymentReminders     PaymentReminder[]
+  onlinePayments       OnlinePayment[]
 }
 
 model InvoiceLine {
@@ -367,6 +399,8 @@ model TaxRate {
 
   organization    Organization @relation(fields: [organizationId], references: [id])
   inventoryItems  InventoryItem[]
+  quoteLines      QuoteLine[]
+  recurringBills  RecurringBill[]
 }
 
 // ============================================
@@ -2389,4 +2423,362 @@ model QuarterlyFinancingRequest {
   @@index([organizationId])
   @@index([contractId])
   @@index([status])
+}
+
+// ============================================
+// QUOTES
+// ============================================
+
+model Quote {
+  id                  String    @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  quoteNumber         String
+  contactId           String
+  contact             Contact   @relation(fields: [contactId], references: [id])
+  issueDate           DateTime
+  expiryDate          DateTime
+  reference           String?
+  status              String    @default("Draft") // Draft, Sent, Accepted, Declined, Expired, Converted
+  subtotal            Float     @default(0)
+  taxTotal            Float     @default(0)
+  total               Float     @default(0)
+  notes               String?
+  terms               String?
+  convertedInvoiceId  String?
+  convertedInvoice    Invoice?  @relation("QuoteConvertedInvoice", fields: [convertedInvoiceId], references: [id])
+  acceptedAt          DateTime?
+  acceptedByName      String?
+  acceptedByEmail     String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  lines               QuoteLine[]
+
+  @@unique([organizationId, quoteNumber])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([contactId])
+}
+
+model QuoteLine {
+  id          String   @id @default(cuid())
+  quoteId     String
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float    @default(1)
+  unitPrice   Float
+  taxRateId   String?
+  taxRate     TaxRate? @relation(fields: [taxRateId], references: [id])
+  taxAmount   Float    @default(0)
+  lineAmount  Float
+  accountId   String?
+  account     Account? @relation(fields: [accountId], references: [id])
+  sortOrder   Int      @default(0)
+
+  @@index([quoteId])
+}
+
+// ============================================
+// PERIOD LOCKING & YEAR-END
+// ============================================
+
+model LockedPeriod {
+  id              String   @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  periodStart     DateTime
+  periodEnd       DateTime
+  lockedAt        DateTime @default(now())
+  lockedById      String
+  lockedBy        User     @relation("LockedByUser", fields: [lockedById], references: [id])
+  reason          String?
+  status          String   @default("Locked") // Locked, Unlocked
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, periodStart, periodEnd])
+}
+
+model YearEndClose {
+  id                       String        @id @default(cuid())
+  organizationId           String
+  organization             Organization  @relation(fields: [organizationId], references: [id])
+  financialYear            String        // e.g. "2025-26"
+  closeDate                DateTime      @default(now())
+  status                   String        @default("InProgress") // InProgress, Completed, Reversed
+  retainedEarningsEntryId  String?
+  retainedEarningsEntry    JournalEntry? @relation("RetainedEarningsEntry", fields: [retainedEarningsEntryId], references: [id])
+  closedById               String
+  closedBy                 User          @relation("ClosedByUser", fields: [closedById], references: [id])
+  notes                    String?
+  createdAt                DateTime      @default(now())
+
+  @@index([organizationId])
+  @@index([organizationId, financialYear])
+}
+
+// ============================================
+// RECURRING BILLS
+// ============================================
+
+model RecurringBill {
+  id                String    @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  contactId         String
+  contact           Contact   @relation(fields: [contactId], references: [id])
+  frequency         String    // Weekly, Fortnightly, Monthly, Quarterly, Annually
+  nextDate          DateTime
+  endDate           DateTime?
+  accountId         String
+  account           Account   @relation(fields: [accountId], references: [id])
+  description       String
+  amount            Float
+  taxRateId         String?
+  taxRate           TaxRate?  @relation(fields: [taxRateId], references: [id])
+  taxAmount         Float     @default(0)
+  totalAmount       Float
+  isActive          Boolean   @default(true)
+  lastGeneratedDate DateTime?
+  generatedCount    Int       @default(0)
+  notes             String?
+
+  @@index([organizationId])
+  @@index([organizationId, isActive])
+}
+
+// ============================================
+// LOANS & LOAN PAYMENTS
+// ============================================
+
+model Loan {
+  id                        String    @id @default(cuid())
+  organizationId            String
+  organization              Organization @relation(fields: [organizationId], references: [id])
+  name                      String
+  lender                    String
+  lenderContactId           String?
+  lenderContact             Contact?  @relation("LoanLenderContact", fields: [lenderContactId], references: [id])
+  loanType                  String    // BusinessLoan, CreditLine, Mortgage, Equipment, Vehicle, Other
+  principalAmount           Float
+  interestRate              Float
+  interestType              String    @default("Fixed") // Fixed, Variable
+  termMonths                Int
+  startDate                 DateTime
+  maturityDate              DateTime
+  monthlyPayment            Float
+  currentBalance            Float
+  liabilityAccountId        String
+  liabilityAccount          Account   @relation("LoanLiabilityAccount", fields: [liabilityAccountId], references: [id])
+  interestExpenseAccountId  String
+  interestExpenseAccount    Account   @relation("LoanInterestExpenseAccount", fields: [interestExpenseAccountId], references: [id])
+  status                    String    @default("Active") // Active, PaidOff, Defaulted, Refinanced
+  notes                     String?
+
+  payments                  LoanPayment[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+model LoanPayment {
+  id              String        @id @default(cuid())
+  loanId          String
+  loan            Loan          @relation(fields: [loanId], references: [id])
+  date            DateTime
+  principalAmount Float
+  interestAmount  Float
+  totalAmount     Float
+  balance         Float         // remaining balance
+  journalEntryId  String?
+  journalEntry    JournalEntry? @relation(fields: [journalEntryId], references: [id])
+  notes           String?
+
+  @@index([loanId])
+  @@index([loanId, date])
+}
+
+// ============================================
+// DIVIDENDS
+// ============================================
+
+model Dividend {
+  id                    String        @id @default(cuid())
+  organizationId        String
+  organization          Organization  @relation(fields: [organizationId], references: [id])
+  declarationDate       DateTime
+  recordDate            DateTime
+  paymentDate           DateTime
+  amountPerShare        Float
+  totalAmount           Float
+  frankingPercentage    Float         @default(0) // Australian franking credits
+  frankingCredits       Float         @default(0)
+  status                String        @default("Declared") // Declared, Paid, Cancelled
+  journalEntryId        String?
+  journalEntry          JournalEntry? @relation(fields: [journalEntryId], references: [id])
+  notes                 String?
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+}
+
+// ============================================
+// COST CENTERS
+// ============================================
+
+model CostCenter {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  code            String
+  name            String
+  description     String?
+  type            String    @default("Department") // Department, Division, Branch, Project, Location
+  parentId        String?
+  parent          CostCenter?  @relation("CostCenterHierarchy", fields: [parentId], references: [id])
+  children        CostCenter[] @relation("CostCenterHierarchy")
+  managerId       String?
+  manager         User?     @relation("CostCenterManager", fields: [managerId], references: [id])
+  isActive        Boolean   @default(true)
+
+  allocations     CostCenterAllocation[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([organizationId, isActive])
+  @@index([parentId])
+}
+
+model CostCenterAllocation {
+  id            String     @id @default(cuid())
+  journalLineId String
+  journalLine   JournalLine @relation(fields: [journalLineId], references: [id])
+  costCenterId  String
+  costCenter    CostCenter  @relation(fields: [costCenterId], references: [id])
+  percentage    Float
+  amount        Float
+
+  @@index([journalLineId])
+  @@index([costCenterId])
+}
+
+// ============================================
+// PAYMENT REMINDERS
+// ============================================
+
+model PaymentReminder {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  invoiceId       String
+  invoice         Invoice   @relation(fields: [invoiceId], references: [id])
+  scheduleType    String    // BeforeDue, OnDue, AfterDue
+  daysOffset      Int
+  status          String    @default("Scheduled") // Scheduled, Sent, Cancelled
+  scheduledDate   DateTime
+  sentAt          DateTime?
+  emailTo         String?
+  emailSubject    String?
+  templateType    String    @default("Reminder") // Reminder, Overdue, Final
+
+  @@index([organizationId])
+  @@index([invoiceId])
+  @@index([status, scheduledDate])
+}
+
+// ============================================
+// COMPLIANCE DEADLINES
+// ============================================
+
+model ComplianceDeadline {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  title           String
+  description     String?
+  category        String    // BAS, STP, SuperGuarantee, PayrollTax, IncomeTax, FBT, WorkersComp, AnnualReturn, RDTaxIncentive, Other
+  dueDate         DateTime
+  frequency       String    @default("Quarterly") // OneOff, Monthly, Quarterly, Annually
+  status          String    @default("Upcoming") // Upcoming, Due, Overdue, Completed, NotApplicable
+  completedAt     DateTime?
+  completedById   String?
+  completedBy     User?     @relation("DeadlineCompletedBy", fields: [completedById], references: [id])
+  notes           String?
+  reminderDays    Int       @default(14)
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, category])
+  @@index([dueDate])
+}
+
+// ============================================
+// CUSTOMER PORTAL
+// ============================================
+
+model CustomerPortalToken {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  contactId       String
+  contact         Contact   @relation(fields: [contactId], references: [id])
+  token           String    @unique
+  expiresAt       DateTime
+  isActive        Boolean   @default(true)
+  lastAccessedAt  DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([organizationId])
+  @@index([contactId])
+  @@index([token])
+}
+
+// ============================================
+// ONLINE PAYMENTS
+// ============================================
+
+model OnlinePayment {
+  id              String    @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  invoiceId       String
+  invoice         Invoice   @relation(fields: [invoiceId], references: [id])
+  gateway         String    // Stripe, PayPal, BankTransfer
+  transactionId   String?
+  amount          Float
+  currency        String    @default("AUD")
+  status          String    @default("Pending") // Pending, Completed, Failed, Refunded
+  paidAt          DateTime?
+  gatewayResponse String?   // JSON response from gateway
+  payerEmail      String?
+  payerName       String?
+
+  @@index([organizationId])
+  @@index([invoiceId])
+  @@index([gateway, transactionId])
+}
+
+// ============================================
+// REPORT TEMPLATES
+// ============================================
+
+model ReportTemplate {
+  id                String    @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  name              String
+  description       String?
+  baseReport        String    // ProfitLoss, BalanceSheet, TrialBalance, CashFlow, Custom
+  columns           String?   // JSON array of column configs
+  filters           String?   // JSON
+  groupBy           String?
+  dateRange         String?
+  includeComparison Boolean   @default(false)
+  createdById       String
+  createdBy         User      @relation("ReportTemplateCreator", fields: [createdById], references: [id])
+  isPublic          Boolean   @default(false)
+
+  @@index([organizationId])
+  @@index([organizationId, baseReport])
 }
