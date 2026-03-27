@@ -16,6 +16,14 @@ import {
   Wallet,
   Search,
   Command,
+  DollarSign,
+  UserPlus,
+  FolderKanban,
+  Clock,
+  Landmark,
+  Database,
+  ShoppingCart,
+  ClipboardList,
 } from "lucide-react"
 
 type QuickAction = {
@@ -37,6 +45,14 @@ const actions: QuickAction[] = [
   { label: "Import Bank Transactions", href: "/banking/import", icon: <Upload className="h-4 w-4" />, category: "Actions" },
   { label: "R&D Recommendations", href: "/rd/recommendations", icon: <Lightbulb className="h-4 w-4" />, category: "Navigate" },
   { label: "Command Center", href: "/command-center", icon: <Terminal className="h-4 w-4" />, category: "Navigate" },
+  { label: "Run Payroll", href: "/payroll/pay-runs/new", icon: <DollarSign className="h-4 w-4" />, category: "Actions" },
+  { label: "Add Employee", href: "/payroll/employees/new", icon: <UserPlus className="h-4 w-4" />, category: "Create" },
+  { label: "New Project", href: "/projects/new", icon: <FolderKanban className="h-4 w-4" />, category: "Create" },
+  { label: "Log Time", href: "/time-tracking", icon: <Clock className="h-4 w-4" />, category: "Actions" },
+  { label: "New Asset", href: "/assets/new", icon: <Landmark className="h-4 w-4" />, category: "Create" },
+  { label: "Start Migration", href: "/migration/new", icon: <Database className="h-4 w-4" />, category: "Actions" },
+  { label: "Post to Marketplace", href: "/marketplace/requirements/new", icon: <ShoppingCart className="h-4 w-4" />, category: "Create" },
+  { label: "Stock Take", href: "/inventory/stock-takes", icon: <ClipboardList className="h-4 w-4" />, category: "Actions" },
 ]
 
 export function QuickActions() {

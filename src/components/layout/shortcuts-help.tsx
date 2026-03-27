@@ -23,6 +23,9 @@ const shortcutGroups: ShortcutGroup[] = [
       { keys: ["G", "B"], description: "Go to Bills" },
       { keys: ["G", "R"], description: "Go to Reports" },
       { keys: ["G", "P"], description: "Go to R&D Projects" },
+      { keys: ["G", "Y"], description: "Go to Payroll" },
+      { keys: ["G", "T"], description: "Go to Time Tracking" },
+      { keys: ["G", "M"], description: "Go to Marketplace" },
     ],
   },
 ]
