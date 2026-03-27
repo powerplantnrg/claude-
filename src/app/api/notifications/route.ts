@@ -178,7 +178,7 @@ export async function GET() {
   // 5. Pending approval requests
   const pendingApprovals = await prisma.approvalRequest.findMany({
     where: {
-      workflow: { organizationId: orgId },
+      organizationId: orgId,
       status: "Pending",
     },
     include: { workflow: true },
@@ -202,15 +202,14 @@ export async function GET() {
   const newBids = await prisma.marketplaceBid.findMany({
     where: {
       listing: {
-        provider: { organizationId: orgId },
+        organizationId: orgId,
       },
       status: "Submitted",
     },
     include: {
       listing: true,
-      requirement: true,
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { submittedAt: "desc" },
     take: 10,
   })
 
@@ -222,7 +221,7 @@ export async function GET() {
       message: `Bid amount: $${bid.amount.toFixed(2)}`,
       severity: "info",
       link: `/marketplace/listings/${bid.listingId}`,
-      createdAt: bid.createdAt.toISOString(),
+      createdAt: bid.submittedAt.toISOString(),
     })
   }
 
@@ -237,7 +236,7 @@ export async function GET() {
       },
       contract: {
         listing: {
-          provider: { organizationId: orgId },
+          organizationId: orgId,
         },
       },
     },
@@ -253,7 +252,7 @@ export async function GET() {
     notifications.push({
       id: `cmilestone-${cm.id}`,
       type: "contract_milestone",
-      title: `Contract milestone due: ${cm.title}`,
+      title: `Contract milestone due: ${cm.name}`,
       message: `Due in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`,
       severity: daysUntil <= 2 ? "critical" : "warning",
       link: `/marketplace/contracts/${cm.contractId}`,
@@ -264,7 +263,7 @@ export async function GET() {
   // 8. Leave requests pending approval
   const pendingLeave = await prisma.leaveRequest.findMany({
     where: {
-      employee: { organizationId: orgId },
+      organizationId: orgId,
       status: "Pending",
     },
     include: { employee: true },
@@ -277,7 +276,7 @@ export async function GET() {
       id: `leave-${lr.id}`,
       type: "leave_request",
       title: `Leave request: ${lr.employee.firstName} ${lr.employee.lastName}`,
-      message: `${lr.leaveType} from ${lr.startDate.toLocaleDateString()} to ${lr.endDate.toLocaleDateString()}`,
+      message: `${lr.type} from ${lr.startDate.toLocaleDateString()} to ${lr.endDate.toLocaleDateString()}`,
       severity: "info",
       link: `/payroll/leave`,
       createdAt: lr.createdAt.toISOString(),
@@ -288,7 +287,7 @@ export async function GET() {
   const migrationJobs = await prisma.migrationJob.findMany({
     where: {
       organizationId: orgId,
-      status: { in: ["NeedsReview", "Failed"] },
+      status: { in: ["PendingReview", "Failed"] },
     },
     orderBy: { updatedAt: "desc" },
     take: 10,
@@ -310,17 +309,17 @@ export async function GET() {
   const lowStockItems = await prisma.inventoryItem.findMany({
     where: {
       organizationId: orgId,
-      reorderPoint: { not: null, gt: 0 },
+      reorderLevel: { gt: 0 },
     },
   })
 
   for (const item of lowStockItems) {
-    if (item.reorderPoint && item.quantityOnHand <= item.reorderPoint) {
+    if (item.reorderLevel && item.quantityOnHand <= item.reorderLevel) {
       notifications.push({
         id: `inventory-${item.id}`,
         type: "inventory_reorder",
         title: `Low stock: ${item.name}`,
-        message: `${item.quantityOnHand} remaining (reorder point: ${item.reorderPoint})`,
+        message: `${item.quantityOnHand} remaining (reorder level: ${item.reorderLevel})`,
         severity: item.quantityOnHand === 0 ? "critical" : "warning",
         link: `/inventory/items/${item.id}`,
         createdAt: now.toISOString(),
@@ -331,8 +330,8 @@ export async function GET() {
   // 11. Time entries pending approval
   const pendingTimeEntries = await prisma.timeEntry.findMany({
     where: {
-      project: { organizationId: orgId },
-      approved: false,
+      organizationId: orgId,
+      approvalStatus: "Pending",
     },
     include: { project: true },
     orderBy: { date: "desc" },

@@ -15,6 +15,10 @@ import {
   FlaskConical,
   Cloud,
   Landmark,
+  DollarSign,
+  CheckSquare,
+  ShoppingCart,
+  Database,
 } from "lucide-react"
 
 interface OnboardingItem {
@@ -39,6 +43,10 @@ const iconMap: Record<string, React.ReactNode> = {
   rdProjects: <FlaskConical className="h-4 w-4" />,
   cloudProviders: <Cloud className="h-4 w-4" />,
   bankTransactions: <Landmark className="h-4 w-4" />,
+  payroll: <DollarSign className="h-4 w-4" />,
+  approvals: <CheckSquare className="h-4 w-4" />,
+  marketplace: <ShoppingCart className="h-4 w-4" />,
+  migration: <Database className="h-4 w-4" />,
 }
 
 export function OnboardingChecklist() {

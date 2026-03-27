@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
             { email: { contains: q } },
           ],
         },
-        select: { id: true, firstName: true, lastName: true, email: true, status: true },
+        select: { id: true, firstName: true, lastName: true, email: true, active: true },
         take: 5,
       }),
 
@@ -194,26 +194,26 @@ export async function GET(request: NextRequest) {
             { description: { contains: q } },
           ],
         },
-        select: { id: true, name: true, type: true },
+        select: { id: true, name: true, entityType: true },
         take: 5,
       }),
 
       prisma.marketplaceProvider.findMany({
         where: {
-          organizationId: orgId,
           OR: [
-            { companyName: { contains: q } },
+            { name: { contains: q } },
+            { businessName: { contains: q } },
             { description: { contains: q } },
           ],
         },
-        select: { id: true, companyName: true, status: true },
+        select: { id: true, name: true, status: true },
         take: 5,
       }),
 
       prisma.marketplaceListing.findMany({
         where: {
           title: { contains: q },
-          provider: { organizationId: orgId },
+          organizationId: orgId,
         },
         select: { id: true, title: true, status: true },
         take: 5,
@@ -221,11 +221,9 @@ export async function GET(request: NextRequest) {
 
       prisma.marketplaceContract.findMany({
         where: {
-          OR: [
-            { title: { contains: q } },
-          ],
+          title: { contains: q },
           listing: {
-            provider: { organizationId: orgId },
+            organizationId: orgId,
           },
         },
         select: { id: true, title: true, status: true },

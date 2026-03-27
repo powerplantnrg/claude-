@@ -12,12 +12,12 @@ interface SearchResults {
   experiments: { id: string; name: string; status: string }[]
   accounts: { id: string; name: string; code: string; type: string }[]
   rdActivities: { id: string; name: string; status: string; rdProjectId: string }[]
-  employees: { id: string; firstName: string; lastName: string; email: string; status: string }[]
+  employees: { id: string; firstName: string; lastName: string; email: string; active: boolean }[]
   fixedAssets: { id: string; name: string; assetNumber: string; status: string }[]
   inventoryItems: { id: string; name: string; sku: string | null; quantityOnHand: number }[]
   costingProjects: { id: string; name: string; code: string | null; status: string }[]
-  documents: { id: string; name: string; type: string }[]
-  marketplaceProviders: { id: string; companyName: string; status: string }[]
+  documents: { id: string; name: string; entityType: string | null }[]
+  marketplaceProviders: { id: string; name: string; status: string }[]
   marketplaceListings: { id: string; title: string; status: string }[]
   marketplaceContracts: { id: string; title: string; status: string }[]
   migrationJobs: { id: string; name: string; status: string; sourceSystem: string }[]
@@ -260,7 +260,7 @@ function renderTitle(
     case "documents":
       return item.name as string
     case "marketplaceProviders":
-      return item.companyName as string
+      return item.name as string
     case "marketplaceListings":
       return item.title as string
     case "marketplaceContracts":
@@ -292,7 +292,7 @@ function renderSubtitle(
     case "rdActivities":
       return item.status as string
     case "employees":
-      return `${item.status}${item.email ? ` | ${item.email}` : ""}`
+      return `${item.active ? "Active" : "Inactive"}${item.email ? ` | ${item.email}` : ""}`
     case "fixedAssets":
       return item.status as string
     case "inventoryItems":
@@ -300,7 +300,7 @@ function renderSubtitle(
     case "costingProjects":
       return item.status as string
     case "documents":
-      return item.type as string
+      return (item.entityType as string) || "General"
     case "marketplaceProviders":
       return item.status as string
     case "marketplaceListings":
