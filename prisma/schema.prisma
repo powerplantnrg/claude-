@@ -78,6 +78,12 @@ model Organization {
   documents           Document[]
   bankFeeds           BankFeed[]
   migrationJobs       MigrationJob[]
+  projectRequirements    ProjectRequirement[]
+  marketplaceListings    MarketplaceListing[]
+  marketplaceContracts   MarketplaceContract[]
+  contractInvoices       ContractInvoice[]
+  providerReviews        ProviderReview[]
+  quarterlyFinancing     QuarterlyFinancingRequest[]
 }
 
 model User {
@@ -114,6 +120,13 @@ model User {
   reviewedMappings       MigrationMapping[] @relation("MigrationMappingReviewer")
   reconciledMigrations   MigrationReconciliation[] @relation("MigrationReconciler")
   migrationAuditLogs     MigrationAuditLog[] @relation("MigrationAuditLogUser")
+  createdRequirements    ProjectRequirement[] @relation("RequirementCreatedBy")
+  approvedRequirements   ProjectRequirement[] @relation("RequirementApprovedBy")
+  respondedBids          MarketplaceBid[]     @relation("BidRespondedBy")
+  approvedMilestones     ContractMilestone[]  @relation("MilestoneApprovedBy")
+  approvedContractInvoices ContractInvoice[]  @relation("ContractInvoiceApprovedBy")
+  providerReviews        ProviderReview[]     @relation("ProviderReviewer")
+  acceptedSuggestions    RequirementSuggestion[] @relation("SuggestionAcceptedBy")
 }
 
 // ============================================
@@ -267,6 +280,7 @@ model Invoice {
   billedTimeEntries    TimeEntry[]
   billedProjectExpenses ProjectExpense[]
   projectMilestones    ProjectMilestone[]
+  contractMilestones   ContractMilestone[]
 }
 
 model InvoiceLine {
@@ -389,6 +403,7 @@ model RdProject {
   knowledgeBase           KnowledgeBase[]
   fixedAssets             FixedAsset[]
   linkedProjects          Project[]    @relation("ProjectRdProject")
+  projectRequirements     ProjectRequirement[]
 }
 
 model RdActivity {
@@ -816,6 +831,7 @@ model Payment {
   journalEntryId String?
   notes          String?
   createdAt      DateTime     @default(now())
+  contractMilestones ContractMilestone[]
 }
 
 // ============================================
@@ -1804,6 +1820,8 @@ model Document {
   tags           String?
   createdAt      DateTime @default(now())
 
+  projectRequirements ProjectRequirement[]
+
   @@index([organizationId])
   @@index([entityType, entityId])
   @@index([organizationId, entityType])
@@ -2003,4 +2021,372 @@ model MigrationAuditLog {
   @@index([migrationJobId, action])
   @@index([migrationJobId, entityType])
   @@index([userId])
+}
+
+// ============================================
+// SPECIALIST MARKETPLACE
+// ============================================
+
+model MarketplaceProvider {
+  id                  String   @id @default(cuid())
+  name                String
+  businessName        String?
+  abn                 String?
+  email               String
+  phone               String?
+  website             String?
+  description         String?
+  category            String   // Consultant, Researcher, Financier, FacilityProvider, PlantHire, RealEstateAgent, Tradesperson, TaxAgent, TechnicalProfessional, Laborer, LabService, EquipmentLeasing, Other
+  subcategories       String?  // comma-separated
+  qualifications      String?
+  insuranceCoverage   String?
+  insuranceExpiry     DateTime?
+  location            String?
+  serviceArea         String?  // e.g. "NSW,VIC,QLD"
+  hourlyRate          Float?
+  dailyRate           Float?
+  minimumEngagement   String?
+  leadTimeDays        Int?
+  rating              Float    @default(0)
+  reviewCount         Int      @default(0)
+  verified            Boolean  @default(false)
+  verifiedAt          DateTime?
+  status              String   @default("Pending") // Active, Pending, Suspended, Inactive
+  profileCompleteness Int      @default(0)
+  availableFrom       DateTime?
+  portfolioUrl        String?
+  linkedInUrl         String?
+  termsAccepted       Boolean  @default(false)
+  termsAcceptedAt     DateTime?
+  preferredPayment    String?  // Standard, QuarterlyFinancing, Milestone
+  bankBSB             String?
+  bankAccountNumber   String?
+  bankAccountName     String?
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  capabilities        ProviderCapability[]
+  bids                MarketplaceBid[]
+  contracts           MarketplaceContract[]
+  contractInvoices    ContractInvoice[]
+  reviews             ProviderReview[]
+  quarterlyFinancing  QuarterlyFinancingRequest[]
+
+  @@index([category])
+  @@index([status])
+  @@index([location])
+  @@index([rating])
+  @@index([category, status])
+}
+
+model ProviderCapability {
+  id                 String   @id @default(cuid())
+  providerId         String
+  provider           MarketplaceProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  capabilityType     String   // Equipment, Skill, Certification, Facility, Service
+  name               String
+  description        String?
+  details            String?  // JSON for flexible data like equipment specs
+  verificationStatus String   @default("Pending") // Pending, Verified, Expired
+
+  @@index([providerId])
+  @@index([capabilityType])
+  @@index([providerId, capabilityType])
+}
+
+model ProjectRequirement {
+  id               String   @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  rdProjectId      String?
+  rdProject        RdProject? @relation(fields: [rdProjectId], references: [id])
+  projectName      String
+  description      String?
+  status           String   @default("Draft") // Draft, Published, InMarket, Fulfilled, Cancelled
+  extractedFrom    String?  // Manual, DesignDocument, ProjectPlan
+  sourceDocumentId String?
+  sourceDocument   Document? @relation(fields: [sourceDocumentId], references: [id])
+  createdById      String
+  createdBy        User     @relation("RequirementCreatedBy", fields: [createdById], references: [id])
+  approvedById     String?
+  approvedBy       User?    @relation("RequirementApprovedBy", fields: [approvedById], references: [id])
+  approvedAt       DateTime?
+  totalBudget      Float?
+  currency         String   @default("AUD")
+  startDate        DateTime?
+  endDate          DateTime?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  items            RequirementItem[]
+  listings         MarketplaceListing[]
+  suggestions      RequirementSuggestion[]
+
+  @@index([organizationId])
+  @@index([rdProjectId])
+  @@index([status])
+  @@index([organizationId, status])
+}
+
+model RequirementItem {
+  id                String   @id @default(cuid())
+  requirementId     String
+  requirement       ProjectRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  title             String
+  description       String?
+  category          String   // Researcher, Equipment, Facility, Consultant, TaxAgent, Laborer, Technical, Trade, Other
+  quantity          Int      @default(1)
+  unitType          String?  // Hours, Days, Weeks, Months, Units
+  duration          String?  // e.g. "12 weeks"
+  frequencyDescription String? // e.g. "weekly"
+  requiredSkills    String?  // comma-separated
+  requiredEquipment String?  // comma-separated
+  estimatedBudget   Float?
+  suggestedProviders String? // JSON array of provider names/types
+  alternativeOptions String? // JSON describing alternatives like lease vs hire
+  status            String   @default("Draft") // Draft, Approved, InMarket, Assigned, Completed, Cancelled
+  priority          String   @default("Medium") // High, Medium, Low
+  sortOrder         Int      @default(0)
+
+  listings          MarketplaceListing[]
+
+  @@index([requirementId])
+  @@index([category])
+  @@index([status])
+}
+
+model MarketplaceListing {
+  id                      String   @id @default(cuid())
+  organizationId          String
+  organization            Organization @relation(fields: [organizationId], references: [id])
+  requirementId           String?
+  requirement             ProjectRequirement? @relation(fields: [requirementId], references: [id])
+  requirementItemId       String?
+  requirementItem         RequirementItem? @relation(fields: [requirementItemId], references: [id])
+  title                   String
+  description             String?
+  category                String?
+  budget                  Float?
+  budgetType              String?  // Fixed, Hourly, Daily, Weekly
+  duration                String?
+  location                String?
+  remoteOk                Boolean  @default(false)
+  startDate               DateTime?
+  endDate                 DateTime?
+  status                  String   @default("Open") // Open, Reviewing, Assigned, InProgress, Completed, Cancelled
+  visibility              String   @default("Public") // Public, Invited
+  paymentTerms            String?  // OnCompletion, Milestone, Monthly, QuarterlyFinancing
+  serviceAgreementAccepted Boolean @default(false)
+  viewCount               Int      @default(0)
+  responseCount           Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  bids                    MarketplaceBid[]
+  contracts               MarketplaceContract[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([category])
+  @@index([organizationId, status])
+}
+
+model MarketplaceBid {
+  id                String   @id @default(cuid())
+  listingId         String
+  listing           MarketplaceListing @relation(fields: [listingId], references: [id])
+  providerId        String
+  provider          MarketplaceProvider @relation(fields: [providerId], references: [id])
+  bidType           String   // Offer, AcceptFixed, CounterOffer
+  amount            Float
+  currency          String   @default("AUD")
+  rateType          String?  // Fixed, Hourly, Daily, Weekly
+  proposedStartDate DateTime?
+  proposedEndDate   DateTime?
+  proposalDescription String?
+  includedServices  String?  // what's included
+  exclusions        String?  // what's not included
+  paymentPreference String?  // Standard, QuarterlyFinancing, Milestone
+  status            String   @default("Submitted") // Submitted, Shortlisted, Accepted, Rejected, Withdrawn
+  submittedAt       DateTime @default(now())
+  respondedAt       DateTime?
+  respondedById     String?
+  respondedBy       User?    @relation("BidRespondedBy", fields: [respondedById], references: [id])
+  notes             String?
+
+  contracts         MarketplaceContract[]
+
+  @@index([listingId])
+  @@index([providerId])
+  @@index([status])
+  @@index([listingId, status])
+}
+
+model MarketplaceContract {
+  id                    String   @id @default(cuid())
+  organizationId        String
+  organization          Organization @relation(fields: [organizationId], references: [id])
+  listingId             String
+  listing               MarketplaceListing @relation(fields: [listingId], references: [id])
+  providerId            String
+  provider              MarketplaceProvider @relation(fields: [providerId], references: [id])
+  bidId                 String?
+  bid                   MarketplaceBid? @relation(fields: [bidId], references: [id])
+  contractNumber        String   @unique
+  title                 String
+  description           String?
+  agreedAmount          Float
+  paymentSchedule       String?  // JSON of milestones/dates
+  paymentTerms          String?
+  status                String   @default("Draft") // Draft, Active, OnHold, Completed, Terminated, Disputed
+  startDate             DateTime?
+  endDate               DateTime?
+  serviceAgreementUrl   String?
+  deliverables          String?  // JSON
+  acceptedByProvider    Boolean  @default(false)
+  acceptedByProviderAt  DateTime?
+  acceptedByClient      Boolean  @default(false)
+  acceptedByClientAt    DateTime?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  milestones            ContractMilestone[]
+  invoices              ContractInvoice[]
+  reviews               ProviderReview[]
+  quarterlyFinancing    QuarterlyFinancingRequest[]
+
+  @@index([organizationId])
+  @@index([providerId])
+  @@index([status])
+  @@index([contractNumber])
+  @@index([organizationId, status])
+}
+
+model ContractMilestone {
+  id                    String   @id @default(cuid())
+  contractId            String
+  contract              MarketplaceContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  name                  String
+  description           String?
+  amount                Float
+  dueDate               DateTime?
+  status                String   @default("Pending") // Pending, Submitted, Approved, Paid, Disputed
+  deliverableDescription String?
+  submittedAt           DateTime?
+  approvedById          String?
+  approvedBy            User?    @relation("MilestoneApprovedBy", fields: [approvedById], references: [id])
+  approvedAt            DateTime?
+  invoiceId             String?
+  invoice               Invoice? @relation(fields: [invoiceId], references: [id])
+  paymentId             String?
+  payment               Payment? @relation(fields: [paymentId], references: [id])
+
+  contractInvoices      ContractInvoice[]
+
+  @@index([contractId])
+  @@index([status])
+}
+
+model ContractInvoice {
+  id                        String   @id @default(cuid())
+  contractId                String
+  contract                  MarketplaceContract @relation(fields: [contractId], references: [id])
+  milestoneId               String?
+  milestone                 ContractMilestone? @relation(fields: [milestoneId], references: [id])
+  providerId                String
+  provider                  MarketplaceProvider @relation(fields: [providerId], references: [id])
+  organizationId            String
+  organization              Organization @relation(fields: [organizationId], references: [id])
+  invoiceNumber             String
+  amount                    Float
+  gstAmount                 Float
+  totalAmount               Float
+  description               String?
+  status                    String   @default("Draft") // Draft, Submitted, Approved, Paid, Rejected, Disputed
+  submittedAt               DateTime?
+  approvedById              String?
+  approvedBy                User?    @relation("ContractInvoiceApprovedBy", fields: [approvedById], references: [id])
+  approvedAt                DateTime?
+  paidAt                    DateTime?
+  paymentMethod             String?  // Standard, QuarterlyFinancing
+  quarterlyFinancingApproved Boolean?
+  notes                     String?
+  createdAt                 DateTime @default(now())
+
+  @@index([contractId])
+  @@index([providerId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+model ProviderReview {
+  id                  String   @id @default(cuid())
+  contractId          String
+  contract            MarketplaceContract @relation(fields: [contractId], references: [id])
+  providerId          String
+  provider            MarketplaceProvider @relation(fields: [providerId], references: [id])
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  reviewerId          String
+  reviewer            User     @relation("ProviderReviewer", fields: [reviewerId], references: [id])
+  rating              Int      // 1-5
+  qualityRating       Int?
+  timelinessRating    Int?
+  communicationRating Int?
+  valueRating         Int?
+  comment             String?
+  createdAt           DateTime @default(now())
+
+  @@index([providerId])
+  @@index([contractId])
+  @@index([providerId, rating])
+}
+
+model RequirementSuggestion {
+  id                     String   @id @default(cuid())
+  requirementId          String
+  requirement            ProjectRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  suggestedByAI          Boolean  @default(true)
+  itemTitle              String
+  itemDescription        String?
+  category               String?
+  quantity               Int?
+  unitType               String?
+  duration               String?
+  estimatedCost          Float?
+  rationale              String?
+  alternativeDescription String?
+  confidence             Float?   // 0-1
+  accepted               Boolean?
+  acceptedById           String?
+  acceptedBy             User?    @relation("SuggestionAcceptedBy", fields: [acceptedById], references: [id])
+  acceptedAt             DateTime?
+
+  @@index([requirementId])
+  @@index([requirementId, accepted])
+}
+
+model QuarterlyFinancingRequest {
+  id               String   @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  contractId       String
+  contract         MarketplaceContract @relation(fields: [contractId], references: [id])
+  providerId       String
+  provider         MarketplaceProvider @relation(fields: [providerId], references: [id])
+  totalAmount      Float
+  quarterlyAmount  Float
+  numberOfQuarters Int
+  startQuarter     String   // e.g. "Q1 2026"
+  status           String   @default("Requested") // Requested, Approved, Active, Completed, Defaulted
+  approvedAt       DateTime?
+  interestRate     Float    @default(0)
+  notes            String?
+
+  @@index([organizationId])
+  @@index([contractId])
+  @@index([status])
 }
