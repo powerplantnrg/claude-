@@ -2387,6 +2387,285 @@ async function main() {
 
   console.log("Marketplace: 6 providers, 19 capabilities, 1 project requirement, 3 requirement items, 3 AI suggestions, 1 listing, 2 bids")
 
+  // ============================================
+  // NEW: Quotes, Locked Periods, Loans, Cost Centers, Compliance, Report Templates
+  // ============================================
+
+  // Additional accounts needed for loans
+  const loanAdditionalAccounts = [
+    { code: "2550", name: "Business Loan", type: "Liability", subType: "Non-Current Liability", taxType: "BAS-Excluded" },
+    { code: "6800", name: "Interest Expense", type: "Expense", subType: "Operating Expense", taxType: "GST-Free" },
+  ]
+  const loanAcctIds: Record<string, string> = {}
+  for (const acc of loanAdditionalAccounts) {
+    const exists = await prisma.account.findFirst({ where: { code: acc.code, organizationId: org.id } })
+    if (!exists) {
+      const created = await prisma.account.create({
+        data: { ...acc, isSystemAccount: false, isRdEligible: false, organizationId: org.id },
+      })
+      loanAcctIds[acc.code] = created.id
+    } else {
+      loanAcctIds[acc.code] = exists.id
+    }
+  }
+
+  // Look up GST tax rate for quotes
+  const gstRate = await prisma.taxRate.findFirst({
+    where: { organizationId: org.id, taxType: "GST", isDefault: true },
+  })
+
+  // --- Quotes (2) ---
+  const quote1 = await prisma.quote.create({
+    data: {
+      organizationId: org.id,
+      quoteNumber: "QT-0001",
+      contactId: techCorp.id,
+      issueDate: daysAgo(14),
+      expiryDate: daysAgo(-16),
+      reference: "Energy Monitoring System",
+      status: "Sent",
+      subtotal: 25000,
+      taxTotal: 2500,
+      total: 27500,
+      notes: "Includes installation and 12-month warranty",
+      terms: "Payment within 30 days of acceptance",
+      lines: {
+        create: [
+          {
+            description: "Energy Monitoring Platform - Annual License",
+            quantity: 1,
+            unitPrice: 18000,
+            taxRateId: gstRate?.id,
+            taxAmount: 1800,
+            lineAmount: 18000,
+            accountId: salesRevenueAcct.id,
+            sortOrder: 1,
+          },
+          {
+            description: "Installation & Configuration",
+            quantity: 1,
+            unitPrice: 5000,
+            taxRateId: gstRate?.id,
+            taxAmount: 500,
+            lineAmount: 5000,
+            accountId: consultingRevenueAcct.id,
+            sortOrder: 2,
+          },
+          {
+            description: "Staff Training (2 days)",
+            quantity: 2,
+            unitPrice: 1000,
+            taxRateId: gstRate?.id,
+            taxAmount: 200,
+            lineAmount: 2000,
+            accountId: consultingRevenueAcct.id,
+            sortOrder: 3,
+          },
+        ],
+      },
+    },
+  })
+
+  const quote2 = await prisma.quote.create({
+    data: {
+      organizationId: org.id,
+      quoteNumber: "QT-0002",
+      contactId: greenEnergy.id,
+      issueDate: daysAgo(5),
+      expiryDate: daysAgo(-25),
+      reference: "Solar Analytics Integration",
+      status: "Draft",
+      subtotal: 42000,
+      taxTotal: 4200,
+      total: 46200,
+      notes: "Phase 1 of solar analytics platform integration",
+      terms: "50% upfront, 50% on completion",
+      lines: {
+        create: [
+          {
+            description: "Solar Analytics API Integration",
+            quantity: 1,
+            unitPrice: 30000,
+            taxRateId: gstRate?.id,
+            taxAmount: 3000,
+            lineAmount: 30000,
+            accountId: salesRevenueAcct.id,
+            sortOrder: 1,
+          },
+          {
+            description: "Data Migration & Historical Import",
+            quantity: 1,
+            unitPrice: 12000,
+            taxRateId: gstRate?.id,
+            taxAmount: 1200,
+            lineAmount: 12000,
+            accountId: consultingRevenueAcct.id,
+            sortOrder: 2,
+          },
+        ],
+      },
+    },
+  })
+
+  console.log("Quotes: 2 quotes (QT-0001 Sent, QT-0002 Draft)")
+
+  // --- Locked Period (Q1 FY 2025-26: Jul-Sep 2025) ---
+  await prisma.lockedPeriod.create({
+    data: {
+      organizationId: org.id,
+      periodStart: new Date(2025, 6, 1),    // Jul 1, 2025
+      periodEnd: new Date(2025, 8, 30, 23, 59, 59, 999), // Sep 30, 2025
+      lockedById: adminUser.id,
+      reason: "Q1 FY2025-26 period closed after BAS lodgement",
+      status: "Locked",
+    },
+  })
+
+  console.log("Locked periods: 1 (Q1 FY2025-26)")
+
+  // --- Loan (Business Loan $100K) ---
+  const businessLoan = await prisma.loan.create({
+    data: {
+      organizationId: org.id,
+      name: "NAB Business Loan",
+      lender: "National Australia Bank",
+      loanType: "BusinessLoan",
+      principalAmount: 100000,
+      interestRate: 6.5,
+      interestType: "Fixed",
+      termMonths: 60,
+      startDate: new Date(2025, 0, 15), // Jan 15, 2025
+      maturityDate: new Date(2030, 0, 15), // Jan 15, 2030
+      monthlyPayment: 1956.61,
+      currentBalance: 91250.00,
+      liabilityAccountId: loanAcctIds["2550"],
+      interestExpenseAccountId: loanAcctIds["6800"],
+      status: "Active",
+      notes: "5-year fixed rate business loan for equipment expansion",
+      payments: {
+        create: [
+          {
+            date: new Date(2025, 1, 15),
+            principalAmount: 1414.94,
+            interestAmount: 541.67,
+            totalAmount: 1956.61,
+            balance: 98585.06,
+            notes: "February 2025 payment",
+          },
+          {
+            date: new Date(2025, 2, 15),
+            principalAmount: 1422.61,
+            interestAmount: 534.00,
+            totalAmount: 1956.61,
+            balance: 97162.45,
+            notes: "March 2025 payment",
+          },
+          {
+            date: new Date(2025, 3, 15),
+            principalAmount: 1430.32,
+            interestAmount: 526.29,
+            totalAmount: 1956.61,
+            balance: 95732.13,
+            notes: "April 2025 payment",
+          },
+        ],
+      },
+    },
+  })
+
+  console.log("Loans: 1 business loan ($100K, NAB)")
+
+  // --- Compliance Deadlines for FY 2025-26 ---
+  const complianceDeadlines = [
+    { title: "BAS Q1 2025-26", description: "Business Activity Statement for Q1 (Jul-Sep 2025)", category: "BAS", dueDate: new Date(2025, 9, 28), frequency: "Quarterly", status: "Completed", completedAt: new Date(2025, 9, 25), completedById: adminUser.id, reminderDays: 14 },
+    { title: "BAS Q2 2025-26", description: "Business Activity Statement for Q2 (Oct-Dec 2025)", category: "BAS", dueDate: new Date(2026, 1, 28), frequency: "Quarterly", status: "Upcoming", reminderDays: 14 },
+    { title: "BAS Q3 2025-26", description: "Business Activity Statement for Q3 (Jan-Mar 2026)", category: "BAS", dueDate: new Date(2026, 3, 28), frequency: "Quarterly", status: "Upcoming", reminderDays: 14 },
+    { title: "BAS Q4 2025-26", description: "Business Activity Statement for Q4 (Apr-Jun 2026)", category: "BAS", dueDate: new Date(2026, 6, 28), frequency: "Quarterly", status: "Upcoming", reminderDays: 14 },
+    { title: "STP Finalisation 2025-26", description: "Single Touch Payroll finalisation declaration for FY 2025-26", category: "STP", dueDate: new Date(2026, 6, 14), frequency: "Annually", status: "Upcoming", reminderDays: 21 },
+    { title: "Super Guarantee Q1 2025-26", description: "Superannuation guarantee payment for Q1 (Jul-Sep 2025)", category: "SuperGuarantee", dueDate: new Date(2025, 9, 28), frequency: "Quarterly", status: "Completed", completedAt: new Date(2025, 9, 20), completedById: adminUser.id, reminderDays: 14 },
+    { title: "Super Guarantee Q2 2025-26", description: "Superannuation guarantee payment for Q2 (Oct-Dec 2025)", category: "SuperGuarantee", dueDate: new Date(2026, 0, 28), frequency: "Quarterly", status: "Upcoming", reminderDays: 14 },
+    { title: "Super Guarantee Q3 2025-26", description: "Superannuation guarantee payment for Q3 (Jan-Mar 2026)", category: "SuperGuarantee", dueDate: new Date(2026, 3, 28), frequency: "Quarterly", status: "Upcoming", reminderDays: 14 },
+    { title: "Super Guarantee Q4 2025-26", description: "Superannuation guarantee payment for Q4 (Apr-Jun 2026)", category: "SuperGuarantee", dueDate: new Date(2026, 6, 28), frequency: "Quarterly", status: "Upcoming", reminderDays: 14 },
+    { title: "FBT Return 2025-26", description: "Fringe Benefits Tax return for FBT year ending 31 March 2026", category: "FBT", dueDate: new Date(2026, 4, 21), frequency: "Annually", status: "Upcoming", reminderDays: 28 },
+    { title: "R&D Tax Incentive Registration 2025-26", description: "Register R&D activities with AusIndustry for FY 2025-26", category: "RDTaxIncentive", dueDate: new Date(2027, 3, 30), frequency: "Annually", status: "Upcoming", reminderDays: 60 },
+    { title: "Company Tax Return 2025-26", description: "Company income tax return for FY 2025-26", category: "IncomeTax", dueDate: new Date(2027, 4, 15), frequency: "Annually", status: "Upcoming", reminderDays: 30 },
+  ]
+
+  for (const dl of complianceDeadlines) {
+    await prisma.complianceDeadline.create({
+      data: {
+        organizationId: org.id,
+        ...dl,
+      },
+    })
+  }
+
+  console.log("Compliance deadlines: 12 for FY 2025-26")
+
+  // --- Cost Centers (3: Engineering, Research, Operations) ---
+  const engineeringCC = await prisma.costCenter.create({
+    data: {
+      organizationId: org.id,
+      code: "CC-ENG",
+      name: "Engineering",
+      description: "Software and hardware engineering department",
+      type: "Department",
+      managerId: adminUser.id,
+      isActive: true,
+    },
+  })
+
+  const researchCC = await prisma.costCenter.create({
+    data: {
+      organizationId: org.id,
+      code: "CC-RES",
+      name: "Research",
+      description: "R&D and experimental research division",
+      type: "Department",
+      managerId: adminUser.id,
+      isActive: true,
+    },
+  })
+
+  const operationsCC = await prisma.costCenter.create({
+    data: {
+      organizationId: org.id,
+      code: "CC-OPS",
+      name: "Operations",
+      description: "Day-to-day business operations and administration",
+      type: "Department",
+      managerId: adminUser.id,
+      isActive: true,
+    },
+  })
+
+  console.log("Cost centers: 3 (Engineering, Research, Operations)")
+
+  // --- Report Template (1) ---
+  await prisma.reportTemplate.create({
+    data: {
+      organizationId: org.id,
+      name: "Monthly P&L with R&D Breakdown",
+      description: "Profit & Loss report showing R&D expenses as a separate section with month-over-month comparison",
+      baseReport: "ProfitLoss",
+      columns: JSON.stringify([
+        { key: "account", label: "Account" },
+        { key: "currentMonth", label: "Current Month" },
+        { key: "previousMonth", label: "Previous Month" },
+        { key: "variance", label: "Variance" },
+        { key: "ytd", label: "Year to Date" },
+      ]),
+      filters: JSON.stringify({ excludeZeroBalances: true, showSubAccounts: true }),
+      groupBy: "subType",
+      dateRange: "CurrentMonth",
+      includeComparison: true,
+      createdById: adminUser.id,
+      isPublic: true,
+    },
+  })
+
+  console.log("Report templates: 1 (Monthly P&L with R&D Breakdown)")
+
   console.log("Seed completed successfully!")
   console.log("Demo data created: 6 contacts, 6 invoices, 4 bills, 2 R&D projects, 3 experiments, 8 time entries, 6 cloud costs, 8 bank transactions")
   console.log("Payroll data created: 4 employees, 1 pay run (completed), 4 payslips, 2 tax minimisation strategies, 10 payroll accounts")
