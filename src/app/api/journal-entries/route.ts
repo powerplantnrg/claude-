@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 
 export async function GET(req: NextRequest) {
   const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const orgId = (session.user as Record<string, unknown>).organizationId as string
 
   const { searchParams } = new URL(req.url)
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await auth()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = session.user as any
   const orgId = user.organizationId as string

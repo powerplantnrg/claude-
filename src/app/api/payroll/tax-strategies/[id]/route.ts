@@ -8,7 +8,7 @@ export async function PATCH(
 ) {
   try {
     const session = await auth()
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     const orgId = (session.user as any).organizationId
@@ -69,7 +69,7 @@ export async function DELETE(
 ) {
   try {
     const session = await auth()
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     const orgId = (session.user as any).organizationId
