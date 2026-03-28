@@ -23,6 +23,14 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
 
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
+  const authError = searchParams.get("error")
+
+  // Show NextAuth error messages (e.g. redirected from /api/auth/error)
+  const authErrorMessage = authError === "CredentialsSignin"
+    ? "Invalid email or password"
+    : authError
+      ? "An authentication error occurred. Please try again."
+      : null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -139,10 +147,10 @@ function LoginForm() {
             </p>
           </div>
 
-          {error && (
+          {(error || authErrorMessage) && (
             <div className="mb-6 flex items-center gap-2 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200/60 dark:border-red-500/20 px-4 py-3 text-sm text-red-700 dark:text-red-400">
               <div className="h-1.5 w-1.5 rounded-full bg-red-500 shrink-0" />
-              {error}
+              {error || authErrorMessage}
             </div>
           )}
 
