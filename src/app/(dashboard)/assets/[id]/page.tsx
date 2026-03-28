@@ -6,7 +6,6 @@ import Link from "next/link"
 import dynamic from "next/dynamic"
 
 const DepreciationChart = dynamic(() => import("./depreciation-chart"), {
-  ssr: false,
   loading: () => (
     <div className="flex h-64 items-center justify-center text-sm text-slate-400">
       Loading chart...

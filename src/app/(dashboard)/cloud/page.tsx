@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 
 const CostTrendChart = dynamic(
   () => import("@/components/charts/cloud-charts").then((m) => ({ default: m.CostTrendChart })),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+  { loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
 )
 const CostByProviderChart = dynamic(
   () => import("@/components/charts/cloud-charts").then((m) => ({ default: m.CostByProviderChart })),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+  { loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
 )
 
 export default async function CloudDashboardPage() {

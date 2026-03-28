@@ -8,27 +8,27 @@ import type { Metadata } from "next"
 
 const WaterfallChart = dynamic(
   () => import("@/components/charts/financial-charts").then((m) => ({ default: m.WaterfallChart })),
-  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
+  { loading: () => <div className="h-96 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
 )
 const BreakdownPieChart = dynamic(
   () => import("@/components/charts/financial-charts").then((m) => ({ default: m.BreakdownPieChart })),
-  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
+  { loading: () => <div className="h-96 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
 )
 const LineTrendChart = dynamic(
   () => import("@/components/charts/financial-charts").then((m) => ({ default: m.LineTrendChart })),
-  { ssr: false, loading: () => <div className="h-80 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
+  { loading: () => <div className="h-80 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
 )
 const StackedBarChart = dynamic(
   () => import("@/components/charts/financial-charts").then((m) => ({ default: m.StackedBarChart })),
-  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
+  { loading: () => <div className="h-96 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
 )
 const TrendComparisonChart = dynamic(
   () => import("@/components/charts/financial-charts").then((m) => ({ default: m.TrendComparisonChart })),
-  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
+  { loading: () => <div className="h-96 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
 )
 const MetricCard = dynamic(
   () => import("@/components/charts/financial-charts").then((m) => ({ default: m.MetricCard })),
-  { ssr: false, loading: () => <div className="h-28 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
+  { loading: () => <div className="h-28 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-xl" /> }
 )
 
 export const metadata: Metadata = {

@@ -6,11 +6,11 @@ import dynamic from "next/dynamic"
 
 const EmissionsByScopePie = dynamic(
   () => import("./carbon-charts").then((m) => ({ default: m.EmissionsByScopePie })),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+  { loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
 )
 const MonthlyEmissionsTrend = dynamic(
   () => import("./carbon-charts").then((m) => ({ default: m.MonthlyEmissionsTrend })),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+  { loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
 )
 import { CarbonEntryForm } from "./carbon-form"
 import type { Metadata } from "next"

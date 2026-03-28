@@ -6,11 +6,11 @@ import dynamic from "next/dynamic"
 
 const RevenueVsComputeChart = dynamic(
   () => import("./command-charts").then((m) => ({ default: m.RevenueVsComputeChart })),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+  { loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
 )
 const RdClaimTrendChart = dynamic(
   () => import("./command-charts").then((m) => ({ default: m.RdClaimTrendChart })),
-  { ssr: false, loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
+  { loading: () => <div className="h-64 animate-pulse bg-slate-100 rounded-xl" /> }
 )
 import Link from "next/link"
 import type { Metadata } from "next"

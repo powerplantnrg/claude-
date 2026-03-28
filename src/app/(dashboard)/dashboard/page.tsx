@@ -13,15 +13,15 @@ import {
 
 const RevenueExpensesChart = dynamic(
   () => import("@/components/charts/dashboard-charts").then((m) => ({ default: m.RevenueExpensesChart })),
-  { ssr: false, loading: () => <div className="h-72 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" /> }
+  { loading: () => <div className="h-72 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" /> }
 )
 const CashFlowChart = dynamic(
   () => import("@/components/charts/dashboard-charts").then((m) => ({ default: m.CashFlowChart })),
-  { ssr: false, loading: () => <div className="h-72 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" /> }
+  { loading: () => <div className="h-72 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" /> }
 )
 const RdSpendByCategoryChart = dynamic(
   () => import("@/components/charts/dashboard-charts").then((m) => ({ default: m.RdSpendByCategoryChart })),
-  { ssr: false, loading: () => <div className="h-72 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" /> }
+  { loading: () => <div className="h-72 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" /> }
 )
 import { SparklineCard } from "@/components/dashboard/sparkline-cards"
 import { RecentActivity } from "@/components/dashboard/recent-activity"

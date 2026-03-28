@@ -11,11 +11,11 @@ import {
 
 const RdSpendByProjectChart = dynamic(
   () => import("@/components/charts/rd-charts").then((m) => ({ default: m.RdSpendByProjectChart })),
-  { ssr: false, loading: () => <div className="h-72 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" /> }
+  { loading: () => <div className="h-72 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" /> }
 )
 const ExperimentStatusChart = dynamic(
   () => import("@/components/charts/rd-charts").then((m) => ({ default: m.ExperimentStatusChart })),
-  { ssr: false, loading: () => <div className="h-72 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" /> }
+  { loading: () => <div className="h-72 animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" /> }
 )
 import { generateRecommendations } from "@/lib/rd-recommendations"
 
