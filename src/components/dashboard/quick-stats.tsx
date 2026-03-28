@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { FileText, Receipt, ArrowRightLeft, FlaskConical } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface QuickStatsData {
   invoicesDueThisWeek: number
@@ -28,7 +29,7 @@ export function QuickStats() {
 
   useEffect(() => {
     fetchStats()
-    const interval = setInterval(fetchStats, 60_000) // refresh every 60s
+    const interval = setInterval(fetchStats, 60_000)
     return () => clearInterval(interval)
   }, [fetchStats])
 
@@ -42,6 +43,7 @@ export function QuickStats() {
       icon: <FileText className="h-4 w-4" />,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-50 dark:bg-amber-900/30",
+      gradient: "from-amber-500 to-orange-500",
     },
     {
       label: "Bills Due This Week",
@@ -50,6 +52,7 @@ export function QuickStats() {
       icon: <Receipt className="h-4 w-4" />,
       color: "text-rose-600 dark:text-rose-400",
       bg: "bg-rose-50 dark:bg-rose-900/30",
+      gradient: "from-rose-500 to-pink-500",
     },
     {
       label: "Unreconciled Transactions",
@@ -58,6 +61,7 @@ export function QuickStats() {
       icon: <ArrowRightLeft className="h-4 w-4" />,
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-50 dark:bg-blue-900/30",
+      gradient: "from-blue-500 to-indigo-500",
     },
     {
       label: "Open Experiments",
@@ -66,6 +70,7 @@ export function QuickStats() {
       icon: <FlaskConical className="h-4 w-4" />,
       color: "text-violet-600 dark:text-violet-400",
       bg: "bg-violet-50 dark:bg-violet-900/30",
+      gradient: "from-violet-500 to-purple-500",
     },
   ]
 
@@ -75,13 +80,22 @@ export function QuickStats() {
         <Link
           key={item.label}
           href={item.href}
-          className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 shadow-sm hover:shadow-md transition-shadow"
+          className={cn(
+            "group relative flex items-center gap-3 overflow-hidden rounded-2xl border px-4 py-3.5",
+            "border-slate-200/80 dark:border-slate-700/50",
+            "bg-white dark:bg-slate-900",
+            "transition-all duration-300 hover:shadow-md hover:-translate-y-0.5"
+          )}
         >
-          <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.bg} ${item.color} flex-shrink-0`}>
+          {/* Accent dot */}
+          <div className={cn(
+            "flex h-10 w-10 items-center justify-center rounded-xl flex-shrink-0 transition-transform duration-300 group-hover:scale-110",
+            item.bg, item.color
+          )}>
             {item.icon}
           </div>
           <div className="min-w-0">
-            <p className={`text-lg font-bold ${item.color}`}>{item.value}</p>
+            <p className={cn("text-xl font-bold tabular-nums", item.color)}>{item.value}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.label}</p>
           </div>
         </Link>

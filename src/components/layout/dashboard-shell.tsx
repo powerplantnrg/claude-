@@ -28,7 +28,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <FavoritesBar />
         <main
           id="main-content"
-          className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950 p-4 sm:p-6"
+          className="flex-1 overflow-y-auto bg-[#f8f7f4] dark:bg-[#0c0c0f] p-4 sm:p-6"
           tabIndex={-1}
         >
           {children}
