@@ -63,7 +63,7 @@ const INTEGRATION_TYPES = [
 
 export default async function IntegrationsPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId as string
 
   const integrations = await prisma.integration.findMany({

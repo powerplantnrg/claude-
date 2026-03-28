@@ -29,7 +29,7 @@ const statusColors: Record<string, string> = {
 
 export default async function CreditNotesPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const creditNotes = await prisma.creditNote.findMany({

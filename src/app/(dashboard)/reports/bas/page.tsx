@@ -70,7 +70,7 @@ export default async function BASPreparationPage({
   searchParams: Promise<{ fy?: string; mode?: string; period?: string }>
 }) {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const params = await searchParams

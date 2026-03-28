@@ -141,7 +141,7 @@ export default async function BalanceSheetComparisonPage({
   }>
 }) {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId as string
 
   const params = await searchParams

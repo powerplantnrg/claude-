@@ -101,7 +101,7 @@ export default async function RecommendationsPage({
   searchParams: Promise<{ category?: string }>
 }) {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const allRecommendations = await generateRecommendations({

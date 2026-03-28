@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default async function BankingPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
 
   return <ReconciliationView />
 }

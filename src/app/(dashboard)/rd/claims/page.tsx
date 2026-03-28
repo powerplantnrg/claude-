@@ -10,7 +10,7 @@ import { ClaimActions } from "./claim-actions"
 
 export default async function ClaimsPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const org = await prisma.organization.findUnique({

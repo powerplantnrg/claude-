@@ -15,7 +15,7 @@ export default async function KnowledgeBasePage({
   searchParams: Promise<{ search?: string; category?: string }>
 }) {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const orgId = (session.user as any).organizationId as string
 

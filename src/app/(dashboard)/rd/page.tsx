@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 export default async function RdDashboardPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const [projects, experiments, rdSpend, claimDrafts, recommendations] = await Promise.all([

@@ -17,7 +17,7 @@ export const metadata = {
 
 export default async function ExpensesPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const claims = await prisma.expenseClaim.findMany({

@@ -150,7 +150,7 @@ export default async function RdComparisonPage({
   searchParams: Promise<{ fy1?: string; fy2?: string }>
 }) {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId as string
 
   const params = await searchParams

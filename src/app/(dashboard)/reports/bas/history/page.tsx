@@ -6,7 +6,7 @@ import Link from "next/link"
 
 export default async function BASHistoryPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const basReturns = await prisma.bASReturn.findMany({

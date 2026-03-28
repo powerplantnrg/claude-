@@ -121,7 +121,7 @@ function statusBadge(status: string) {
 
 export default async function MigrationHubPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
 
   return (
     <div className="space-y-8">

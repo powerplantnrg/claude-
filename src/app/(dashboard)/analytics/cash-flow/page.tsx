@@ -65,7 +65,7 @@ function getLast12Weeks(): { start: Date; end: Date; label: string }[] {
 
 export default async function CashFlowIntelligencePage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const orgId = (session.user as any).organizationId as string
 

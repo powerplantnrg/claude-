@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId as string
 
   const org = await prisma.organization.findUnique({

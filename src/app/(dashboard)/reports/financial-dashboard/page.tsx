@@ -119,7 +119,7 @@ function getLast12Months(): { start: Date; end: Date; label: string }[] {
 
 export default async function FinancialDashboardPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId as string
 
   const months = getLast12Months()

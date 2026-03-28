@@ -49,7 +49,7 @@ export default async function DocumentsPage({
   searchParams: Promise<{ search?: string; entityType?: string; view?: string }>
 }) {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const params = await searchParams

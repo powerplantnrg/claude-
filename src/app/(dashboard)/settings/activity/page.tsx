@@ -87,7 +87,7 @@ function formatGroupDate(dateStr: string): string {
 
 export default async function ActivityPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId as string
 
   const logs = await prisma.auditLog.findMany({

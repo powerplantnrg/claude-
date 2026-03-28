@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 
 export default async function DashboardPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const [

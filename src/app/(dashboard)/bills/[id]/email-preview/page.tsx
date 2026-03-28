@@ -10,7 +10,7 @@ export default async function BillEmailPreviewPage({
   params: Promise<{ id: string }>
 }) {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
   const { id } = await params
 

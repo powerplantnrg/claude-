@@ -26,7 +26,7 @@ export default async function AccountReconciliationPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
   const { id } = await params
   const { from, to } = await searchParams

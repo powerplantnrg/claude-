@@ -163,7 +163,7 @@ const reports = [
 
 export default async function ReportsPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
 
   return (
     <div className="space-y-6">

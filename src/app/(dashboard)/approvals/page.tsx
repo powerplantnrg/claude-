@@ -15,7 +15,7 @@ export const metadata = {
 
 export default async function ApprovalsPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
   const userId = (session.user as any).id
 

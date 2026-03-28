@@ -94,7 +94,7 @@ function CategoryIcon({ icon, className }: { icon: string; className?: string })
 
 export default async function RdAdvicePage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const adviceItems = await prisma.rdAdviceItem.findMany({

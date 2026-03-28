@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default async function RecurringInvoicesPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const recurringInvoices = await prisma.recurringInvoice.findMany({

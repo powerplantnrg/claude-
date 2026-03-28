@@ -7,7 +7,7 @@ import { AuditLogTable } from "./audit-log-table"
 
 export default async function AuditLogPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId as string
 
   const users = await prisma.user.findMany({

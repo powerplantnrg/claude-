@@ -22,7 +22,7 @@ const STAGE_COLORS: Record<string, { bg: string; border: string; text: string; d
 
 export default async function PipelinePage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId as string
 
   // Get pipeline stages

@@ -19,7 +19,7 @@ const statusBadge: Record<string, string> = {
 
 export default async function QuotesPage() {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId
 
   const quotes = await prisma.quote.findMany({

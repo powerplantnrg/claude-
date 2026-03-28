@@ -20,7 +20,7 @@ export default async function PurchaseOrderDetailPage({
   params: Promise<{ id: string }>
 }) {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const orgId = (session.user as any).organizationId as string
   const { id } = await params

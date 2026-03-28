@@ -23,7 +23,7 @@ export default async function ContactStatementPage({
   searchParams: Promise<{ from?: string; to?: string }>
 }) {
   const session = await auth()
-  if (!session) redirect("/login")
+  if (!session?.user) redirect("/login")
   const orgId = (session.user as any).organizationId as string
   const { id } = await params
   const sp = await searchParams
