@@ -12,24 +12,20 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts"
-import { CHART_COLORS, CHART_COLOR_ARRAY } from "./chart-wrapper"
+import {
+  ChartWrapper,
+  PremiumTooltip,
+  PremiumLegend,
+  CHART_COLORS,
+  CHART_COLOR_ARRAY,
+  GRADIENT_PAIRS,
+  formatCurrencyShort,
+  currencyTooltipFormatter,
+} from "./chart-wrapper"
 
-function formatCurrencyShort(value: number) {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`
-  return `$${value.toFixed(0)}`
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function currencyTooltipFormatter(value: any) {
-  const num = Number(value ?? 0)
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-// --- Revenue vs Expenses Bar Chart ---
+// ─── Revenue vs Expenses ──────────────────────────────────────────────
 
 interface RevenueExpenseData {
   month: string
@@ -39,31 +35,71 @@ interface RevenueExpenseData {
 
 export function RevenueExpensesChart({ data }: { data: RevenueExpenseData[] }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-6 py-4">
-        <h3 className="text-lg font-semibold text-slate-900">
-          Revenue vs Expenses
-        </h3>
-        <p className="mt-0.5 text-sm text-slate-500">Last 6 months</p>
-      </div>
-      <div className="p-6">
-        <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} />
-            <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={formatCurrencyShort} />
-            <Tooltip formatter={currencyTooltipFormatter} />
-            <Legend />
-            <Bar dataKey="revenue" name="Revenue" fill={CHART_COLORS.indigo} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expenses" name="Expenses" fill={CHART_COLORS.rose} radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <ChartWrapper
+      title="Revenue vs Expenses"
+      subtitle="Last 6 months performance"
+      accentColor={CHART_COLORS.indigo}
+    >
+      <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barGap={4}>
+        <defs>
+          <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#6366f1" stopOpacity={1} />
+            <stop offset="100%" stopColor="#4f46e5" stopOpacity={0.8} />
+          </linearGradient>
+          <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#e11d48" stopOpacity={0.7} />
+          </linearGradient>
+          <filter id="barGlow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#e2e8f020"
+          vertical={false}
+        />
+        <XAxis
+          dataKey="month"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 500 }}
+        />
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#94a3b8" }}
+          tickFormatter={formatCurrencyShort}
+          width={55}
+        />
+        <Tooltip
+          content={<PremiumTooltip formatter={currencyTooltipFormatter} />}
+          cursor={{ fill: "#6366f108", radius: 8 }}
+        />
+        <Bar
+          dataKey="revenue"
+          name="Revenue"
+          fill="url(#revenueGrad)"
+          radius={[6, 6, 2, 2]}
+          maxBarSize={32}
+        />
+        <Bar
+          dataKey="expenses"
+          name="Expenses"
+          fill="url(#expenseGrad)"
+          radius={[6, 6, 2, 2]}
+          maxBarSize={32}
+        />
+      </BarChart>
+    </ChartWrapper>
   )
 }
 
-// --- Cash Flow Area Chart ---
+// ─── Cash Flow Area Chart ─────────────────────────────────────────────
 
 interface CashFlowData {
   month: string
@@ -74,40 +110,94 @@ interface CashFlowData {
 
 export function CashFlowChart({ data }: { data: CashFlowData[] }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-6 py-4">
-        <h3 className="text-lg font-semibold text-slate-900">Cash Flow</h3>
-        <p className="mt-0.5 text-sm text-slate-500">Monthly inflow, outflow, and net</p>
-      </div>
-      <div className="p-6">
-        <ResponsiveContainer width="100%" height={320}>
-          <AreaChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-            <defs>
-              <linearGradient id="colorInflow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={CHART_COLORS.emerald} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={CHART_COLORS.emerald} stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="colorOutflow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={CHART_COLORS.rose} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={CHART_COLORS.rose} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} />
-            <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={formatCurrencyShort} />
-            <Tooltip formatter={currencyTooltipFormatter} />
-            <Legend />
-            <Area type="monotone" dataKey="inflow" name="Inflow" stroke={CHART_COLORS.emerald} fill="url(#colorInflow)" />
-            <Area type="monotone" dataKey="outflow" name="Outflow" stroke={CHART_COLORS.rose} fill="url(#colorOutflow)" />
-            <Area type="monotone" dataKey="net" name="Net" stroke={CHART_COLORS.blue} fill="none" strokeDasharray="5 5" />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <ChartWrapper
+      title="Cash Flow"
+      subtitle="Monthly inflow, outflow & net position"
+      accentColor={CHART_COLORS.emerald}
+    >
+      <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="inflowGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
+            <stop offset="50%" stopColor="#10b981" stopOpacity={0.1} />
+            <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="outflowGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.3} />
+            <stop offset="50%" stopColor="#f43f5e" stopOpacity={0.08} />
+            <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#6366f1" stopOpacity={0.2} />
+            <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+          </linearGradient>
+          <filter id="lineGlow">
+            <feGaussianBlur stdDeviation="3" result="glow" />
+            <feMerge>
+              <feMergeNode in="glow" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#e2e8f020"
+          vertical={false}
+        />
+        <XAxis
+          dataKey="month"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 500 }}
+        />
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#94a3b8" }}
+          tickFormatter={formatCurrencyShort}
+          width={55}
+        />
+        <Tooltip
+          content={<PremiumTooltip formatter={currencyTooltipFormatter} />}
+        />
+        <Area
+          type="monotone"
+          dataKey="inflow"
+          name="Inflow"
+          stroke="#10b981"
+          strokeWidth={2.5}
+          fill="url(#inflowGrad)"
+          dot={false}
+          activeDot={{ r: 5, fill: "#10b981", stroke: "#fff", strokeWidth: 2 }}
+        />
+        <Area
+          type="monotone"
+          dataKey="outflow"
+          name="Outflow"
+          stroke="#f43f5e"
+          strokeWidth={2}
+          fill="url(#outflowGrad)"
+          dot={false}
+          activeDot={{ r: 5, fill: "#f43f5e", stroke: "#fff", strokeWidth: 2 }}
+        />
+        <Area
+          type="monotone"
+          dataKey="net"
+          name="Net"
+          stroke="#6366f1"
+          strokeWidth={2}
+          strokeDasharray="6 4"
+          fill="url(#netGrad)"
+          dot={false}
+          activeDot={{ r: 5, fill: "#6366f1", stroke: "#fff", strokeWidth: 2 }}
+          filter="url(#lineGlow)"
+        />
+      </AreaChart>
+    </ChartWrapper>
   )
 }
 
-// --- R&D Spend by Category Pie Chart ---
+// ─── R&D Spend by Category — Premium Donut ────────────────────────────
 
 interface RdCategoryData {
   name: string
@@ -115,47 +205,78 @@ interface RdCategoryData {
 }
 
 export function RdSpendByCategoryChart({ data }: { data: RdCategoryData[] }) {
+  const total = data.reduce((s, d) => s + d.value, 0)
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-6 py-4">
-        <h3 className="text-lg font-semibold text-slate-900">
-          R&D Spend by Category
-        </h3>
-      </div>
-      <div className="p-6">
-        {data.length === 0 ? (
-          <div className="flex h-[320px] items-center justify-center text-sm text-slate-400">
-            No R&D expense data available
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={320}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={110}
-                paddingAngle={3}
-                dataKey="value"
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                label={({ name, percent }: any) =>
-                  `${name ?? ""} (${(((percent as number) ?? 0) * 100).toFixed(0)}%)`
-                }
-              >
-                {data.map((_, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={CHART_COLOR_ARRAY[index % CHART_COLOR_ARRAY.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip formatter={currencyTooltipFormatter} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+    <ChartWrapper title="R&D Spend by Category" accentColor={CHART_COLORS.violet}>
+      <PieChart>
+        <defs>
+          {GRADIENT_PAIRS.map((pair, i) => (
+            <linearGradient key={i} id={`pieGrad-${i}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={pair.from} />
+              <stop offset="100%" stopColor={pair.to} />
+            </linearGradient>
+          ))}
+          <filter id="donutShadow">
+            <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.15" />
+          </filter>
+        </defs>
+        {data.length === 0 ? null : (
+          <>
+            {/* Outer glow ring */}
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={72}
+              outerRadius={76}
+              dataKey="value"
+              stroke="none"
+              isAnimationActive={true}
+            >
+              {data.map((_, index) => (
+                <Cell
+                  key={`glow-${index}`}
+                  fill={CHART_COLOR_ARRAY[index % CHART_COLOR_ARRAY.length]}
+                  opacity={0.2}
+                />
+              ))}
+            </Pie>
+            {/* Main donut */}
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={80}
+              outerRadius={120}
+              paddingAngle={3}
+              dataKey="value"
+              stroke="none"
+              cornerRadius={4}
+              filter="url(#donutShadow)"
+              animationBegin={0}
+              animationDuration={1200}
+            >
+              {data.map((_, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={`url(#pieGrad-${index % GRADIENT_PAIRS.length})`}
+                />
+              ))}
+            </Pie>
+            {/* Center label */}
+            <text x="50%" y="46%" textAnchor="middle" className="fill-slate-400 text-[10px]" fontWeight={500}>
+              TOTAL
+            </text>
+            <text x="50%" y="56%" textAnchor="middle" className="fill-slate-900 dark:fill-slate-100 text-base" fontWeight={700}>
+              {currencyTooltipFormatter(total)}
+            </text>
+          </>
         )}
-      </div>
-    </div>
+        <Tooltip
+          content={<PremiumTooltip formatter={currencyTooltipFormatter} />}
+        />
+      </PieChart>
+    </ChartWrapper>
   )
 }

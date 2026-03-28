@@ -3,6 +3,8 @@
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
   PieChart,
   Pie,
   Cell,
@@ -10,24 +12,19 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts"
-import { CHART_COLORS, CHART_COLOR_ARRAY } from "./chart-wrapper"
+import {
+  ChartWrapper,
+  PremiumTooltip,
+  CHART_COLORS,
+  CHART_COLOR_ARRAY,
+  GRADIENT_PAIRS,
+  formatCurrencyShort,
+  currencyTooltipFormatter,
+} from "./chart-wrapper"
 
-function formatCurrencyShort(value: number) {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`
-  return `$${value.toFixed(0)}`
-}
-
-function currencyTooltipFormatter(value: unknown) {
-  if (value == null) return "$0.00"
-  const num = typeof value === "string" ? parseFloat(value) : Number(value)
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-// --- Cost Trend Line Chart ---
+// ─── Cost Trend (Multi-provider Line + Area) ──────────────────────────
 
 interface CostTrendData {
   month: string
@@ -42,57 +39,82 @@ export function CostTrendChart({
   data: CostTrendData[]
   providers: string[]
 }) {
+  const providerColors = providers.map((_, i) => CHART_COLOR_ARRAY[i % CHART_COLOR_ARRAY.length])
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-6 py-4">
-        <h3 className="text-lg font-semibold text-slate-900">
-          Monthly Cloud Cost Trend
-        </h3>
-        <p className="mt-0.5 text-sm text-slate-500">Cost by provider over time</p>
-      </div>
-      <div className="p-6">
-        {data.length === 0 ? (
-          <div className="flex h-[320px] items-center justify-center text-sm text-slate-400">
+    <ChartWrapper
+      title="Monthly Cloud Cost Trend"
+      subtitle="Cost by provider over time"
+      accentColor={CHART_COLORS.cyan}
+    >
+      {data.length === 0 ? (
+        <LineChart data={[]}>
+          <text x="50%" y="50%" textAnchor="middle" className="fill-slate-400 text-sm">
             No cost data available
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={320}>
-            <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#64748b" }} />
-              <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={formatCurrencyShort} />
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              <Tooltip formatter={currencyTooltipFormatter as any} />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="total"
-                name="Total"
-                stroke={CHART_COLORS.slate}
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                dot={false}
-              />
-              {providers.map((provider, idx) => (
-                <Line
-                  key={provider}
-                  type="monotone"
-                  dataKey={provider}
-                  name={provider}
-                  stroke={CHART_COLOR_ARRAY[idx % CHART_COLOR_ARRAY.length]}
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-    </div>
+          </text>
+        </LineChart>
+      ) : (
+        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <defs>
+            {providers.map((_, idx) => (
+              <linearGradient key={`cloudGrad-${idx}`} id={`cloudGrad-${idx}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={providerColors[idx]} stopOpacity={0.2} />
+                <stop offset="100%" stopColor={providerColors[idx]} stopOpacity={0} />
+              </linearGradient>
+            ))}
+            <linearGradient id="cloudTotalGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#64748b" stopOpacity={0.08} />
+              <stop offset="100%" stopColor="#64748b" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f020" vertical={false} />
+          <XAxis
+            dataKey="month"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 500 }}
+          />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 11, fill: "#94a3b8" }}
+            tickFormatter={formatCurrencyShort}
+            width={55}
+          />
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <Tooltip content={<PremiumTooltip formatter={currencyTooltipFormatter as any} />} />
+          {/* Total dashed baseline */}
+          <Area
+            type="monotone"
+            dataKey="total"
+            name="Total"
+            stroke="#94a3b8"
+            strokeWidth={1.5}
+            strokeDasharray="6 4"
+            fill="url(#cloudTotalGrad)"
+            dot={false}
+          />
+          {/* Provider lines with area fills */}
+          {providers.map((provider, idx) => (
+            <Area
+              key={provider}
+              type="monotone"
+              dataKey={provider}
+              name={provider}
+              stroke={providerColors[idx]}
+              strokeWidth={2.5}
+              fill={`url(#cloudGrad-${idx})`}
+              dot={{ r: 3.5, fill: providerColors[idx], stroke: "#fff", strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: providerColors[idx], stroke: "#fff", strokeWidth: 2 }}
+            />
+          ))}
+        </AreaChart>
+      )}
+    </ChartWrapper>
   )
 }
 
-// --- Cost by Provider Donut Chart ---
+// ─── Cost by Provider (Premium Donut) ─────────────────────────────────
 
 interface ProviderCostData {
   name: string
@@ -100,49 +122,87 @@ interface ProviderCostData {
 }
 
 export function CostByProviderChart({ data }: { data: ProviderCostData[] }) {
+  const total = data.reduce((s, d) => s + d.value, 0)
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-6 py-4">
-        <h3 className="text-lg font-semibold text-slate-900">
-          Cost by Provider
-        </h3>
-        <p className="mt-0.5 text-sm text-slate-500">Total spend distribution</p>
-      </div>
-      <div className="p-6">
-        {data.length === 0 ? (
-          <div className="flex h-[320px] items-center justify-center text-sm text-slate-400">
+    <ChartWrapper
+      title="Cost by Provider"
+      subtitle="Total spend distribution"
+      accentColor={CHART_COLORS.violet}
+    >
+      {data.length === 0 ? (
+        <PieChart>
+          <text x="50%" y="50%" textAnchor="middle" className="fill-slate-400 text-sm">
             No provider cost data available
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={320}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={70}
-                outerRadius={120}
-                paddingAngle={3}
-                dataKey="value"
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                label={({ name, percent }: any) =>
-                  `${name ?? ""} (${(((percent as number) ?? 0) * 100).toFixed(0)}%)`
-                }
-              >
-                {data.map((_, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={CHART_COLOR_ARRAY[index % CHART_COLOR_ARRAY.length]}
-                  />
-                ))}
-              </Pie>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              <Tooltip formatter={currencyTooltipFormatter as any} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-    </div>
+          </text>
+        </PieChart>
+      ) : (
+        <PieChart>
+          <defs>
+            {GRADIENT_PAIRS.map((pair, i) => (
+              <linearGradient key={i} id={`cloudPieGrad-${i}`} x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor={pair.from} />
+                <stop offset="100%" stopColor={pair.to} />
+              </linearGradient>
+            ))}
+            <filter id="cloudDonutShadow">
+              <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.15" />
+            </filter>
+          </defs>
+          {/* Glow ring */}
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={72}
+            outerRadius={76}
+            dataKey="value"
+            stroke="none"
+          >
+            {data.map((_, index) => (
+              <Cell
+                key={`glow-${index}`}
+                fill={CHART_COLOR_ARRAY[index % CHART_COLOR_ARRAY.length]}
+                opacity={0.2}
+              />
+            ))}
+          </Pie>
+          {/* Main donut */}
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={80}
+            outerRadius={120}
+            paddingAngle={3}
+            dataKey="value"
+            stroke="none"
+            cornerRadius={4}
+            filter="url(#cloudDonutShadow)"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            label={({ name, percent }: any) =>
+              `${name ?? ""} (${(((percent as number) ?? 0) * 100).toFixed(0)}%)`
+            }
+            animationDuration={1200}
+          >
+            {data.map((_, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={`url(#cloudPieGrad-${index % GRADIENT_PAIRS.length})`}
+              />
+            ))}
+          </Pie>
+          {/* Center label */}
+          <text x="50%" y="47%" textAnchor="middle" className="fill-slate-400 text-[10px]" fontWeight={500}>
+            TOTAL
+          </text>
+          <text x="50%" y="56%" textAnchor="middle" className="fill-slate-900 dark:fill-white text-sm" fontWeight={700}>
+            {currencyTooltipFormatter(total)}
+          </text>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <Tooltip content={<PremiumTooltip formatter={currencyTooltipFormatter as any} />} />
+        </PieChart>
+      )}
+    </ChartWrapper>
   )
 }

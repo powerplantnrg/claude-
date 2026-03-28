@@ -3,21 +3,23 @@
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts"
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function currencyTooltipFormatter(value: any) {
-  const num = Number(value ?? 0)
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
+import {
+  ChartWrapper,
+  PremiumTooltip,
+  CHART_COLORS,
+  formatCurrencyShort,
+  currencyTooltipFormatter,
+} from "@/components/charts/chart-wrapper"
 
 interface RevenueVsComputeData {
   month: string
@@ -27,57 +29,73 @@ interface RevenueVsComputeData {
 
 export function RevenueVsComputeChart({ data }: { data: RevenueVsComputeData[] }) {
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
-      <div className="border-b border-slate-100 dark:border-slate-700 px-6 py-4">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          Revenue vs Compute Cost
-        </h3>
-        <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">Last 6 months</p>
-      </div>
-      <div className="p-6">
-        <ResponsiveContainer width="100%" height={320}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-            <YAxis
-              yAxisId="left"
-              tick={{ fontSize: 12 }}
-              tickFormatter={(v) =>
-                v >= 1000 ? `$${(v / 1000).toFixed(0)}K` : `$${v}`
-              }
-            />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              tick={{ fontSize: 12 }}
-              tickFormatter={(v) =>
-                v >= 1000 ? `$${(v / 1000).toFixed(0)}K` : `$${v}`
-              }
-            />
-            <Tooltip formatter={currencyTooltipFormatter} />
-            <Legend />
-            <Line
-              yAxisId="left"
-              type="monotone"
-              dataKey="revenue"
-              stroke="#4f46e5"
-              strokeWidth={2}
-              dot={{ r: 4 }}
-              name="Revenue"
-            />
-            <Line
-              yAxisId="right"
-              type="monotone"
-              dataKey="computeCost"
-              stroke="#f43f5e"
-              strokeWidth={2}
-              dot={{ r: 4 }}
-              name="Compute Cost"
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <ChartWrapper
+      title="Revenue vs Compute Cost"
+      subtitle="Last 6 months"
+      accentColor={CHART_COLORS.indigo}
+    >
+      <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="revLineGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#6366f1" stopOpacity={0.15} />
+            <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+          </linearGradient>
+          <filter id="revGlow">
+            <feGaussianBlur stdDeviation="3" result="glow" />
+            <feMerge>
+              <feMergeNode in="glow" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f020" vertical={false} />
+        <XAxis
+          dataKey="month"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 500 }}
+        />
+        <YAxis
+          yAxisId="left"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#6366f1" }}
+          tickFormatter={formatCurrencyShort}
+          width={55}
+        />
+        <YAxis
+          yAxisId="right"
+          orientation="right"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#f43f5e" }}
+          tickFormatter={formatCurrencyShort}
+          width={55}
+        />
+        <Tooltip content={<PremiumTooltip formatter={currencyTooltipFormatter} />} />
+        <Line
+          yAxisId="left"
+          type="monotone"
+          dataKey="revenue"
+          stroke="#6366f1"
+          strokeWidth={2.5}
+          dot={{ r: 4, fill: "#6366f1", stroke: "#fff", strokeWidth: 2 }}
+          activeDot={{ r: 6, fill: "#6366f1", stroke: "#fff", strokeWidth: 2 }}
+          name="Revenue"
+          filter="url(#revGlow)"
+        />
+        <Line
+          yAxisId="right"
+          type="monotone"
+          dataKey="computeCost"
+          stroke="#f43f5e"
+          strokeWidth={2.5}
+          dot={{ r: 4, fill: "#f43f5e", stroke: "#fff", strokeWidth: 2 }}
+          activeDot={{ r: 6, fill: "#f43f5e", stroke: "#fff", strokeWidth: 2 }}
+          name="Compute Cost"
+        />
+      </LineChart>
+    </ChartWrapper>
   )
 }
 
@@ -88,36 +106,45 @@ interface RdClaimTrendData {
 
 export function RdClaimTrendChart({ data }: { data: RdClaimTrendData[] }) {
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm">
-      <div className="border-b border-slate-100 dark:border-slate-700 px-6 py-4">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          R&D Tax Offset Estimate by FY
-        </h3>
-        <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-          Based on claim drafts
-        </p>
-      </div>
-      <div className="p-6">
-        <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="fy" tick={{ fontSize: 12 }} />
-            <YAxis
-              tick={{ fontSize: 12 }}
-              tickFormatter={(v) =>
-                v >= 1000 ? `$${(v / 1000).toFixed(0)}K` : `$${v}`
-              }
-            />
-            <Tooltip formatter={currencyTooltipFormatter} />
-            <Bar
-              dataKey="estimatedOffset"
-              fill="#8b5cf6"
-              radius={[4, 4, 0, 0]}
-              name="Estimated Offset"
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <ChartWrapper
+      title="R&D Tax Offset Estimate by FY"
+      subtitle="Based on claim drafts"
+      accentColor={CHART_COLORS.violet}
+    >
+      <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="rdOffsetGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#8b5cf6" stopOpacity={1} />
+            <stop offset="100%" stopColor="#6d28d9" stopOpacity={0.8} />
+          </linearGradient>
+          <filter id="rdBarGlowCmd">
+            <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.15" />
+          </filter>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f020" vertical={false} />
+        <XAxis
+          dataKey="fy"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 500 }}
+        />
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#94a3b8" }}
+          tickFormatter={formatCurrencyShort}
+          width={55}
+        />
+        <Tooltip content={<PremiumTooltip formatter={currencyTooltipFormatter} />} />
+        <Bar
+          dataKey="estimatedOffset"
+          fill="url(#rdOffsetGrad)"
+          radius={[8, 8, 2, 2]}
+          maxBarSize={40}
+          name="Estimated Offset"
+          filter="url(#rdBarGlowCmd)"
+        />
+      </BarChart>
+    </ChartWrapper>
   )
 }

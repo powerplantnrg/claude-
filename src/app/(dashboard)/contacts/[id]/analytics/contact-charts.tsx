@@ -10,24 +10,18 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts"
-import { CHART_COLORS } from "@/components/charts/chart-wrapper"
+import {
+  ChartWrapper,
+  PremiumTooltip,
+  CHART_COLORS,
+  GRADIENT_PAIRS,
+  formatCurrencyShort,
+  currencyTooltipFormatter,
+} from "@/components/charts/chart-wrapper"
 
-function formatCurrencyShort(value: number) {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
-  if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`
-  return `$${value.toFixed(0)}`
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function currencyTooltipFormatter(value: any) {
-  const num = Number(value ?? 0)
-  return `$${num.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-// --- Monthly Invoiced/Billed Bar Chart ---
+// ─── Monthly Invoice / Bill Activity ──────────────────────────────────
 
 interface MonthlyData {
   month: string
@@ -37,74 +31,136 @@ interface MonthlyData {
 
 export function MonthlyInvoiceBillChart({ data }: { data: MonthlyData[] }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-6 py-4">
-        <h3 className="text-lg font-semibold text-slate-900">Monthly Invoice / Bill Activity</h3>
-        <p className="mt-0.5 text-sm text-slate-500">Last 12 months</p>
-      </div>
-      <div className="p-6">
-        <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-            <YAxis tickFormatter={formatCurrencyShort} tick={{ fontSize: 12 }} stroke="#94a3b8" />
-            <Tooltip formatter={currencyTooltipFormatter} />
-            <Legend />
-            <Bar dataKey="invoiced" name="Invoiced" fill={CHART_COLORS.emerald} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="billed" name="Billed" fill={CHART_COLORS.blue} radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <ChartWrapper
+      title="Monthly Invoice / Bill Activity"
+      subtitle="Last 12 months"
+      accentColor={CHART_COLORS.emerald}
+    >
+      <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barGap={4}>
+        <defs>
+          <linearGradient id="invoicedGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+            <stop offset="100%" stopColor="#059669" stopOpacity={0.8} />
+          </linearGradient>
+          <linearGradient id="billedGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+            <stop offset="100%" stopColor="#2563eb" stopOpacity={0.8} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f020" vertical={false} />
+        <XAxis
+          dataKey="month"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 500 }}
+        />
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "#94a3b8" }}
+          tickFormatter={formatCurrencyShort}
+          width={55}
+        />
+        <Tooltip content={<PremiumTooltip formatter={currencyTooltipFormatter} />} />
+        <Bar dataKey="invoiced" name="Invoiced" fill="url(#invoicedGrad)" radius={[6, 6, 2, 2]} maxBarSize={28} />
+        <Bar dataKey="billed" name="Billed" fill="url(#billedGrad)" radius={[6, 6, 2, 2]} maxBarSize={28} />
+      </BarChart>
+    </ChartWrapper>
   )
 }
 
-// --- Payment Timeliness Pie Chart ---
+// ─── Payment Timeliness (Premium Donut) ───────────────────────────────
 
 interface TimelinessData {
   name: string
   value: number
 }
 
-const TIMELINESS_COLORS = [CHART_COLORS.emerald, CHART_COLORS.amber, CHART_COLORS.rose]
+const TIMELINESS_GRADIENTS = [
+  { from: "#10b981", to: "#34d399" },
+  { from: "#f59e0b", to: "#fbbf24" },
+  { from: "#f43f5e", to: "#fb7185" },
+]
 
 export function PaymentTimelinessPieChart({ data }: { data: TimelinessData[] }) {
   const total = data.reduce((s, d) => s + d.value, 0)
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-6 py-4">
-        <h3 className="text-lg font-semibold text-slate-900">Payment Timeliness</h3>
-        <p className="mt-0.5 text-sm text-slate-500">Based on invoice/bill due dates</p>
-      </div>
-      <div className="p-6">
-        {total === 0 ? (
-          <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
+    <ChartWrapper
+      title="Payment Timeliness"
+      subtitle="Based on invoice/bill due dates"
+      accentColor={CHART_COLORS.amber}
+    >
+      {total === 0 ? (
+        <PieChart>
+          <text x="50%" y="50%" textAnchor="middle" className="fill-slate-400 text-sm">
             No payment data available
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={3}
-                dataKey="value"
-                label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} (${((percent ?? 0) * 100).toFixed(0)}%)`}
-              >
-                {data.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={TIMELINESS_COLORS[index % TIMELINESS_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-    </div>
+          </text>
+        </PieChart>
+      ) : (
+        <PieChart>
+          <defs>
+            {TIMELINESS_GRADIENTS.map((grad, i) => (
+              <linearGradient key={i} id={`timeGrad-${i}`} x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor={grad.from} />
+                <stop offset="100%" stopColor={grad.to} />
+              </linearGradient>
+            ))}
+            <filter id="timeShadow">
+              <feDropShadow dx="0" dy="2" stdDeviation="4" floodOpacity="0.15" />
+            </filter>
+          </defs>
+          {/* Glow ring */}
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={62}
+            outerRadius={66}
+            dataKey="value"
+            stroke="none"
+          >
+            {data.map((_, index) => (
+              <Cell
+                key={`glow-${index}`}
+                fill={TIMELINESS_GRADIENTS[index % TIMELINESS_GRADIENTS.length].from}
+                opacity={0.2}
+              />
+            ))}
+          </Pie>
+          {/* Main donut */}
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={70}
+            outerRadius={110}
+            paddingAngle={3}
+            dataKey="value"
+            stroke="none"
+            cornerRadius={4}
+            filter="url(#timeShadow)"
+            label={({ name, percent }: { name?: string; percent?: number }) =>
+              `${name ?? ""} (${((percent ?? 0) * 100).toFixed(0)}%)`
+            }
+            animationDuration={1200}
+          >
+            {data.map((_, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={`url(#timeGrad-${index % TIMELINESS_GRADIENTS.length})`}
+              />
+            ))}
+          </Pie>
+          <text x="50%" y="47%" textAnchor="middle" className="fill-slate-400 text-[10px]" fontWeight={500}>
+            TOTAL
+          </text>
+          <text x="50%" y="56%" textAnchor="middle" className="fill-slate-900 dark:fill-white text-lg" fontWeight={700}>
+            {total}
+          </text>
+          <Tooltip content={<PremiumTooltip />} />
+        </PieChart>
+      )}
+    </ChartWrapper>
   )
 }

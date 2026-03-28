@@ -210,13 +210,17 @@ export function ForecastChart(props: ForecastChartProps) {
   }, [props])
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-4 text-lg font-semibold text-slate-900">
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-700/40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-6 shadow-sm hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-500">
+      <div
+        className="absolute inset-x-0 top-0 h-px"
+        style={{ background: "linear-gradient(90deg, transparent, #6366f130, #6366f1, #8b5cf6, #6366f130, transparent)" }}
+      />
+      <h2 className="mb-4 text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-100">
         Financial Forecast Chart
       </h2>
       <canvas
         ref={canvasRef}
-        className="w-full"
+        className="w-full rounded-xl"
         style={{ height: "350px" }}
       />
     </div>
