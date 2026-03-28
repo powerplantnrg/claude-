@@ -14,7 +14,18 @@ import {
   Building2,
   Hash,
   Loader2,
+  Zap,
+  Rocket,
+  Crown,
 } from "lucide-react"
+
+const PLANS = [
+  { id: "free", label: "Free", icon: Zap, desc: "Core accounting" },
+  { id: "pro", label: "Pro", icon: Rocket, desc: "R&D intelligence" },
+  { id: "enterprise", label: "Enterprise", icon: Crown, desc: "Full platform" },
+] as const
+
+type PlanId = (typeof PLANS)[number]["id"]
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -26,6 +37,7 @@ export default function RegisterPage() {
   const [abn, setAbn] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>("pro")
 
   function validate(): string | null {
     if (!name.trim()) return "Name is required"
@@ -170,6 +182,54 @@ export default function RegisterPage() {
             <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
               Get started with your R&D financial platform
             </p>
+          </div>
+
+          {/* Animated Plan Selector */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2.5">
+              Choose your plan
+            </label>
+            <div className="relative flex rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/30 p-1">
+              {/* Sliding indicator */}
+              <div
+                className="absolute top-1 bottom-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/25 transition-all duration-300 ease-out"
+                style={{
+                  width: `calc(${100 / PLANS.length}% - 4px)`,
+                  left: `calc(${PLANS.findIndex((p) => p.id === selectedPlan) * (100 / PLANS.length)}% + 2px)`,
+                }}
+              />
+              {PLANS.map((plan) => {
+                const isActive = selectedPlan === plan.id
+                return (
+                  <button
+                    key={plan.id}
+                    type="button"
+                    onClick={() => setSelectedPlan(plan.id)}
+                    className="relative z-10 flex flex-1 flex-col items-center gap-0.5 rounded-lg px-3 py-2.5 transition-colors duration-200"
+                  >
+                    <plan.icon
+                      className={`h-4 w-4 transition-colors duration-200 ${
+                        isActive ? "text-white" : "text-slate-400 dark:text-slate-500"
+                      }`}
+                    />
+                    <span
+                      className={`text-xs font-semibold transition-colors duration-200 ${
+                        isActive ? "text-white" : "text-slate-600 dark:text-slate-400"
+                      }`}
+                    >
+                      {plan.label}
+                    </span>
+                    <span
+                      className={`text-[10px] transition-colors duration-200 ${
+                        isActive ? "text-white/70" : "text-slate-400 dark:text-slate-500"
+                      }`}
+                    >
+                      {plan.desc}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {error && (

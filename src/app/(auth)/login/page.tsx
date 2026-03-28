@@ -260,9 +260,9 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Loading...
+          <div className="relative w-[50px] aspect-square">
+            <span className="absolute rounded-[50px] animate-[loaderAnim_2.5s_infinite] shadow-[inset_0_0_0_3px] shadow-indigo-500/80" />
+            <span className="absolute rounded-[50px] animate-[loaderAnim_2.5s_infinite_-1.25s] shadow-[inset_0_0_0_3px] shadow-violet-500/80" />
           </div>
         </div>
       }
